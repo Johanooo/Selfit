@@ -1,40 +1,38 @@
 import { type ReactNode } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { ErrorBoundary } from '@/components/error-boundary';
-import { Toaster } from '@/components/ui/toaster';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { Layout } from '@/components/layout/Layout';
+import { CartProvider } from '@/state/cart';
+import { CookieProvider } from '@/state/cookies';
+import Home from '@/pages/Home';
+import { BrandPage, CategoryPage, CollectionPage } from '@/pages/ListingPages';
+import SearchPage from '@/pages/Search';
+import ProductPage from '@/pages/Product';
+import CartPage from '@/pages/Cart';
+import CheckoutPage from '@/pages/Checkout';
+import OrderConfirmationPage from '@/pages/OrderConfirmation';
+import TrackingPage from '@/pages/Tracking';
+import ReturnPage from '@/pages/Return';
+import { SupportArticlePage, SupportIndexPage } from '@/pages/Support';
 import NotFound from '@/pages/not-found';
-import {
-  Route,
-  Switch,
-  useLocation,
-  Router as WouterRouter,
-} from 'wouter';
 
-const queryClient = new QueryClient();
-
-function Home() {
+function Routes() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Replit Agent is building...
-        </h1>
-        <p className="mt-2 text-sm text-gray-600">
-          Your app will appear here once it's ready.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function Router() {
-  return (
-    // Keep a shared shell (sidebar, navbar) outside the boundary so it
-    // survives a page crash.
     <RoutedErrorBoundary>
       <Switch>
         <Route path="/" component={Home} />
+        <Route path="/kategori/:slug" component={CategoryPage} />
+        <Route path="/varumarke/:slug" component={BrandPage} />
+        <Route path="/kollektion/:slug" component={CollectionPage} />
+        <Route path="/sok" component={SearchPage} />
+        <Route path="/produkt/:slug" component={ProductPage} />
+        <Route path="/varukorg" component={CartPage} />
+        <Route path="/kassa" component={CheckoutPage} />
+        <Route path="/orderbekraftelse" component={OrderConfirmationPage} />
+        <Route path="/ordersparning" component={TrackingPage} />
+        <Route path="/retur" component={ReturnPage} />
+        <Route path="/support" component={SupportIndexPage} />
+        <Route path="/support/:slug" component={SupportArticlePage} />
         <Route component={NotFound} />
       </Switch>
     </RoutedErrorBoundary>
@@ -48,14 +46,15 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+      <CookieProvider>
+        <CartProvider>
+          <Layout>
+            <Routes />
+          </Layout>
+        </CartProvider>
+      </CookieProvider>
+    </WouterRouter>
   );
 }
 

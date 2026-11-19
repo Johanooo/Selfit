@@ -1,23 +1,23 @@
-import { Card, CardContent } from '@/components/ui/card';
-import { AlertCircle } from 'lucide-react';
+import { Link } from 'wouter';
+import { usePageMeta } from '@/hooks/use-page-meta';
 
 export default function NotFound() {
+  usePageMeta('Sidan finns inte', 'Sidan du letar efter kunde inte hittas.');
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50">
-      <Card className="w-full max-w-md mx-4">
-        <CardContent className="pt-6">
-          <div className="flex mb-4 gap-2">
-            <AlertCircle className="h-8 w-8 text-red-500" />
-            <h1 className="text-2xl font-bold text-gray-900">
-              404 Page Not Found
-            </h1>
-          </div>
-
-          <p className="mt-4 text-sm text-gray-600">
-            Did you forget to add the page to the router?
-          </p>
-        </CardContent>
-      </Card>
+    <div className="container not-found">
+      <p className="not-found-code" aria-hidden="true">
+        404
+      </p>
+      <h1 className="h1">Sidan finns inte</h1>
+      <p className="lead">Länken kan vara gammal, eller så har produkten flyttat. Prova att söka eller gå till startsidan.</p>
+      <div className="empty-actions">
+        <Link href="/" className="btn btn--primary" data-testid="link-home">
+          Till startsidan
+        </Link>
+        <Link href="/sok" className="btn btn--secondary">
+          Sök produkter
+        </Link>
+      </div>
     </div>
   );
 }

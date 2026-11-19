@@ -1,0 +1,160 @@
+import { useState, type FormEvent } from 'react';
+import { Link } from 'wouter';
+import { ShoppingBag, Trash2, ArrowRight, Tag, X } from 'lucide-react';
+import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { EmptyState } from '@/components/EmptyState';
+import { QuantityStepper } from '@/components/QuantityStepper';
+import { ProductImage } from '@/components/art/ProductImage';
+import { FreeShippingProgress, TotalsList } from '@/components/OrderSummary';
+import { usePageMeta } from '@/hooks/use-page-meta';
+import { getCategory } from '@/data/categories';
+import { computeTotals } from '@/lib/cart-math';
+import { productHref } from '@/lib/catalog';
+import { comparison, kr, variantLabel } from '@/lib/format';
+import { useCart, CART_MAX_QTY } from '@/state/cart';
+
+export default function CartPage() {
+  usePageMeta('Varukorg', 'Din varukorg hos SELFIT.');
+  const { lines, code, ready, setQty, remove, applyCode, removeCode } = useCart();
+  const [codeInput, setCodeInput] = useState('');
+  const [codeError, setCodeError] = useState('');
+  const totals = computeTotals(lines, code);
+
+  const submitCode = (e: FormEvent) => {
+    e.preventDefault();
+    if (!codeInput.trim()) {
+      setCodeError('Skriv in en rabattkod.');
+      return;
+    }
+    if (applyCode(codeInput)) {
+      setCodeError('');
+      setCodeInput('');
+    } else setCodeError(`Koden ”${codeInput.trim()}” är inte giltig. Prova demokoden SELFIT10.`);
+  };
+
+  return (
+    <div className="container page">
+      <Breadcrumbs items={[{ label: 'Varukorg' }]} />
+      <h1 className="h1" style={{ marginBottom: 'var(--space-6)' }}>
+        Varukorg
+      </h1>
+      {!ready ? (
+        <p className="muted" aria-busy="true">
+          Hämtar varukorgen …
+        </p>
+      ) : lines.length === 0 ? (
+        <EmptyState
+          icon={<ShoppingBag size={28} />}
+          title="Varukorgen är tom"
+          actions={
+            <>
+              <Link href="/kollektion/bastsaljare" className="btn btn--primary" data-testid="link-empty-bestsellers">
+                Se bästsäljare
+              </Link>
+              <Link href="/produkt/pwo-plus?smak=citrus&pack=6" className="btn btn--secondary">
+                Prova PWO+
+              </Link>
+            </>
+          }
+        >
+          Inget här ännu. Fri frakt till ombud när du handlar för 499 kr eller mer.
+        </EmptyState>
+      ) : (
+        <div className="two-col">
+          <section aria-label="Varor i varukorgen">
+            <ul className="cart-lines">
+              {lines.map((l) => {
+                const tone = getCategory(l.product.category)?.tone ?? 'lavender';
+                const cmp = comparison(l.variant);
+                return (
+                  <li className="cart-line" key={l.variantId} data-testid={`row-cart-${l.variantId}`}>
+                    <div className={`cart-line-media tone-${tone}`}>
+                      <ProductImage product={l.product} variant={l.variant} />
+                    </div>
+                    <div className="stack-2">
+                      <p className="product-card-brand">{l.product.brand}</p>
+                      <h2 className="h3">
+                        <Link href={productHref(l.product, l.variant)} className="text-link">
+                          {l.product.name}
+                        </Link>
+                      </h2>
+                      <p className="small muted">{variantLabel(l.product, l.variant)}</p>
+                      <p className="small">
+                        {kr(l.variant.price)} / st{cmp && <span className="muted"> · {cmp}</span>}
+                      </p>
+                      {l.deposit > 0 && <p className="small muted">Pant {kr(l.deposit)} redovisas separat</p>}
+                    </div>
+                    <div className="cart-line-controls">
+                      <p className="price" data-testid={`text-line-total-${l.variantId}`}>
+                        {kr(l.lineTotal)}
+                      </p>
+                      <QuantityStepper
+                        value={l.qty}
+                        onChange={(n) => setQty(l.variantId, n)}
+                        max={Math.min(CART_MAX_QTY, l.variant.stock)}
+                        label={`Antal ${l.product.name}`}
+                        id={l.variantId}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn--ghost btn--sm"
+                        onClick={() => remove(l.variantId)}
+                        data-testid={`button-remove-${l.variantId}`}
+                      >
+                        <Trash2 size={16} aria-hidden="true" /> Ta bort
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+          <aside className="summary" aria-label="Sammanställning">
+            <h2 className="h2">Sammanställning</h2>
+            <FreeShippingProgress totals={totals} />
+            <div className="stack-2">
+              {code ? (
+                <p className="notice notice--success">
+                  <Tag size={16} aria-hidden="true" />
+                  <span style={{ flex: 1 }}>Rabattkod {code} är aktiv.</span>
+                  <button type="button" className="icon-btn" onClick={removeCode} aria-label="Ta bort rabattkod" data-testid="button-remove-code">
+                    <X size={16} aria-hidden="true" />
+                  </button>
+                </p>
+              ) : (
+                <form onSubmit={submitCode} noValidate className="stack-2">
+                  <label htmlFor="discount" className="field-label">
+                    Rabattkod
+                  </label>
+                  <div className="inline-form">
+                    <input
+                      id="discount"
+                      className="input"
+                      value={codeInput}
+                      onChange={(e) => setCodeInput(e.target.value)}
+                      aria-invalid={codeError ? true : undefined}
+                      aria-describedby="discount-hint"
+                      autoComplete="off"
+                      data-testid="input-discount"
+                    />
+                    <button type="submit" className="btn btn--secondary" data-testid="button-apply-code">
+                      Använd
+                    </button>
+                  </div>
+                  <p id="discount-hint" className={codeError ? 'field-error' : 'field-hint'} role={codeError ? 'alert' : undefined}>
+                    {codeError || 'Demo: koden SELFIT10 ger 10 % rabatt på produkter (inte pant eller frakt).'}
+                  </p>
+                </form>
+              )}
+            </div>
+            <TotalsList totals={totals} code={code} shippingLabel="Frakt (ombud)" />
+            <Link href="/kassa" className="btn btn--primary btn--block" data-testid="link-checkout">
+              Till kassan <ArrowRight size={18} aria-hidden="true" />
+            </Link>
+            <p className="small muted">Alla priser inkl. moms. Leveranssätt väljer du i kassan.</p>
+          </aside>
+        </div>
+      )}
+    </div>
+  );
+}
