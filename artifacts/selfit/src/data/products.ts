@@ -11,22 +11,22 @@ export const CAN_ML = 330;
 export const DEPOSIT_PER_CAN = 1;
 
 export const pwoFlavours: Flavour[] = [
-  { slug: 'citrus', name: 'Citrus', note: 'Frisk citron och lime' },
-  { slug: 'hallon', name: 'Hallon', note: 'Syrligt, svenskt sommarhallon' },
-  { slug: 'mango', name: 'Mango', note: 'Mjuk, mogen mango' },
-  { slug: 'paron', name: 'Päron', note: 'Lätt och sött päron' },
-  { slug: 'tropisk', name: 'Tropisk', note: 'Passionsfrukt och ananas' },
-  { slug: 'blodapelsin', name: 'Blodapelsin', note: 'Säsongssmak, begränsad upplaga' },
+  { slug: 'blueberry', name: 'Blåbär', note: 'Söt och fyllig blåbärssmak' },
+  { slug: 'strawberry', name: 'Jordgubb', note: 'Frisk smak av jordgubb' },
+  { slug: 'berry-fusion', name: 'Bärmix', note: 'En blandning av blåbär och hallon' },
+  { slug: 'mango-passion', name: 'Mango & passionsfrukt', note: 'Fruktig mango med passionsfrukt' },
+  { slug: 'green-apple', name: 'Grönt äpple', note: 'Frisk smak av grönt äpple' },
+  { slug: 'black-edition', name: 'Black Edition', note: 'SELFITs Black Edition-smak' },
 ];
 
 const PWO_PACKS = [6, 12, 24];
 const PWO_PRICES: Record<number, number> = { 6: 149, 12: 279, 24: 529 };
 const PWO_EXCEPTIONS: Record<string, Partial<Variant>> = {
-  'paron-6': { stock: 0 },
-  'tropisk-24': { offered: false, stock: 0 },
-  'blodapelsin-6': { stock: 4 },
-  'blodapelsin-24': { stock: 0 },
-  'mango-24': { stock: 3 },
+  'green-apple-6': { stock: 0 },
+  'black-edition-24': { offered: false, stock: 0 },
+  'strawberry-6': { stock: 4 },
+  'strawberry-24': { stock: 0 },
+  'mango-passion-24': { stock: 3 },
 };
 
 const pwoVariants: Variant[] = pwoFlavours.flatMap((f, fi) =>
@@ -55,34 +55,30 @@ const pwo: Product = {
   brandSlug: 'selfit',
   category: 'traning',
   collections: ['pwo-plus', 'nyheter', 'bastsaljare'],
-  tagline: 'Kolsyrad pre-workout med koffein, beta-alanin och citrullin. Utan socker.',
+  tagline: 'Kolsyrad pre-workout med beta-alanin, AAKG och koffein.',
   description: [
     'PWO+ är vår första egna produkt: en lätt kolsyrad pre-workout-dryck som är färdig att dricka. Ingen shaker, inga pulverklumpar och en dos du vet exakt.',
-    'Varje burk innehåller 150 mg koffein, 2 g beta-alanin och 3 g L-citrullin. Sötad med sukralos och utan tillsatt socker.',
+    'En burk på 330 ml innehåller 3 500 mg beta-alanin, 3 000 mg AAKG och 300 mg koffein.',
   ],
   usage:
-    'Drick en burk (330 ml) 20–30 minuter före träning. Inte mer än en burk per dag. Rekommenderas inte för barn, gravida eller ammande. Kan ge en ofarlig stickande känsla i huden på grund av beta-alanin.',
+    'Avsedd att drickas före träning. Burken innehåller 300 mg koffein. Läs alltid förpackningens bruksanvisning och varningstext före användning. Rekommenderas inte för barn, gravida eller ammande.',
   ingredients:
-    'Kolsyrat vatten, L-citrullin, surhetsreglerande medel (citronsyra), beta-alanin, arom, koffein, sötningsmedel (sukralos), stabiliseringsmedel (gummi arabicum), konserveringsmedel (kaliumsorbat), färgämne (betakaroten).',
+    'Se förpackningens fullständiga innehållsförteckning. Produktbilden visar endast utvalda ingredienser och aktiva ämnen.',
   allergens: [],
   nutrition: {
     servingLabel: 'per burk (330 ml)',
     rows: [
       { label: 'Energi', per100: '4 kJ / 1 kcal', perServing: '13 kJ / 3 kcal' },
       { label: 'Fett', per100: '0 g', perServing: '0 g' },
-      { label: 'Kolhydrat', per100: '0,2 g', perServing: '0,7 g' },
-      { label: 'varav sockerarter', per100: '0 g', perServing: '0 g' },
-      { label: 'Protein', per100: '0 g', perServing: '0 g' },
-      { label: 'Salt', per100: '0,02 g', perServing: '0,07 g' },
-      { label: 'Koffein', per100: '45 mg', perServing: '150 mg' },
-      { label: 'Beta-alanin', per100: '0,6 g', perServing: '2 g' },
-      { label: 'L-citrullin', per100: '0,9 g', perServing: '3 g' },
+      { label: 'Beta-alanin', per100: '1 061 mg', perServing: '3 500 mg' },
+      { label: 'AAKG', per100: '909 mg', perServing: '3 000 mg' },
+      { label: 'Koffein', per100: '91 mg', perServing: '300 mg' },
     ],
   },
   facts: [
     { label: 'Volym per burk', value: '330 ml' },
     { label: 'Pant', value: '1 kr per burk' },
-    { label: 'Hög koffeinhalt', value: '45 mg/100 ml' },
+    { label: 'Hög koffeinhalt', value: 'cirka 91 mg/100 ml' },
     { label: 'Tillverkad i', value: 'Sverige' },
   ],
   art: 'can',
@@ -246,6 +242,8 @@ const others: Product[] = [
     price: 249,
     measure: { amount: 0.3, unit: 'kg' },
     eanBody: '735020000044',
+    primaryImage: '/images/kreatin-monohydrat-demo.jpeg',
+    primaryImageAlt: 'Tillfällig exempelbild för Kreatin Monohydrat: burk med kreatingummies',
   }),
   simple({
     slug: 'traningsband-set',

@@ -142,7 +142,7 @@ export const supportPages: SupportPage[] = [
     summary: 'Snabba svar på det kunder frågar oss mest.',
     sections: [],
     faq: [
-      { q: 'Hur mycket koffein innehåller PWO+?', a: '150 mg per burk (330 ml), ungefär som en och en halv kopp bryggkaffe.' },
+      { q: 'Hur mycket koffein innehåller PWO+?', a: 'Produktbilden visar 300 mg koffein per 330 ml-burk. Läs alltid informationen på förpackningen före användning.' },
       { q: 'Varför pirrar det i huden?', a: 'Beta-alanin kan ge en ofarlig, övergående stickande känsla. Den brukar avta efter 15–30 minuter.' },
       { q: 'Hur fungerar pant?', a: 'Varje burk har 1 kr pant som visas separat i varukorgen. Pantar du burken i en butik får du tillbaka beloppet.' },
       { q: 'Vad betyder jämförpris?', a: 'Jämförpriset visar vad produkten kostar per liter, kilo eller styck, så att du enkelt kan jämföra olika förpackningar.' },

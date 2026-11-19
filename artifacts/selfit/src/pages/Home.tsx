@@ -36,7 +36,7 @@ export default function Home() {
               svar från riktiga människor. Nu också med vår egen pre-workout.
             </p>
             <div className="hero-actions">
-              <Link href="/produkt/pwo-plus?smak=citrus&pack=6" className="btn btn--primary" data-testid="link-hero-pwo">
+              <Link href="/produkt/pwo-plus?smak=blueberry&pack=6" className="btn btn--primary" data-testid="link-hero-pwo">
                 Upptäck PWO+ <ArrowRight size={18} aria-hidden="true" />
               </Link>
               <Link href="/kategori/halsa" className="btn btn--secondary" data-testid="link-hero-shop">
@@ -64,10 +64,10 @@ export default function Home() {
               alt="En löpare i lavendelfärgade träningskläder vilar på en solig kaj i Stockholm med en burk PWO+ i handen"
               fetchPriority="high"
             />
-            <Link href="/produkt/pwo-plus?smak=hallon&pack=12" className="hero-badge" data-testid="link-hero-badge">
-              <PwoCan flavour="hallon" label="PWO+ Hallon" />
+            <Link href="/produkt/pwo-plus?smak=blueberry&pack=12" className="hero-badge" data-testid="link-hero-badge">
+              <PwoCan flavour="blueberry" label="PWO+ Blåbär" />
               <span className="small">
-                <strong>PWO+ Hallon, 12-pack</strong>
+                <strong>PWO+ Blåbär, 12-pack</strong>
                 <br />
                 <span className="muted">279 kr · Jämförpris 70 kr/l</span>
               </span>
@@ -153,14 +153,14 @@ export default function Home() {
                 PWO+. Pre-workout du bara öppnar.
               </h2>
               <p className="lead">
-                Lätt kolsyrad, färdig att dricka och utan socker. 150 mg koffein, beta-alanin och citrullin i varje
-                330 ml-burk. Sex smaker, från 66 kr/l.
+                Färdig att dricka, med 3 500 mg beta-alanin, 3 000 mg AAKG och 300 mg koffein i varje 330 ml-burk.
+                Sex smaker, från 66 kr/l.
               </p>
               <ul className="pwo-facts" aria-label="Innehåll per burk">
-                <li>150 mg koffein</li>
-                <li>2 g beta-alanin</li>
-                <li>3 g L-citrullin</li>
-                <li>0 g socker</li>
+                <li>300 mg koffein</li>
+                <li>3 500 mg beta-alanin</li>
+                <li>3 000 mg AAKG</li>
+                <li>330 ml per burk</li>
               </ul>
               <Link href="/kollektion/pwo-plus" className="btn btn--on-dark" data-testid="link-pwo-collection">
                 Se alla smaker <ArrowRight size={18} aria-hidden="true" />

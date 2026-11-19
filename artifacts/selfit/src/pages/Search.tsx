@@ -6,7 +6,7 @@ import { usePageMeta } from '@/hooks/use-page-meta';
 import { allItems, searchItems } from '@/lib/catalog';
 import { categories } from '@/data/categories';
 
-const SUGGESTIONS = ['PWO+', 'D-vitamin', 'Magnesium', 'Fuktkräm', 'Hallon', 'Kreatin'];
+const SUGGESTIONS = ['PWO+', 'D-vitamin', 'Magnesium', 'Fuktkräm', 'Blåbär', 'Kreatin'];
 
 export default function SearchPage() {
   const q = (new URLSearchParams(useSearch()).get('q') ?? '').trim();

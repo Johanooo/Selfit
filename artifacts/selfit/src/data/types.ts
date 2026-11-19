@@ -35,7 +35,7 @@ export interface Variant {
   /** false = combination is not produced at all (not just sold out) */
   offered: boolean;
   ean: string;
-  /** image key, e.g. "can:citrus" or "art" */
+  /** Image key, e.g. "can:blueberry" or "art". */
   image: string;
   measure?: Measure;
 }
@@ -60,6 +60,9 @@ export interface Product {
   allergens: string[];
   nutrition?: { servingLabel: string; rows: NutritionRow[] };
   facts: { label: string; value: string }[];
+  /** Optional local primary product image; set alt text to describe placeholders honestly. */
+  primaryImage?: string;
+  primaryImageAlt?: string;
   art: ArtKind;
   artTone: ArtTone;
   unitLabel: string;

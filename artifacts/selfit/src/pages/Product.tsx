@@ -162,6 +162,7 @@ function ProductView({ product }: { product: Product }) {
           >
             <ProductImage key={`${variant.id}-${view}`} product={product} variant={variant} view={view} />
           </div>
+          {product.primaryImage && <p className="image-placeholder-note">Tillfällig exempelbild – kan bytas ut senare.</p>}
           {views.length > 1 && (
             <ul className="thumbs" aria-label="Välj bild">
               {views.map((v) => (
@@ -170,7 +171,7 @@ function ProductView({ product }: { product: Product }) {
                     type="button"
                     className={`thumb tone-${category?.tone ?? 'lavender'}`}
                     aria-pressed={view === v}
-                    aria-label={v === 'front' ? 'Visa produktbild' : v === 'pack' ? 'Visa förpackning' : 'Visa miljöbild'}
+                    aria-label={v === 'front' ? 'Visa produktbild' : v === 'pack' ? 'Visa förpackning' : product.slug === 'pwo-plus' ? 'Visa smakbilder' : 'Visa miljöbild'}
                     onClick={() => setView(v)}
                     data-testid={`button-thumb-${v}`}
                   >

@@ -13,11 +13,17 @@ export function galleryViews(product: Product, variant: Variant): ImageView[] {
   return views;
 }
 
-export function photoFor(product: Product): { src: string; alt: string } {
+export function photoFor(product: Product, variant?: Variant): { src: string; alt: string } {
   if (product.slug === 'pwo-plus') {
+    if (variant?.flavour === 'blueberry') {
+      return {
+        src: '/images/pwo-plus/blueberry-campaign.webp',
+        alt: 'SELFIT PWO+ Blåbär, en 330 ml-burk med blåbär och blå färgeffekter',
+      };
+    }
     return {
-      src: '/images/hero.jpg',
-      alt: 'Löpare i lavendelfärgade träningskläder vilar vid kajen med en burk PWO+ i handen',
+      src: '/images/pwo-plus/flavour-lineup.jpeg',
+      alt: 'SELFIT PWO+ i smakerna blåbär, jordgubb, bärmix, mango och passionsfrukt, grönt äpple samt Black Edition',
     };
   }
   const c = getCategory(product.category);
@@ -35,13 +41,30 @@ export function ProductImage({
 }) {
   const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   if (view === 'photo') {
-    const p = photoFor(product);
-    return <img src={`${base}${p.src}`} alt={p.alt} loading="lazy" />;
+    const p = photoFor(product, variant);
+    return (
+      <img
+        className={product.slug === 'pwo-plus' ? 'pwo-gallery-photo' : undefined}
+        src={`${base}${p.src}`}
+        alt={p.alt}
+        loading="lazy"
+      />
+    );
   }
   if (variant.image.startsWith('can:')) {
     const flavour = variant.image.slice(4);
     if (view === 'pack' && variant.pack) return <PwoPack flavour={flavour} pack={variant.pack} />;
     return <PwoCan flavour={flavour} label={`PWO+ ${getFlavour(flavour)?.name ?? ''}, burk 330 ml`} />;
+  }
+  if (view === 'front' && product.primaryImage) {
+    return (
+      <img
+        className="product-photo"
+        src={`${base}${product.primaryImage}`}
+        alt={product.primaryImageAlt ?? product.name}
+        loading="lazy"
+      />
+    );
   }
   return <ProductArt product={product} />;
 }

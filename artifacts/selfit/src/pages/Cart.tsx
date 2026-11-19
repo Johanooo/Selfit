@@ -51,7 +51,7 @@ export default function CartPage() {
               <Link href="/kollektion/bastsaljare" className="btn btn--primary" data-testid="link-empty-bestsellers">
                 Se bästsäljare
               </Link>
-              <Link href="/produkt/pwo-plus?smak=citrus&pack=6" className="btn btn--secondary">
+              <Link href="/produkt/pwo-plus?smak=blueberry&pack=6" className="btn btn--secondary">
                 Prova PWO+
               </Link>
             </>

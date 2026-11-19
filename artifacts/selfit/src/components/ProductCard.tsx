@@ -33,6 +33,7 @@ export function ProductCard({ item, filters, index = 0 }: { item: ListingItem; f
       <div className={`product-card-media tone-${tone}`}>
         <ProductImage product={product} variant={v} />
         <div className="product-card-badge">
+          {product.primaryImage && <span className="badge badge--new">Exempelbild</span>}
           {allOut ? (
             <span className="badge badge--out">Slutsåld</span>
           ) : product.isNew ? (

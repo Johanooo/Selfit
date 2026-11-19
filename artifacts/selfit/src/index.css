@@ -33,18 +33,18 @@
   --c-focus: #4b2a6b;
 
   /* PWO+ flavour palette (can artwork) */
-  --flavour-citrus: #e8d44d;
-  --flavour-citrus-deep: #6b5d0a;
-  --flavour-hallon: #d9476e;
-  --flavour-hallon-deep: #6d1530;
-  --flavour-mango: #f2a23a;
-  --flavour-mango-deep: #7a420a;
-  --flavour-paron: #a9c95a;
-  --flavour-paron-deep: #3f5512;
-  --flavour-tropisk: #36b3a8;
-  --flavour-tropisk-deep: #0f4e48;
-  --flavour-blodapelsin: #e2603c;
-  --flavour-blodapelsin-deep: #6e2410;
+  --flavour-blueberry: #2679ce;
+  --flavour-blueberry-deep: #164d87;
+  --flavour-strawberry: #ed3154;
+  --flavour-strawberry-deep: #981d36;
+  --flavour-berry-fusion: #a139d4;
+  --flavour-berry-fusion-deep: #602181;
+  --flavour-mango-passion: #f1b626;
+  --flavour-mango-passion-deep: #77580b;
+  --flavour-green-apple: #80d638;
+  --flavour-green-apple-deep: #426b1c;
+  --flavour-black-edition: #b7b8bf;
+  --flavour-black-edition-deep: #55545b;
   --can-metal: #e9e6ec;
   --can-metal-shade: #c9c3cf;
 
@@ -55,6 +55,7 @@
   --art-rose: #c98a8f;
   --art-sky: #7f9fb8;
   --art-ink: #3a3042;
+  --c-product-photo: #080a0f;
 
   /* Typography */
   --font-display: 'Manrope', ui-sans-serif, system-ui, sans-serif;
@@ -825,6 +826,12 @@ textarea {
   width: 40px;
   flex: none;
 }
+.hero-badge .pwo-real-can {
+  width: 40px;
+  height: 76px;
+  object-fit: contain;
+  flex: none;
+}
 .hero-stats {
   display: flex;
   flex-wrap: wrap;
@@ -991,11 +998,17 @@ textarea {
   padding: var(--space-2);
   border-radius: var(--radius-md);
 }
-.can-row a svg {
+.can-row a .pwo-real-can {
+  height: clamp(7rem, 17vw, 10.5rem);
+  width: auto;
+  max-width: 100%;
   transition: transform var(--dur-base) var(--ease-spring);
 }
-.can-row a:hover svg,
-.can-row a:focus-visible svg {
+.can-row a .pwo-real-can {
+  border-radius: var(--radius-xs);
+}
+.can-row a:hover .pwo-real-can,
+.can-row a:focus-visible .pwo-real-can {
   transform: translateY(-8px) rotate(-4deg);
 }
 .can-row a:focus-visible {
@@ -1097,12 +1110,40 @@ a.help-card:hover {
   overflow: hidden;
   padding: var(--space-5);
 }
+.product-card-media .product-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+.product-card-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+.product-card-media:has(.pwo-real-can),
+.gallery-main:has(.pwo-real-can),
+.thumb:has(.pwo-real-can),
+.pwo-pack-art {
+  background: var(--c-product-photo);
+}
 .product-card-media svg {
   height: 100%;
   width: auto;
   transition: transform var(--dur-slow) var(--ease);
 }
 .product-card:hover .product-card-media svg {
+  transform: translateY(-4px) scale(1.03);
+}
+.product-card-media .pwo-real-can {
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  transition: transform var(--dur-slow) var(--ease);
+}
+.product-card:hover .product-card-media .pwo-real-can {
   transform: translateY(-4px) scale(1.03);
 }
 .product-card-badge {
@@ -1268,6 +1309,46 @@ a.chip:hover {
 .can-art,
 .prod-art {
   overflow: visible;
+}
+.pwo-pack-art {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+}
+.pwo-pack-art img {
+  position: absolute;
+  height: 78%;
+  width: auto;
+  max-width: 40%;
+  object-fit: contain;
+}
+.pwo-pack-art img:nth-child(1) {
+  transform: translateX(-48%) scale(0.82);
+}
+.pwo-pack-art img:nth-child(2) {
+  transform: translateX(48%) scale(0.82);
+}
+.pwo-pack-art img:nth-child(3) {
+  transform: translateY(-4%);
+}
+.pwo-pack-count {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  display: grid;
+  place-items: center;
+  width: var(--space-8);
+  aspect-ratio: 1;
+  border-radius: var(--radius-pill);
+  color: var(--c-on-primary);
+  background: var(--c-primary);
+  font-family: var(--font-display);
+  font-weight: 800;
 }
 
 /* ========================================================================== Breadcrumbs + listing */
@@ -1550,16 +1631,38 @@ a.chip:hover {
   height: 88%;
   width: auto;
 }
-.gallery-main img {
+.gallery-main > img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: var(--radius-md);
 }
+.gallery-main > img.product-photo {
+  object-fit: contain;
+}
+.image-placeholder-note {
+  margin: var(--space-2) 0 0;
+  color: var(--c-muted);
+  font-size: var(--fs-xs);
+}
+.gallery-main .pwo-real-can {
+  height: 90%;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: 0;
+}
 .gallery-main--photo {
   padding: 0;
 }
 .gallery-main--photo img {
+  border-radius: 0;
+}
+.gallery-main--photo:has(.pwo-gallery-photo) {
+  background: var(--c-product-photo);
+}
+.gallery-main--photo .pwo-gallery-photo {
+  object-fit: contain;
   border-radius: 0;
 }
 @keyframes fade-in {
@@ -1594,6 +1697,12 @@ a.chip:hover {
   height: 100%;
   object-fit: cover;
   border-radius: var(--radius-xs);
+}
+.thumb .pwo-real-can {
+  width: auto;
+  height: 90%;
+  object-fit: contain;
+  border-radius: 0;
 }
 .thumb[aria-pressed='true'] {
   border-color: var(--c-primary);
