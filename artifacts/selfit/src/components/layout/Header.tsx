@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation, useSearch } from 'wouter';
 import { Menu, Search, ShoppingBag, Truck, ShieldCheck, Clock } from 'lucide-react';
 import { Logo } from '@/components/Logo';
@@ -16,16 +16,18 @@ export function Header() {
   const [location, navigate] = useLocation();
   const search = useSearch();
   const { count, ready } = useCart();
-  const [q, setQ] = useState('');
+  const searchInput = useRef<HTMLInputElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    if (location === '/sok') setQ(new URLSearchParams(search).get('q') ?? '');
+    if (location === '/sok' && searchInput.current) {
+      searchInput.current.value = new URLSearchParams(search).get('q') ?? '';
+    }
   }, [location, search]);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    const term = q.trim();
+    const term = searchInput.current?.value.trim() ?? '';
     navigate(term ? `/sok?q=${encodeURIComponent(term)}` : '/sok');
   };
 
@@ -68,11 +70,11 @@ export function Header() {
             </label>
             <Search size={18} aria-hidden="true" />
             <input
+              ref={searchInput}
               id="site-search"
               type="search"
               name="q"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
+              defaultValue=""
               placeholder="Sök bland vitaminer, hudvård, PWO+ …"
               autoComplete="off"
               data-testid="input-search"
