@@ -29,13 +29,28 @@ function firstBuyable(list: Variant[]): Variant | undefined {
   return list.find(isBuyable) ?? list.find((v) => v.offered) ?? list[0];
 }
 
+function flavourStatus(product: Product, slug: string, pack?: number) {
+  const variants = product.variants.filter((v) => v.flavour === slug);
+  if (pack !== undefined) {
+    const combination = variants.find((v) => v.pack === pack);
+    if (!combination || !combination.offered) {
+      return { state: 'unavailable' as const, text: 'Finns inte i denna förpackning' };
+    }
+    if (combination.stock <= 0) return { state: 'soldout' as const, text: 'Slut i lager' };
+    return { state: 'ok' as const, text: '' };
+  }
+  if (variants.some(isBuyable)) return { state: 'ok' as const, text: '' };
+  if (variants.some((v) => v.offered)) return { state: 'soldout' as const, text: 'Slut i lager' };
+  return { state: 'unavailable' as const, text: 'Finns inte i denna förpackning' };
+}
+
 /** Resolve URL query to a variant, falling back gracefully. */
 function resolve(product: Product, smak: string | null, pack: string | null) {
   const flavours = uniq(product.variants.map((v) => v.flavour));
   const flavour = flavours.includes(smak ?? '') ? smak! : flavours[0];
   const inFlavour = product.variants.filter((v) => v.flavour === flavour);
   const packNum = Number(pack);
-  const exact = inFlavour.find((v) => v.pack === packNum && v.offered);
+  const exact = inFlavour.find((v) => v.pack === packNum);
   return exact ?? firstBuyable(inFlavour.length ? inFlavour : product.variants)!;
 }
 
@@ -110,6 +125,7 @@ function ProductView({ product }: { product: Product }) {
   };
 
   const selectFlavour = (slug: string) => {
+    if (flavourStatus(product, slug, variant.pack).state !== 'ok') return;
     const inF = product.variants.filter((v) => v.flavour === slug);
     const same = inF.find((v) => v.pack === variant.pack);
     if (same && isBuyable(same)) {
@@ -117,7 +133,8 @@ function ProductView({ product }: { product: Product }) {
       go(same);
       return;
     }
-    const fallback = firstBuyable(inF)!;
+    const fallback = firstBuyable(inF);
+    if (!fallback) return;
     const fName = getFlavour(slug)?.name ?? '';
     if (variant.pack && fallback.pack !== variant.pack) {
       const why = same && same.offered ? 'är slutsåld' : 'finns inte';
@@ -128,7 +145,7 @@ function ProductView({ product }: { product: Product }) {
 
   const selectPack = (p: number) => {
     const v = product.variants.find((x) => x.pack === p && x.flavour === variant.flavour);
-    if (v && v.offered) {
+    if (v && isBuyable(v)) {
       setNotice(null);
       go(v);
     }
@@ -136,8 +153,8 @@ function ProductView({ product }: { product: Product }) {
 
   const packStatus = (p: number) => {
     const v = product.variants.find((x) => x.pack === p && x.flavour === variant.flavour);
-    if (!v || !v.offered) return { v, state: 'unavailable' as const, text: 'Finns ej i denna smak' };
-    if (v.stock <= 0) return { v, state: 'soldout' as const, text: 'Slutsåld' };
+    if (!v || !v.offered) return { v, state: 'unavailable' as const, text: 'Finns inte i denna förpackning' };
+    if (v.stock <= 0) return { v, state: 'soldout' as const, text: 'Slut i lager' };
     return { v, state: 'ok' as const, text: comparison(v) ?? '' };
   };
 
@@ -203,20 +220,30 @@ function ProductView({ product }: { product: Product }) {
                 {pwoFlavours
                   .filter((f) => flavours.includes(f.slug))
                   .map((f) => {
-                    const anyBuyable = product.variants.some((v) => v.flavour === f.slug && isBuyable(v));
+                    const status = flavourStatus(product, f.slug, variant.pack);
+                    const unavailable = status.state !== 'ok';
+                    const statusId = `flavour-${f.slug}-meta`;
                     return (
                       <button
                         key={f.slug}
                         type="button"
                         className="option"
                         aria-pressed={variant.flavour === f.slug}
-                        data-state={anyBuyable ? 'ok' : 'soldout'}
-                        onClick={() => selectFlavour(f.slug)}
+                        aria-disabled={unavailable}
+                        aria-describedby={unavailable ? statusId : undefined}
+                        data-state={status.state}
+                        onClick={() => {
+                          if (!unavailable) selectFlavour(f.slug);
+                        }}
                         data-testid={`button-flavour-${f.slug}`}
                       >
                         <span className="swatch" style={{ background: `var(--flavour-${f.slug})` }} aria-hidden="true" />
-                        {f.name}
-                        {!anyBuyable && <span className="option-meta">Slutsåld</span>}
+                        <span className="option-name">{f.name}</span>
+                        {unavailable && (
+                          <span className="option-meta" id={statusId}>
+                            {status.text}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -232,20 +259,19 @@ function ProductView({ product }: { product: Product }) {
               <div className="options">
                 {packs.map((p) => {
                   const s = packStatus(p);
-                  const unavailable = s.state === 'unavailable';
                   return (
                     <button
                       key={p}
                       type="button"
                       className="option option-pack"
                       aria-pressed={variant.pack === p}
-                      disabled={unavailable}
+                      aria-disabled={s.state !== 'ok'}
                       data-state={s.state}
                       aria-describedby={`pack-${p}-meta`}
                       onClick={() => selectPack(p)}
                       data-testid={`button-pack-${p}`}
                     >
-                      {packLabel(p)}
+                      <span className="option-name">{packLabel(p)}</span>
                       <span className="option-meta" id={`pack-${p}-meta`}>
                         {s.state === 'ok' && s.v ? `${kr(s.v.price)} · ${s.text}` : s.text}
                       </span>
@@ -285,7 +311,7 @@ function ProductView({ product }: { product: Product }) {
               <p className="notice notice--danger">
                 <AlertTriangle size={16} aria-hidden="true" />
                 {showPacks || showFlavours
-                  ? 'Den här kombinationen går inte att köpa just nu. Välj en annan smak eller förpackning.'
+                  ? `${stockText(variant)}. Välj en annan smak eller förpackning.`
                   : 'Produkten är tillfälligt slut. Vi fyller på så snart vi kan.'}
               </p>
             )}
@@ -301,7 +327,13 @@ function ProductView({ product }: { product: Product }) {
                 data-testid="button-add-to-cart"
               >
                 {justAdded ? <Check size={18} aria-hidden="true" /> : <Plus size={18} aria-hidden="true" />}
-                {!buyable ? 'Ej köpbar' : justAdded ? 'Tillagd' : 'Lägg i varukorgen'}
+                {!buyable
+                  ? variant.offered
+                    ? 'Slut i lager'
+                    : 'Finns inte i denna förpackning'
+                  : justAdded
+                    ? 'Tillagd'
+                    : 'Lägg i varukorgen'}
               </button>
             </div>
             <ul className="delivery-list">

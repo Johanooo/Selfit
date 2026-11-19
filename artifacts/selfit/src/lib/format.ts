@@ -52,9 +52,9 @@ export function stockState(v: Variant): StockState {
 export function stockText(v: Variant): string {
   switch (stockState(v)) {
     case 'unavailable':
-      return 'Finns inte i sortimentet';
+      return 'Finns inte i denna förpackning';
     case 'out':
-      return 'Slutsåld just nu';
+      return 'Slut i lager';
     case 'low':
       return `Få kvar – ${v.stock} st i lager`;
     default:

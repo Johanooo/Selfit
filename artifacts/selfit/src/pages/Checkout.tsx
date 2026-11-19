@@ -9,7 +9,7 @@ import { FreeShippingProgress, TotalsList } from '@/components/OrderSummary';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import { getCategory } from '@/data/categories';
 import { computeTotals, SHIPPING, type DeliveryMethod } from '@/lib/cart-math';
-import { kr, variantLabel } from '@/lib/format';
+import { isBuyable, kr, stockText, variantLabel } from '@/lib/format';
 import { makeOrderNumber, saveOrder } from '@/lib/order';
 import { useCart } from '@/state/cart';
 
@@ -22,9 +22,11 @@ export default function CheckoutPage() {
   const [, navigate] = useLocation();
   const totals = computeTotals(lines, code, method);
   const free = totals.remainingForFree <= 0;
+  const unavailableLines = lines.filter((line) => !isBuyable(line.variant));
 
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (unavailableLines.length > 0) return;
     const form = e.currentTarget;
     if (!form.checkValidity()) {
       form.reportValidity();
@@ -89,6 +91,12 @@ export default function CheckoutPage() {
           uppgifter sparas.
         </span>
       </p>
+      {unavailableLines.length > 0 && (
+        <p className="notice notice--danger" role="alert" data-testid="checkout-stock-warning">
+          {unavailableLines.map((line) => `${line.product.name}: ${stockText(line.variant)}`).join('. ')}.
+          {' '}Ta bort varorna i varukorgen innan du fortsätter.
+        </p>
+      )}
       <div className="two-col">
         <form onSubmit={submit} aria-label="Beställningsformulär" data-testid="form-checkout">
           <fieldset className="form-section">
@@ -222,9 +230,18 @@ export default function CheckoutPage() {
             )}
           </fieldset>
 
-          <button type="submit" className="btn btn--primary btn--block" disabled={submitting} data-testid="button-place-order">
+          <button
+            type="submit"
+            className="btn btn--primary btn--block"
+            disabled={submitting || unavailableLines.length > 0}
+            data-testid="button-place-order"
+          >
             <Lock size={18} aria-hidden="true" />
-            {submitting ? 'Skapar demobeställning …' : `Lägg demobeställning · ${kr(totals.total)}`}
+            {unavailableLines.length > 0
+              ? 'Ta bort slutsålda varor först'
+              : submitting
+                ? 'Skapar demobeställning …'
+                : `Lägg demobeställning · ${kr(totals.total)}`}
           </button>
           <p className="small muted" style={{ marginTop: 'var(--space-3)', textAlign: 'center' }}>
             Ingen riktig beställning eller betalning görs.

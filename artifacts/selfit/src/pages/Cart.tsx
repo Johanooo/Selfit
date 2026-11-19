@@ -10,7 +10,7 @@ import { usePageMeta } from '@/hooks/use-page-meta';
 import { getCategory } from '@/data/categories';
 import { computeTotals } from '@/lib/cart-math';
 import { productHref } from '@/lib/catalog';
-import { comparison, kr, variantLabel } from '@/lib/format';
+import { comparison, isBuyable, kr, stockText, variantLabel } from '@/lib/format';
 import { useCart, CART_MAX_QTY } from '@/state/cart';
 
 export default function CartPage() {
@@ -19,6 +19,7 @@ export default function CartPage() {
   const [codeInput, setCodeInput] = useState('');
   const [codeError, setCodeError] = useState('');
   const totals = computeTotals(lines, code);
+  const hasUnavailableLines = lines.some((line) => !isBuyable(line.variant));
 
   const submitCode = (e: FormEvent) => {
     e.preventDefault();
@@ -66,8 +67,13 @@ export default function CartPage() {
               {lines.map((l) => {
                 const tone = getCategory(l.product.category)?.tone ?? 'lavender';
                 const cmp = comparison(l.variant);
+                const unavailable = !isBuyable(l.variant);
                 return (
-                  <li className="cart-line" key={l.variantId} data-testid={`row-cart-${l.variantId}`}>
+                  <li
+                    className={`cart-line${unavailable ? ' cart-line--unavailable' : ''}`}
+                    key={l.variantId}
+                    data-testid={`row-cart-${l.variantId}`}
+                  >
                     <div className={`cart-line-media tone-${tone}`}>
                       <ProductImage product={l.product} variant={l.variant} />
                     </div>
@@ -83,6 +89,11 @@ export default function CartPage() {
                         {kr(l.variant.price)} / st{cmp && <span className="muted"> · {cmp}</span>}
                       </p>
                       {l.deposit > 0 && <p className="small muted">Pant {kr(l.deposit)} redovisas separat</p>}
+                      {unavailable && (
+                        <p className="notice notice--danger cart-stock-warning" role="status">
+                          {stockText(l.variant)}. Ta bort varan för att kunna gå vidare.
+                        </p>
+                      )}
                     </div>
                     <div className="cart-line-controls">
                       <p className="price" data-testid={`text-line-total-${l.variantId}`}>
@@ -91,7 +102,7 @@ export default function CartPage() {
                       <QuantityStepper
                         value={l.qty}
                         onChange={(n) => setQty(l.variantId, n)}
-                        max={Math.min(CART_MAX_QTY, l.variant.stock)}
+                        max={Math.max(1, Math.min(CART_MAX_QTY, l.variant.stock))}
                         label={`Antal ${l.product.name}`}
                         id={l.variantId}
                       />
@@ -148,9 +159,15 @@ export default function CartPage() {
               )}
             </div>
             <TotalsList totals={totals} code={code} shippingLabel="Frakt (ombud)" />
-            <Link href="/kassa" className="btn btn--primary btn--block" data-testid="link-checkout">
-              Till kassan <ArrowRight size={18} aria-hidden="true" />
-            </Link>
+            {hasUnavailableLines ? (
+              <button type="button" className="btn btn--primary btn--block" disabled data-testid="button-checkout-blocked">
+                Ta bort slutsålda varor för att gå vidare
+              </button>
+            ) : (
+              <Link href="/kassa" className="btn btn--primary btn--block" data-testid="link-checkout">
+                Till kassan <ArrowRight size={18} aria-hidden="true" />
+              </Link>
+            )}
             <p className="small muted">Alla priser inkl. moms. Leveranssätt väljer du i kassan.</p>
           </aside>
         </div>
