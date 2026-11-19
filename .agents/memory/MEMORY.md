@@ -1,0 +1,1 @@
+- [SELFITs projektavgränsning](selfit-scope.md) — Endast flyttbar svensk butiksdesign med lokal exempeldata; inga backendtjänster eller riktiga köp.

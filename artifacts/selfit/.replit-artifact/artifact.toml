@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "SELFIT – Träning, hälsa & välmående"
+description = "En svensk butiksprototyp för träning, hälsa och kroppsvård med lokala exempelprodukter, produktvarianter, varukorg och simulerad kassa. Ingen backend eller betalningsintegration."
+version = "1.0.0"
+id = "artifacts/selfit"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21746
+
+[services.development]
+run = "pnpm --filter @workspace/selfit run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/selfit", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/selfit/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21746"
+BASE_PATH = "/"
