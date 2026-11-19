@@ -27,7 +27,7 @@ pnpm --filter @workspace/selfit run serve
 
 ## Flytta till annan kodbas
 
-Kopiera denna app och dess lokala tillgångar. Behåll appens vanliga npm-beroenden och importaliaset `@/` till `src/`. Butiken behöver inte projektets API-server eller databas. Centrala temavariabler och lokal produktdata kan flyttas med appen.
+Kopiera denna app och dess lokala tillgångar. Behåll appens vanliga npm-beroenden och importaliaset `@/` till `src/`. Centrala temavariabler och lokal produktdata kan flyttas med appen.
 
 För statisk drift behöver webbservern skicka `index.html` för sidornas stabila adresser, exempelvis `/kategori/traning` och `/produkt/pwo-plus?smak=citrus&pack=6`.
 

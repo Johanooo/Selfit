@@ -1,45 +1,27 @@
-# [Project name]
+# SELFIT
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Svensk butiksprototyp för träning, hälsa och skönhet/kroppsvård, med PWO+ som första produkt.
 
-## Run & Operate
+## Avgränsning
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+SELFIT är en flyttbar designprototyp med lokal exempeldata. Projektet saknar backend; varukorg, kassa och orderstatus är endast demonstrationer. Inga riktiga köp, betalningar eller lagerkopplingar genomförs.
 
-## Stack
+Mockup-sandboxen är en separat designförhandsvisning och inte en del av SELFIT-butiken.
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+## Källfiler
 
-## Where things live
+- Tema och CSS-variabler: `artifacts/selfit/src/index.css`
+- Lokal produkt- och variantdata: `artifacts/selfit/src/data/products.ts`
+- Kategoridata: `artifacts/selfit/src/data/categories.ts`
+- Butikens sidor och komponenter: `artifacts/selfit/src/`
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+## Köra och kontrollera butiken
 
-## Architecture decisions
+- `pnpm --filter @workspace/selfit run dev` — starta SELFIT-förhandsvisningen
+- `pnpm --filter @workspace/selfit run typecheck` — typkontrollera butiken
+- `pnpm --filter @workspace/selfit run build` — bygg butikens statiska frontend
+- `pnpm run typecheck` — typkontrollera kvarvarande workspace-paket
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+## Teknik
 
-## Product
-
-_Describe the high-level user-facing capabilities of this app once they exist._
-
-## User preferences
-
-_Populate as you build — explicit user instructions worth remembering across sessions._
-
-## Gotchas
-
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+pnpm-workspace, Node.js 24, TypeScript, React och Vite. Butiken läser exempeldata från vanliga lokala TypeScript-filer och behöver ingen tjänst eller databas.
