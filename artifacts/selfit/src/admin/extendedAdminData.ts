@@ -52,7 +52,14 @@ export type LocalMediaItem = {
 export const defaultMediaItems: LocalMediaItem[] = [
   { id: 'media-pwo-blueberry', name: 'PWO+ blåbär, framsida', src: '/images/pwo-plus/blueberry.webp', alt: 'PWO+ blåbär, burk framifrån', kind: 'Produktbild', usedBy: ['PWO+ Pre-workout'] },
   { id: 'media-pancakes', name: 'Protein pannkakor', src: '/images/protein-pannkakor/blueberry.webp', alt: 'Förpackning med proteinpannkakor i blåbärssmak', kind: 'Förpackning', usedBy: ['Protein pannkakor'] },
-  { id: 'media-training', name: 'Träning i studio', src: '/images/hero.jpg', alt: 'Träningsmiljö med redskap', kind: 'Livsstilsbild', usedBy: ['Träningsband, set om 3'] },
+  { id: 'media-training', name: 'Träning vid vattnet', src: '/images/hero.jpg', alt: 'Person i träningskläder sitter vid vattnet efter träningen', kind: 'Livsstilsbild', usedBy: [] },
+  { id: 'media-creatine', name: 'Kreatin Monohydrat, exempelbild', src: '/images/kreatin-monohydrat-demo.jpeg', alt: 'SELFIT kreatinmonohydrat, burk med blåbärsgummies, tillfällig produktbild', kind: 'Produktbild', usedBy: ['Kreatin Monohydrat'] },
+  { id: 'media-pwo-strawberry', name: 'PWO+ jordgubb, framsida', src: '/images/pwo-plus/strawberry.webp', alt: 'PWO+ jordgubb, burk framifrån', kind: 'Produktbild', usedBy: [] },
+  { id: 'media-pwo-berry', name: 'PWO+ bärmix, framsida', src: '/images/pwo-plus/berry-fusion.webp', alt: 'PWO+ Berry Fusion, burk framifrån', kind: 'Produktbild', usedBy: [] },
+  { id: 'media-pwo-mango', name: 'PWO+ mango och passionsfrukt', src: '/images/pwo-plus/mango-passion.webp', alt: 'PWO+ Mango Passion, burk framifrån', kind: 'Produktbild', usedBy: [] },
+  { id: 'media-pwo-apple', name: 'PWO+ grönt äpple, framsida', src: '/images/pwo-plus/green-apple.webp', alt: 'PWO+ Green Apple, burk framifrån', kind: 'Produktbild', usedBy: [] },
+  { id: 'media-pwo-black', name: 'PWO+ Black Edition, framsida', src: '/images/pwo-plus/black-edition.webp', alt: 'PWO+ Black Edition, burk framifrån', kind: 'Produktbild', usedBy: [] },
+  { id: 'media-pancakes-strawberry', name: 'Protein pannkakor jordgubb', src: '/images/protein-pannkakor/strawberry.webp', alt: 'Förpackning med proteinpannkakor i jordgubbssmak', kind: 'Förpackning', usedBy: [] },
 ];
 
 export type RedirectRow = {

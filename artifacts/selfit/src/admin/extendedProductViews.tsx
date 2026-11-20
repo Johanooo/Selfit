@@ -1,17 +1,17 @@
 import { useMemo, useState } from 'react';
 import type { CategoryFilterDefinition, ProductFieldType, ProductTypeDefinition, ProductTypeField } from './extendedAdminData';
 import './extendedAdmin.css';
+import { InteractiveTable, useAdminListState } from './adminInteractions';
 
-type Props = { productTypes: ProductTypeDefinition[]; onProductTypesChange: (types: ProductTypeDefinition[]) => void; categoryFilters: CategoryFilterDefinition[]; onCategoryFiltersChange: (filters: CategoryFilterDefinition[]) => void };
+type Props = { id?: string; go: (path: string) => void; productTypes: ProductTypeDefinition[]; onProductTypesChange: (types: ProductTypeDefinition[]) => void; categoryFilters: CategoryFilterDefinition[]; onCategoryFiltersChange: (filters: CategoryFilterDefinition[]) => void };
 
 const fieldTypes: { value: ProductFieldType; label: string }[] = [
   { value: 'text', label: 'Text' }, { value: 'number', label: 'Tal' }, { value: 'select', label: 'Val' }, { value: 'multiselect', label: 'Flera val' }, { value: 'boolean', label: 'Ja / nej' },
 ];
 
-export function ProductTypesAndFiltersView({ productTypes, onProductTypesChange, categoryFilters, onCategoryFiltersChange }: Props) {
-  const [activeId, setActiveId] = useState(productTypes[0]?.id ?? '');
+export function ProductTypesAndFiltersView({ id, go, productTypes, onProductTypesChange, categoryFilters, onCategoryFiltersChange }: Props) {
   const [notice, setNotice] = useState('');
-  const active = productTypes.find((item) => item.id === activeId) ?? productTypes[0];
+  const active = productTypes.find((item) => item.id === id) ?? productTypes[0];
   const updateType = (typeId: string, updater: (type: ProductTypeDefinition) => ProductTypeDefinition) =>
     onProductTypesChange(productTypes.map((type) => type.id === typeId ? updater(type) : type));
   const updateField = (typeId: string, fieldId: string, updates: Partial<ProductTypeField>) =>
@@ -28,21 +28,22 @@ export function ProductTypesAndFiltersView({ productTypes, onProductTypesChange,
     const fields = [...type.fields]; [fields[index], fields[next]] = [fields[next], fields[index]];
     return { ...type, fields };
   });
-  const [selectedCategory, setSelectedCategory] = useState(categoryFilters[0]?.category ?? 'Träning');
+  const [selectedCategory, setSelectedCategory] = useAdminListState('produkttyper', 'category', categoryFilters[0]?.category ?? 'Träning');
   const selectedFilter = categoryFilters.find((filter) => filter.category === selectedCategory) ?? { category: selectedCategory, fieldIds: [] };
   const availableFilterFields = productTypes.flatMap((type) => type.fields);
 
+  if (!id) return <section className="xadmin-stack"><header className="xadmin-heading"><div><h1>Produkttyper & fält</h1><p>Öppna en produkttyp för att redigera fält och kategorifilter.</p></div></header><nav className="xadmin-panel xadmin-type-nav" aria-label="Produkttyper">{productTypes.map((type) => <button type="button" className="xadmin-nav-item" key={type.id} onClick={() => go(`/admin/produkttyper/${type.id}`)} data-testid={`button-product-type-${type.id}`}><span>{type.name}</span><small>{type.fields.length} fält →</small></button>)}</nav></section>;
   return <section className="xadmin-stack" aria-label="Produkttyper och kategorifilter" data-testid="view-product-types-filters">
     <header className="xadmin-heading"><div><p className="xadmin-kicker">Kataloginställningar</p><h2>Produkttyper & filter</h2><p>Styr vilka uppgifter som följer med produkterna och går att filtrera i butiken.</p></div></header>
     <div className="xadmin-layout">
       <nav className="xadmin-panel xadmin-type-nav" aria-label="Välj produkttyp">
         <h3>Produkttyper</h3>
-        {productTypes.map((type) => <button type="button" className={`xadmin-nav-item ${active?.id === type.id ? 'is-active' : ''}`} key={type.id} onClick={() => setActiveId(type.id)} data-testid={`button-product-type-${type.id}`} aria-current={active?.id === type.id ? 'true' : undefined}><span>{type.name}</span><small>{type.fields.length} fält</small></button>)}
+        {productTypes.map((type) => <button type="button" className={`xadmin-nav-item ${active?.id === type.id ? 'is-active' : ''}`} key={type.id} onClick={() => go(`/admin/produkttyper/${type.id}`)} data-testid={`button-product-type-${type.id}`} aria-current={active?.id === type.id ? 'true' : undefined}><span>{type.name}</span><small>{type.fields.length} fält</small></button>)}
       </nav>
       {active && <div className="xadmin-stack">
         <section className="xadmin-panel">
           <div className="xadmin-panel-head"><div><h3>{active.name}</h3><p>Fältordningen styr även visningen i produktredigeringen.</p></div><button type="button" className="xadmin-button is-primary" onClick={addField} data-testid="button-add-product-field">Lägg till fält</button></div>
-          <div className="xadmin-table-scroll"><table className="xadmin-table"><thead><tr><th scope="col">Fältnamn</th><th scope="col">Typ</th><th scope="col">Enhet</th><th scope="col">Tillåtna värden</th><th scope="col">Krav</th><th scope="col"><span className="xadmin-sr">Ordning</span></th></tr></thead>
+          <div className="xadmin-table-scroll"><InteractiveTable className="xadmin-table"><thead><tr><th scope="col">Fältnamn</th><th scope="col">Typ</th><th scope="col">Enhet</th><th scope="col">Tillåtna värden</th><th scope="col">Krav</th><th scope="col"><span className="xadmin-sr">Ordning</span></th></tr></thead>
             <tbody>{active.fields.map((field, index) => <tr key={field.id} data-testid={`row-product-field-${field.id}`}>
               <td><label className="xadmin-sr" htmlFor={`field-name-${field.id}`}>Fältnamn</label><input id={`field-name-${field.id}`} className="xadmin-control" value={field.name} onChange={(event) => updateField(active.id, field.id, { name: event.target.value })} data-testid={`input-field-name-${field.id}`} /></td>
               <td><label className="xadmin-sr" htmlFor={`field-type-${field.id}`}>Fälttyp</label><select id={`field-type-${field.id}`} className="xadmin-control" value={field.type} onChange={(event) => updateField(active.id, field.id, { type: event.target.value as ProductFieldType })} data-testid={`select-field-type-${field.id}`}>{fieldTypes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></td>
@@ -51,7 +52,7 @@ export function ProductTypesAndFiltersView({ productTypes, onProductTypesChange,
               <td><label className="xadmin-check"><input type="checkbox" checked={field.requiredAtPublish} onChange={(event) => updateField(active.id, field.id, { requiredAtPublish: event.target.checked })} data-testid={`check-field-required-${field.id}`} /> Obligatoriskt</label></td>
               <td><div className="xadmin-inline-actions"><button type="button" className="xadmin-icon-button" aria-label={`Flytta ${field.name} upp`} disabled={index === 0} onClick={() => moveField(active.id, field.id, -1)} data-testid={`button-field-up-${field.id}`}>Upp</button><button type="button" className="xadmin-icon-button" aria-label={`Flytta ${field.name} ned`} disabled={index === active.fields.length - 1} onClick={() => moveField(active.id, field.id, 1)} data-testid={`button-field-down-${field.id}`}>Ned</button><button type="button" className="xadmin-icon-button is-danger" aria-label={`Ta bort ${field.name}`} onClick={() => updateType(active.id, (type) => ({ ...type, fields: type.fields.filter((item) => item.id !== field.id) }))} data-testid={`button-field-delete-${field.id}`}>Ta bort</button></div></td>
             </tr>)}</tbody>
-          </table></div>
+          </InteractiveTable></div>
         </section>
         <section className="xadmin-panel">
           <div className="xadmin-panel-head"><div><h3>Kategorifilter</h3><p>Välj vilka fält som ska synas som filter för kategorin.</p></div></div>

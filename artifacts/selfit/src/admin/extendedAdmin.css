@@ -4,7 +4,7 @@
 .xadmin-stack button, .xadmin-panel button { cursor: pointer; }
 .xadmin-stack :focus-visible, .xadmin-panel :focus-visible, .xadmin-media-picker :focus-visible { outline: 3px solid var(--c-focus); outline-offset: var(--space-1); }
 .xadmin-heading { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3); }
-.xadmin-heading h2 { font: 800 var(--fs-xl)/var(--lh-tight) var(--font-display); letter-spacing: var(--tracking-tight); }
+.xadmin-heading :is(h1, h2) { font: 800 var(--fs-xl)/var(--lh-tight) var(--font-display); letter-spacing: var(--tracking-tight); }
 .xadmin-heading p:not(.xadmin-kicker) { margin-top: var(--space-2); color: var(--c-muted); }
 .xadmin-kicker { margin: 0 0 var(--space-1); color: var(--c-primary); font-size: var(--fs-xs); font-weight: 800; letter-spacing: var(--tracking-wide); text-transform: uppercase; }
 .xadmin-panel { min-width: 0; overflow: hidden; border: 1px solid var(--c-border); border-radius: var(--radius-sm); background: var(--c-white); box-shadow: var(--shadow-sm); }

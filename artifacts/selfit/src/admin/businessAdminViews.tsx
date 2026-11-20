@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { orderRows, type OrderRow } from './mockData';
+import { announcePrototypeAction, NavigableRows, useAdminListState } from './adminInteractions';
 import './businessAdmin.css';
 
 type ViewProps = { go: (path: string) => void };
@@ -67,7 +68,7 @@ function Panel({ title, subtitle, children, action }: { title: string; subtitle?
 }
 
 function Button({ children, onClick, testId, kind = '', small = false, type = 'button', disabled = false }: { children: ReactNode; onClick?: () => void; testId: string; kind?: string; small?: boolean; type?: 'button' | 'submit'; disabled?: boolean }) {
-  return <button type={type} className={`admin-btn ${kind} ${small ? 'small' : ''}`} onClick={onClick} data-testid={testId} disabled={disabled}>{children}</button>;
+  return <button type={type} className={`admin-btn ${kind} ${small ? 'small' : ''}`} onClick={onClick ?? (type === 'button' ? () => announcePrototypeAction(String(children)) : undefined)} data-testid={testId} disabled={disabled}>{children}</button>;
 }
 
 function Status({ children, testId }: { children: string; testId: string }) {
@@ -76,8 +77,8 @@ function Status({ children, testId }: { children: string; testId: string }) {
   return <span className={`admin-status ${tone}`} data-testid={testId}>{children}</span>;
 }
 
-function Table({ headers, children, testId }: { headers: string[]; children: ReactNode; testId: string }) {
-  return <div className="admin-table-wrap"><table className="admin-table" data-testid={testId}><thead><tr>{headers.map((header) => <th scope="col" key={header}>{header}</th>)}</tr></thead><tbody>{children}</tbody></table></div>;
+function Table({ headers, children, testId, go }: { headers: string[]; children: ReactNode; testId: string; go?: (path: string) => void }) {
+  return <div className="admin-table-wrap"><table className="admin-table" data-testid={testId}><thead><tr>{headers.map((header) => <th scope="col" key={header}>{header}</th>)}</tr></thead><tbody><NavigableRows go={go} tableId={testId} headers={headers}>{children}</NavigableRows></tbody></table></div>;
 }
 
 function Field({ label, id, value, onChange, type = 'text', required = false, placeholder, options, testId, min }: {
@@ -90,9 +91,9 @@ function Field({ label, id, value, onChange, type = 'text', required = false, pl
 }
 
 export function CustomersView({ go }: ViewProps) {
-  const [query, setQuery] = useState('');
-  const [tag, setTag] = useState('Alla taggar');
-  const [consent, setConsent] = useState('Alla');
+  const [query, setQuery] = useAdminListState('kunder', 'query', '');
+  const [tag, setTag] = useAdminListState('kunder', 'tag', 'Alla taggar');
+  const [consent, setConsent] = useAdminListState('kunder', 'consent', 'Alla');
   const tags = [...new Set(initialCustomers.flatMap((customer) => customer.tags))];
   const rows = initialCustomers.filter((customer) => `${customer.name} ${customer.email} ${customer.phone} ${customerOrdersFor(customer).map((order) => order.id).join(' ')}`.toLocaleLowerCase('sv-SE').includes(query.toLocaleLowerCase('sv-SE'))
     && (tag === 'Alla taggar' || customer.tags.includes(tag))
@@ -106,8 +107,8 @@ export function CustomersView({ go }: ViewProps) {
       <span className="admin-status info" data-testid="text-customer-count">{rows.length} kunder</span>
     </div>
     <p className="business-admin-note" data-testid="text-guest-order-note">Gästordrar med samma e-postadress samlas i ett kundkort. All information på sidan är lokal exempeldata.</p>
-    <div className="admin-panel"><Table headers={['Kund', 'E-post', 'Ordrar', 'Köp totalt', 'Senaste order', 'Nyhetsbrev', 'Taggar', '']} testId="table-customers">
-      {rows.map((customer) => <tr key={customer.id} data-testid={`row-customer-${customer.id}`}><td><strong>{customer.name}</strong><span className="subtext">{customer.phone}</span></td><td>{customer.email}</td><td>{customer.orders}</td><td className="num">{money(customer.total)}</td><td>{customer.latest}</td><td><Status testId={`status-newsletter-${customer.id}`}>{customer.newsletter ? 'Ja' : 'Nej'}</Status></td><td><div className="business-admin-tags">{customer.tags.map((item) => <span className="business-admin-tag" key={item}>{item}</span>)}</div></td><td><Button small onClick={() => go(`/admin/kunder/${customer.id}`)} testId={`button-open-customer-${customer.id}`}>Kundkort</Button></td></tr>)}
+    <div className="admin-panel"><Table headers={['Kund', 'E-post', 'Ordrar', 'Köp totalt', 'Senaste order', 'Nyhetsbrev', 'Taggar', '']} testId="table-customers" go={go}>
+      {rows.map((customer) => <tr key={customer.id} data-row-href={`/admin/kunder/${customer.id}`} data-row-label={`Öppna kundkort för ${customer.name}`} data-testid={`row-customer-${customer.id}`}><td><strong>{customer.name}</strong><span className="subtext">{customer.phone}</span></td><td>{customer.email}</td><td>{customer.orders}</td><td className="num">{money(customer.total)}</td><td>{customer.latest}</td><td><Status testId={`status-newsletter-${customer.id}`}>{customer.newsletter ? 'Ja' : 'Nej'}</Status></td><td><div className="business-admin-tags">{customer.tags.map((item) => <span className="business-admin-tag" key={item}>{item}</span>)}</div></td><td><Button small onClick={() => go(`/admin/kunder/${customer.id}`)} testId={`button-open-customer-${customer.id}`}>Kundkort</Button></td></tr>)}
       {!rows.length && <tr><td colSpan={8}><div className="admin-empty" data-testid="empty-customers">Inga kunder matchar filtreringen. Ändra sökning eller filter.</div></td></tr>}
     </Table></div>
   </>;
@@ -133,7 +134,7 @@ export function CustomerDetailView({ customerId, go, notify }: { customerId: str
      <div className="admin-grid dashboard">
       <div className="admin-grid">
         <Panel title="Kontakt & adress" subtitle="Uppgifter för kundkommunikation och leverans"><div className="admin-metric-line"><span>E-post</span><strong data-testid="text-customer-email">{anonymized ? 'raderad@example.se' : customer.email}</strong></div><div className="admin-metric-line"><span>Telefon</span><strong>{anonymized ? 'Borttagen' : customer.phone}</strong></div><div className="admin-metric-line"><span>Leveransadress</span><strong>{anonymized ? 'Borttagen' : customer.address}</strong></div><div className="admin-metric-line"><span>Fakturaadress</span><strong>{anonymized ? 'Borttagen' : customer.address}</strong></div><div className="admin-metric-line"><span>Kund sedan</span><strong>4 februari 2025</strong></div></Panel>
-        <Panel title="Orderhistorik" subtitle="Alla lokala order kopplade till kundens e-post"><Table headers={['Order', 'Datum', 'Summa', 'Status', '']} testId="table-customer-orders">{customerOrders.map((order) => <tr key={order.id}><td><strong>{order.id}</strong></td><td>{order.date}</td><td className="num">{money(order.amount)}</td><td><Status testId={`status-customer-order-${order.id}`}>{order.status}</Status></td><td>{order.current ? <Button small onClick={() => go(`/admin/order/${order.id}`)} testId={`button-customer-order-${order.id}`}>Visa order</Button> : <span className="business-admin-subline">Historisk order</span>}</td></tr>)}{!customerOrders.length && <tr><td colSpan={5}><div className="admin-empty">Inga order i den lokala exempel­datan.</div></td></tr>}</Table></Panel>
+        <Panel title="Orderhistorik" subtitle="Alla lokala order kopplade till kundens e-post"><Table headers={['Order', 'Datum', 'Summa', 'Status', '']} testId="table-customer-orders" go={go}>{customerOrders.map((order) => <tr key={order.id} data-row-href={order.current ? `/admin/order/${order.id}` : `/admin/detalj/orderhistorik/${encodeURIComponent(order.id)}`} data-row-label={`Öppna order ${order.id}`}><td><strong>{order.id}</strong></td><td>{order.date}</td><td className="num">{money(order.amount)}</td><td><Status testId={`status-customer-order-${order.id}`}>{order.status}</Status></td><td>{order.current ? <Button small onClick={() => go(`/admin/order/${order.id}`)} testId={`button-customer-order-${order.id}`}>Visa order</Button> : <span className="business-admin-subline">Historisk order</span>}</td></tr>)}{!customerOrders.length && <tr><td colSpan={5}><div className="admin-empty">Inga order i den lokala exempel­datan.</div></td></tr>}</Table></Panel>
         <Panel title="Returer & reklamationer" subtitle="Ärenden kopplade till kundens köp">{customer.id === 'elin-andersson' ? <><div className="admin-metric-line"><span>RET-261104-019 · SF-261104-019</span><Status testId="status-customer-return">Avslutad</Status></div><p className="business-admin-subline">Fel variant · återbetalning 149 kr · 4 nov 2026</p><div className="admin-empty" data-testid="text-customer-claims">Inga öppna reklamationer.</div></> : <div className="admin-empty" data-testid="text-customer-claims">Inga registrerade returer eller reklamationer.</div>}</Panel>
         <Panel title="Interna anteckningar" subtitle="Synliga för personal, aldrig för kunden"><form className="business-admin-note-form" onSubmit={addNote}><label className="admin-field"><span>Ny anteckning</span><textarea className="admin-control" value={newNote} onChange={(event) => setNewNote(event.target.value)} required rows={3} data-testid="input-customer-note" /></label><Button kind="primary" type="submit" testId="button-add-customer-note">Lägg till anteckning</Button></form><div className="admin-timeline">{notes.map((note, index) => <div className="admin-event" key={`${note.time}-${index}`} data-testid={`note-customer-${index}`}><strong>{note.author}</strong>{note.text}<time>{note.time}</time></div>)}</div></Panel>
       </div>
@@ -156,7 +157,7 @@ const seedManualOrders: ManualOrder[] = [
 ];
 
 export function ManualOrdersView({ go, notify }: ActionProps) {
-  const [rows, setRows] = useState(seedManualOrders);
+  const [rows, setRows] = useAdminListState('manuella-order', 'data', seedManualOrders);
   const [customer, setCustomer] = useState('');
   const [lines, setLines] = useState([{ id: 1, variant: 'PWO+ Pre-workout · Blåbär · 12-pack', quantity: '1' }]);
   const [reason, setReason] = useState('');
@@ -212,8 +213,8 @@ const seedPurchaseOrders: PurchaseOrder[] = [
   { id: 'PO-2611-012', supplier: 'Nordic Nutrition AB', lines: 1, total: 6720, expected: '30 nov 2026', warehouse: 'Eget lager · Stockholm', status: 'Utkast' },
 ];
 
-export function PurchaseOrdersView({ notify }: { notify: (message: string) => void }) {
-  const [rows, setRows] = useState(seedPurchaseOrders);
+export function PurchaseOrdersView({ notify, go }: ActionProps) {
+  const [rows, setRows] = useAdminListState('inkopsordrar', 'data', seedPurchaseOrders);
   const [supplier, setSupplier] = useState('');
   const [expected, setExpected] = useState('2026-11-30');
   const [warehouse, setWarehouse] = useState('DSV 3PL · Jönköping');
@@ -232,7 +233,7 @@ export function PurchaseOrdersView({ notify }: { notify: (message: string) => vo
     <Heading kicker="Inköp & lager" title="Inköpsordrar" description="Planera inköp och följ mottagning per leverantör och lager." />
      <div className="admin-grid">
       <Panel title="Inköpsorder" subtitle="Utkast, skickade och mottagna inköp">
-        <Table headers={['Order', 'Leverantör', 'Rader', 'Inköpsvärde', 'Beräknad ankomst', 'Mottagande lager', 'Status', '']} testId="table-purchase-orders">{rows.map((row) => <tr key={row.id} data-testid={`row-purchase-order-${row.id}`}><td><strong>{row.id}</strong></td><td>{row.supplier}</td><td>{row.lines}</td><td className="num">{money(row.total)}</td><td>{row.expected}</td><td>{row.warehouse}</td><td><Status testId={`status-purchase-order-${row.id}`}>{row.status}</Status></td><td><Button small onClick={() => { setReceipts((current) => current.includes(row.id) ? current : [...current, row.id]); notify(`Mottagningsrapport skapad lokalt för ${row.id}.`); }} testId={`button-create-inbound-${row.id}`}>Skapa inleveransbesked</Button></td></tr>)}</Table>
+         <Table headers={['Order', 'Leverantör', 'Rader', 'Inköpsvärde', 'Beräknad ankomst', 'Mottagande lager', 'Status', '']} testId="table-purchase-orders" go={go}>{rows.map((row) => <tr key={row.id} data-row-href={`/admin/detalj/inkopsorder/${encodeURIComponent(row.id)}`} data-row-label={`Öppna inköpsorder ${row.id}`} data-testid={`row-purchase-order-${row.id}`}><td><strong>{row.id}</strong></td><td>{row.supplier}</td><td>{row.lines}</td><td className="num">{money(row.total)}</td><td>{row.expected}</td><td>{row.warehouse}</td><td><Status testId={`status-purchase-order-${row.id}`}>{row.status}</Status></td><td><Button small onClick={() => { setReceipts((current) => current.includes(row.id) ? current : [...current, row.id]); notify(`Mottagningsrapport skapad lokalt för ${row.id}.`); }} testId={`button-create-inbound-${row.id}`}>Skapa inleveransbesked</Button></td></tr>)}</Table>
       </Panel>
        <Panel title="Nytt inköp" subtitle="Ange leverantör, variantrader och planerad mottagning">
         <form className="admin-form-grid" onSubmit={create}>
@@ -269,15 +270,16 @@ const reportProducts = [
 ];
 
 export function ReportsView() {
-  const [period, setPeriod] = useState('Månad');
-  const [from, setFrom] = useState('2026-11-01');
-  const [to, setTo] = useState('2026-11-30');
-  const [sort, setSort] = useState<'units' | 'revenue'>('units');
+  const [period, setPeriod] = useAdminListState('rapporter', 'period', 'Månad');
+  const [from, setFrom] = useAdminListState('rapporter', 'from', '2026-11-01');
+  const [to, setTo] = useAdminListState('rapporter', 'to', '2026-11-30');
+  const [sort, setSort] = useAdminListState<'units' | 'revenue'>('rapporter', 'sort', 'units');
   const sorted = useMemo(() => [...reportProducts].sort((a, b) => b[sort] - a[sort]), [sort]);
   const exportCsv = () => {
     const content = [['Produkt', 'Variant', 'Sålda', 'Omsättning (kr)'], ...sorted.map((item) => [item.name, item.variant, String(item.units), String(item.revenue)])].map((line) => line.map((cell) => `"${cell.replaceAll('"', '""')}"`).join(';')).join('\n');
     const url = URL.createObjectURL(new Blob(['\ufeff', content], { type: 'text/csv;charset=utf-8' }));
-    const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'selfit-rapport-november-2026.csv'; anchor.click(); URL.revokeObjectURL(url);
+    const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'selfit-rapport-november-2026.csv'; document.body.append(anchor); anchor.click(); anchor.remove(); window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    announcePrototypeAction('CSV-rapport exporterad');
   };
   const bars = [42, 58, 48, 72, 61, 87, 66, 77, 52, 94, 70, 84, 61, 100, 74, 88, 56, 79, 64, 92, 70, 83, 60, 96];
   return <>
