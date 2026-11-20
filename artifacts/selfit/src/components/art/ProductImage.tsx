@@ -7,6 +7,7 @@ import { ProductArt } from './ProductArt';
 export type ImageView = 'front' | 'pack' | 'photo';
 
 export function galleryViews(product: Product, variant: Variant): ImageView[] {
+  if (variant.image.startsWith('photo:')) return ['front'];
   const views: ImageView[] = ['front'];
   if (variant.image.startsWith('can:') && variant.pack && variant.pack > 1) views.push('pack');
   views.push('photo');
@@ -28,6 +29,18 @@ export function ProductImage({
   view?: ImageView;
 }) {
   const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  if (variant.image.startsWith('photo:')) {
+    const flavour = getFlavour(variant.flavour)?.name;
+    return (
+      <img
+        className="product-photo"
+        src={`${base}${variant.image.slice('photo:'.length)}`}
+        alt={`${product.brand} ${product.name}${flavour ? ` med smak av ${flavour.toLowerCase()}` : ''}, ${product.sizeLabel}`}
+        loading="lazy"
+        decoding="async"
+      />
+    );
+  }
   if (view === 'photo') {
     if (product.slug === 'pwo-plus') {
       const flavour = variant.flavour ?? 'blueberry';

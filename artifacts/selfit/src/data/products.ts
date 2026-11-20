@@ -93,6 +93,66 @@ const pwo: Product = {
   variants: pwoVariants,
 };
 
+const proteinPancakes: Product = {
+  slug: 'protein-pannkakor',
+  name: 'Protein pannkakor',
+  brand: 'SELFIT',
+  brandSlug: 'selfit',
+  category: 'traning',
+  collections: ['nyheter'],
+  tagline: 'Pannkaksmix med 30 g protein per 100 g mix.',
+  description: [
+    'SELFIT Protein Pannkakor är en bakmix i blåbärs- och jordgubbssmak.',
+    'Enligt förpackningen innehåller mixen 30 g protein per 100 g, utan tillsatt socker. Tillsätt bara vatten.',
+  ],
+  usage: 'Blanda och tillaga pannkakorna enligt anvisningarna på förpackningen.',
+  ingredients: 'Fullständig ingrediensförteckning saknas i exempeldata. Kontrollera förpackningen.',
+  allergens: [],
+  allergenInfoKnown: false,
+  nutrition: {
+    referenceLabel: 'per 100 g mix',
+    rows: [{ label: 'Protein', per100: '30 g' }],
+  },
+  facts: [
+    { label: 'Förpackning', value: '500 g' },
+    { label: 'Tillagning', value: 'Tillsätt bara vatten' },
+    { label: 'Socker', value: 'Utan tillsatt socker' },
+  ],
+  art: 'box',
+  artTone: 'ink',
+  unitLabel: 'påse',
+  sizeLabel: '500 g',
+  vatRate: 0.12,
+  popularity: 67,
+  isNew: true,
+  related: ['proteinbar-kakao', 'kreatin-monohydrat'],
+  pairsWith: ['pwo-plus'],
+  variants: [
+    {
+      id: 'protein-pannkakor-blueberry',
+      flavour: 'blueberry',
+      price: 129,
+      depositPerUnit: 0,
+      stock: 28,
+      offered: true,
+      ean: ean('735020000088'),
+      image: 'photo:/images/protein-pannkakor/blueberry.webp',
+      measure: { amount: 0.5, unit: 'kg' },
+    },
+    {
+      id: 'protein-pannkakor-strawberry',
+      flavour: 'strawberry',
+      price: 129,
+      depositPerUnit: 0,
+      stock: 24,
+      offered: true,
+      ean: ean('735020000089'),
+      image: 'photo:/images/protein-pannkakor/strawberry.webp',
+      measure: { amount: 0.5, unit: 'kg' },
+    },
+  ],
+};
+
 interface SimpleInput extends Omit<Product, 'variants' | 'collections' | 'related' | 'pairsWith' | 'facts'> {
   collections?: string[];
   related?: string[];
@@ -612,7 +672,7 @@ const others: Product[] = [
   }),
 ];
 
-export const products: Product[] = [pwo, ...others];
+export const products: Product[] = [pwo, proteinPancakes, ...others];
 
 export const getProduct = (slug?: string) => products.find((p) => p.slug === slug);
 

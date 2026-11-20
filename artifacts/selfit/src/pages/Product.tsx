@@ -377,7 +377,9 @@ function ProductView({ product }: { product: Product }) {
                 <p className="small muted">
                   {product.allergens.length
                     ? 'Allergener är markerade med fetstil och understrykning.'
-                    : 'Innehåller inga av de 14 vanligaste allergenerna.'}
+                    : product.allergenInfoKnown === false
+                      ? 'Allergeninformation saknas i exempeldata. Kontrollera alltid förpackningen.'
+                      : 'Innehåller inga av de 14 vanligaste allergenerna.'}
                 </p>
                 {product.nutrition && (
                   <table className="data-table">
@@ -385,8 +387,8 @@ function ProductView({ product }: { product: Product }) {
                     <thead>
                       <tr>
                         <th scope="col">Näringsvärde</th>
-                        <th scope="col">per 100 ml</th>
-                        <th scope="col">{product.nutrition.servingLabel}</th>
+                        <th scope="col">{product.nutrition.referenceLabel ?? 'per 100 ml'}</th>
+                        {product.nutrition.servingLabel && <th scope="col">{product.nutrition.servingLabel}</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -394,7 +396,7 @@ function ProductView({ product }: { product: Product }) {
                         <tr key={r.label}>
                           <th scope="row">{r.label}</th>
                           <td>{r.per100}</td>
-                          <td>{r.perServing}</td>
+                          {product.nutrition?.servingLabel && <td>{r.perServing ?? '—'}</td>}
                         </tr>
                       ))}
                     </tbody>
