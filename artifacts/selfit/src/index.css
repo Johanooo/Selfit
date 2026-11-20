@@ -90,6 +90,8 @@
   --container-narrow: 760px;
   --header-h: 4.5rem;
   --logo-width: clamp(6.5rem, 8vw, 8rem);
+  --admin-global-search-max-width: 24rem;
+  --admin-global-search-min-width: 8rem;
 
   /* Radii */
   --radius-xs: 6px;

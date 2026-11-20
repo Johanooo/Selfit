@@ -2,6 +2,7 @@ import { type ReactNode } from 'react';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Layout } from '@/components/layout/Layout';
+import { AdminApp } from '@/admin/AdminApp';
 import { CartProvider } from '@/state/cart';
 import { CookieProvider } from '@/state/cookies';
 import Home from '@/pages/Home';
@@ -47,14 +48,28 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 function App() {
   return (
     <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-      <CookieProvider>
-        <CartProvider>
-          <Layout>
-            <Routes />
-          </Layout>
-        </CartProvider>
-      </CookieProvider>
+      <AppContent />
     </WouterRouter>
+  );
+}
+
+function AppContent() {
+  const [location] = useLocation();
+  if (location === '/admin' || location.startsWith('/admin/')) {
+    return (
+      <RoutedErrorBoundary>
+        <AdminApp />
+      </RoutedErrorBoundary>
+    );
+  }
+  return (
+    <CookieProvider>
+      <CartProvider>
+        <Layout>
+          <Routes />
+        </Layout>
+      </CartProvider>
+    </CookieProvider>
   );
 }
 
