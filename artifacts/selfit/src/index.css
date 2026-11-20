@@ -1002,6 +1002,8 @@ textarea {
   height: clamp(7rem, 17vw, 10.5rem);
   width: auto;
   max-width: 100%;
+  object-fit: cover;
+  object-position: center;
   transition: transform var(--dur-base) var(--ease-spring);
 }
 .can-row a .pwo-real-can {
@@ -1009,7 +1011,7 @@ textarea {
 }
 .can-row a:hover .pwo-real-can,
 .can-row a:focus-visible .pwo-real-can {
-  transform: translateY(-8px) rotate(-4deg);
+  transform: translateY(-3px);
 }
 .can-row a:focus-visible {
   outline-color: var(--c-white);
