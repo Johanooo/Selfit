@@ -21,6 +21,14 @@ import {
   WarehouseInboundLotsView,
 } from './extendedAdminViews';
 import { ProductTypeFieldsEditor, ProductTypesAndFiltersView } from './extendedProductViews';
+import {
+  CustomerDetailView,
+  CustomersView,
+  ManualOrdersView,
+  OrderAdditionalDetails,
+  PurchaseOrdersView,
+  ReportsView,
+} from './businessAdminViews';
 import './admin.css';
 
 type ButtonProps = { children: ReactNode; onClick?: () => void; kind?: 'primary' | 'quiet' | 'danger'; small?: boolean; testId: string; ariaLabel?: string; ariaExpanded?: boolean; ariaControls?: string; className?: string };
@@ -66,7 +74,7 @@ function Login({ onSubmit }: { onSubmit: () => void }) {
 
 function Dashboard({ go, notice, setNotice }: { go: (path: string) => void; notice: string; setNotice: (s: string) => void }) {
   return <>
-    <Heading kicker="Fredag 20 november 2026" title="Dagens läge" description="En snabb överblick över det som behöver uppmärksamhet." actions={<Button kind="quiet" onClick={() => setNotice('Översikten uppdaterades lokalt 10:48.')} testId="button-refresh-overview">Uppdatera läge</Button>} />
+    <Heading kicker="Fredag 20 november 2026" title="Dagens läge" description="En snabb överblick över det som behöver uppmärksamhet." actions={<><Button onClick={() => go('/admin/kunder')} testId="button-dashboard-customers">Kunder</Button><Button kind="quiet" onClick={() => setNotice('Översikten uppdaterades lokalt 10:48.')} testId="button-refresh-overview">Uppdatera läge</Button></>} />
     {notice && <div className="admin-inline-message" role="status" data-testid="status-notice">{notice}</div>}
     <div className="admin-grid three admin-stat-grid">
       {[['Nya ordrar', '28', '+6 sedan 09:00'], ['Att plocka', '14', '3 väntar på betalning'], ['Nettoomsättning', '18 420 kr', '31 ordrar idag']].map(([label, value, foot]) => <div className="admin-panel admin-stat" key={label}><span className="admin-stat-label">{label}</span><strong>{value}</strong><div className="admin-stat-foot"><span className="admin-stat-mark">↗</span> {foot}</div></div>)}
@@ -267,7 +275,7 @@ function Orders({ go, notify }: { go: (path: string) => void; notify: (s: string
   return <><Heading kicker="Order & lager" title="Ordrar" description="Sök på ordernummer, e-post, SKU eller spårningsnummer." actions={<Button onClick={() => notify('Orderexport sammanställd lokalt.')} testId="button-export-orders">Exportera</Button>} /><div className="admin-toolbar"><div className="admin-search"><label className="admin-search-label" htmlFor="order-search">Sök ordrar</label><input id="order-search" className="admin-control" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Order, e-post, SKU eller spårning" data-testid="input-search-orders" /></div><label className="admin-filter-label">Status<select className="admin-control" value={filter} onChange={(e) => setFilter(e.target.value)} data-testid="filter-order-status"><option>Alla statusar</option>{['Att plocka', 'Packas', 'Skickad', 'Levererad', 'Avbruten'].map((s) => <option key={s}>{s}</option>)}</select></label><span className="admin-status info" data-testid="text-order-count">{filtered.length} ordrar</span></div><div className="admin-panel"><Table headers={['Ordernummer', 'Kund', 'Datum', 'Rader / SKU', 'Summa inkl. pant', 'Betalning', 'Leveransstatus', '']} testId="table-orders">{filtered.map((o) => <tr key={o.id}><td><strong>{o.id}</strong></td><td>{o.email}</td><td>{o.date}</td><td>{o.sku}</td><td className="num">{o.amount} kr</td><td><Status testId={`status-payment-${o.id}`}>{o.payment}</Status></td><td><Status testId={`status-delivery-${o.id}`}>{o.status}</Status></td><td><Button small onClick={() => go(`/admin/order/${o.id}`)} testId={`button-open-order-${o.id}`}>Visa</Button></td></tr>)}</Table></div></>;
 }
 
-function OrderDetail({ id, notify }: { id: string; notify: (s: string) => void }) {
+function OrderDetail({ id, go, notify }: { id: string; go: (path: string) => void; notify: (s: string) => void }) {
   const order = orderRows.find((o) => o.id === id) ?? orderRows[0];
   const [status, setStatus] = useState(order.status);
   const [refund, setRefund] = useState('');
@@ -300,6 +308,7 @@ function OrderDetail({ id, notify }: { id: string; notify: (s: string) => void }
         </Panel>
       </div>
     </div>
+    <OrderAdditionalDetails order={order} go={go} notify={notify} />
   </>;
 }
 
@@ -498,18 +507,24 @@ export function AdminApp() {
     if (firstProduct) openSearchResult(`/admin/produkter/${firstProduct.slug}`);
     else if (firstOrder) openSearchResult(`/admin/order/${firstOrder.id}`);
   };
-  const title = navGroups.flatMap((g) => g.links).find((link) => link.path === route)?.label ?? (route.startsWith('/admin/produkter/') ? 'Produkter' : route.startsWith('/admin/order/') ? 'Ordrar' : 'SELFIT · administration');
+  const title = navGroups.flatMap((g) => g.links).find((link) => link.path === route)?.label ?? (route.startsWith('/admin/produkter/') ? 'Produkter' : route.startsWith('/admin/order/') ? 'Ordrar' : route.startsWith('/admin/kunder/') ? 'Kunder' : 'SELFIT · administration');
   const detailOrder = route.match(/^\/admin\/order\/(.+)$/);
+  const detailCustomer = route.match(/^\/admin\/kunder\/([^/]+)$/);
   const detailProduct = route.match(/^\/admin\/produkter\/(.+)$/);
   let page: ReactNode;
   if (route === '/admin' || route === '/admin/') page = <Dashboard go={go} notice={notice} setNotice={notify} />;
   else if (route === '/admin/produkter') page = <Products go={go} notice={notice} setNotice={notify} />;
   else if (detailProduct) page = <ProductEditor key={detailProduct[1]} slug={detailProduct[1]} go={go} notify={notify} productTypes={productTypes} mediaItems={mediaItems} onMediaItemsChange={setMediaItems} onAddRedirect={addRedirect} />;
+  else if (route === '/admin/kunder') page = <CustomersView go={go} />;
+  else if (detailCustomer) page = <CustomerDetailView customerId={detailCustomer[1]} go={go} notify={notify} />;
+  else if (route === '/admin/manuella-order') page = <ManualOrdersView go={go} notify={notify} />;
+  else if (route === '/admin/inkopsordrar') page = <PurchaseOrdersView notify={notify} />;
+  else if (route === '/admin/rapporter') page = <ReportsView />;
   else if (route === '/admin/kategorier') page = <Categories notify={notify} go={go} productTypes={productTypes} categoryFilters={categoryFilters} onCategoryFiltersChange={setCategoryFilters} />;
   else if (route === '/admin/produkttyper') page = <ProductTypesAndFiltersView productTypes={productTypes} onProductTypesChange={setProductTypes} categoryFilters={categoryFilters} onCategoryFiltersChange={setCategoryFilters} />;
   else if (route === '/admin/media') page = <MediaLibraryView items={mediaItems} onItemsChange={setMediaItems} />;
   else if (route === '/admin/order') page = <Orders go={go} notify={notify} />;
-  else if (detailOrder) page = <OrderDetail id={detailOrder[1]} notify={notify} />;
+  else if (detailOrder) page = <OrderDetail id={detailOrder[1]} go={go} notify={notify} />;
   else if (route === '/admin/lager') page = <Warehouse notify={notify} />;
   else if (route === '/admin/inleveranser') page = <WarehouseInboundLotsView />;
   else if (route === '/admin/eget-lager') page = <OwnWarehouse notify={notify} />;

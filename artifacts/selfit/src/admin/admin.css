@@ -206,7 +206,7 @@
 .admin-root .admin-event { position: relative; margin-left: var(--space-2); padding: 0 0 var(--space-4) var(--space-4); border-left: 1px solid var(--c-border-strong); font-size: var(--fs-xs); }
 .admin-root .admin-event::before { content: ''; position: absolute; top: var(--space-1); left: calc(-1 * var(--space-1)); width: var(--space-2); height: var(--space-2); border: 2px solid var(--c-white); border-radius: var(--radius-pill); background: var(--c-primary); box-shadow: 0 0 0 1px var(--c-primary-line); }
 .admin-root .admin-event strong { display: block; margin-bottom: var(--space-1); font-size: var(--fs-xs); }
-.admin-root .admin-event time { color: var(--c-muted); font-size: var(--fs-xs); }
+.admin-root .admin-event time { display: block; margin-top: var(--space-1); color: var(--c-muted); font-size: var(--fs-xs); }
 .admin-root .admin-checklist { margin: var(--space-3) 0; padding: 0; display: grid; gap: var(--space-2); list-style: none; }
 .admin-root .admin-checklist li { display: flex; align-items: flex-start; gap: var(--space-2); color: var(--c-text); font-size: var(--fs-xs); }
 .admin-root .admin-checklist li::before { content: '✓'; width: var(--space-4); height: var(--space-4); flex: none; display: grid; place-items: center; border-radius: var(--radius-pill); color: var(--c-success); background: var(--c-success-soft); font-size: var(--fs-xs); font-weight: 900; }

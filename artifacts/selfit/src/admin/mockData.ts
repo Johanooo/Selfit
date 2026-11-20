@@ -22,6 +22,7 @@ export const orderRows: OrderRow[] = [
 export const navGroups = [
   { label: 'Överblick', links: [{ path: '/admin', label: 'Dagens läge', icon: '◫' }] },
   { label: 'Butik', links: [{ path: '/admin/produkter', label: 'Produkter', icon: '▤' }, { path: '/admin/kategorier', label: 'Kategorier', icon: '⌘' }, { path: '/admin/produkttyper', label: 'Produkttyper & fält', icon: '≡' }, { path: '/admin/media', label: 'Mediebibliotek', icon: '▧' }, { path: '/admin/rabatter', label: 'Rabatter', icon: '%' }] },
-  { label: 'Order & lager', links: [{ path: '/admin/order', label: 'Ordrar', icon: '▣' }, { path: '/admin/lager', label: 'Lager & synk', icon: '⇄' }, { path: '/admin/inleveranser', label: 'Inleveranser & partier', icon: '⇧' }, { path: '/admin/eget-lager', label: 'Eget lager', icon: '▦' }, { path: '/admin/returer', label: 'Returer', icon: '↶' }] },
+  { label: 'Kund & analys', links: [{ path: '/admin/kunder', label: 'Kunder', icon: '♙' }, { path: '/admin/rapporter', label: 'Rapporter', icon: '▥' }] },
+  { label: 'Order & lager', links: [{ path: '/admin/order', label: 'Ordrar', icon: '▣' }, { path: '/admin/manuella-order', label: 'Manuella order', icon: '＋' }, { path: '/admin/inkopsordrar', label: 'Inköpsorder', icon: '▤' }, { path: '/admin/lager', label: 'Lager & synk', icon: '⇄' }, { path: '/admin/inleveranser', label: 'Inleveranser & partier', icon: '⇧' }, { path: '/admin/eget-lager', label: 'Eget lager', icon: '▦' }, { path: '/admin/returer', label: 'Returer', icon: '↶' }] },
   { label: 'Administration', links: [{ path: '/admin/mejlmallar', label: 'Mejlmallar', icon: '✉' }, { path: '/admin/omdirigeringar', label: 'Omdirigeringar', icon: '↗' }, { path: '/admin/installningar', label: 'Inställningar', icon: '⚙' }] },
 ];
