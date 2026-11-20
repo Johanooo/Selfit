@@ -19,7 +19,8 @@ export default function Home() {
   const items = sortItems(allItems(), 'popularitet', EMPTY);
   const featured = [
     ...items.filter((i) => i.product.slug === 'pwo-plus').slice(0, 2),
-    ...items.filter((i) => i.product.slug !== 'pwo-plus').slice(0, 6),
+    ...items.filter((i) => i.product.slug === 'protein-pannkakor').slice(0, 2),
+    ...items.filter((i) => !['pwo-plus', 'protein-pannkakor'].includes(i.product.slug)).slice(0, 6),
   ];
 
   return (
