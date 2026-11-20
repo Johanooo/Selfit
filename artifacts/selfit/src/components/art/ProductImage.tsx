@@ -13,19 +13,7 @@ export function galleryViews(product: Product, variant: Variant): ImageView[] {
   return views;
 }
 
-export function photoFor(product: Product, variant?: Variant): { src: string; alt: string } {
-  if (product.slug === 'pwo-plus') {
-    if (variant?.flavour === 'blueberry') {
-      return {
-        src: '/images/pwo-plus/blueberry-campaign.webp',
-        alt: 'SELFIT PWO+ Blåbär, en 330 ml-burk med blåbär och blå färgeffekter',
-      };
-    }
-    return {
-      src: '/images/pwo-plus/flavour-lineup.jpeg',
-      alt: 'SELFIT PWO+ i smakerna blåbär, jordgubb, bärmix, mango och passionsfrukt, grönt äpple samt Black Edition',
-    };
-  }
+export function photoFor(product: Product): { src: string; alt: string } {
   const c = getCategory(product.category);
   return { src: c?.image ?? '/images/hero.jpg', alt: c?.imageAlt ?? product.name };
 }
@@ -41,7 +29,17 @@ export function ProductImage({
 }) {
   const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   if (view === 'photo') {
-    const p = photoFor(product, variant);
+    if (product.slug === 'pwo-plus') {
+      const flavour = variant.flavour ?? 'blueberry';
+      return (
+        <PwoCan
+          flavour={flavour}
+          label={`SELFIT PWO+ ${getFlavour(flavour)?.name ?? ''}, burk 330 ml`}
+          className="pwo-gallery-photo"
+        />
+      );
+    }
+    const p = photoFor(product);
     return (
       <img
         className={product.slug === 'pwo-plus' ? 'pwo-gallery-photo' : undefined}
