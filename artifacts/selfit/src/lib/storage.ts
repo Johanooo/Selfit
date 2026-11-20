@@ -1,4 +1,4 @@
-/** Safe browser storage – no-ops outside the browser or when blocked. */
+/** Safe browser storage – reads fall back and writes report whether they succeeded. */
 export function readJSON<T>(key: string, fallback: T, store: 'local' | 'session' = 'local'): T {
   if (typeof window === 'undefined') return fallback;
   try {
@@ -9,11 +9,12 @@ export function readJSON<T>(key: string, fallback: T, store: 'local' | 'session'
   }
 }
 
-export function writeJSON(key: string, value: unknown, store: 'local' | 'session' = 'local'): void {
-  if (typeof window === 'undefined') return;
+export function writeJSON(key: string, value: unknown, store: 'local' | 'session' = 'local'): boolean {
+  if (typeof window === 'undefined') return false;
   try {
     (store === 'local' ? window.localStorage : window.sessionStorage).setItem(key, JSON.stringify(value));
+    return true;
   } catch {
-    /* storage unavailable – ignore */
+    return false;
   }
 }

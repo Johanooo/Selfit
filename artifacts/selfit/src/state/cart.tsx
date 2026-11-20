@@ -23,6 +23,7 @@ interface CartCtx {
   count: number;
   code: string | null;
   ready: boolean;
+  storageAvailable: boolean | null;
   lastAdded: AddedNotice | null;
   add: (variantId: string, qty?: number) => boolean;
   setQty: (variantId: string, qty: number) => void;
@@ -38,6 +39,7 @@ const Ctx = createContext<CartCtx | null>(null);
 export function CartProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<CartState>({ lines: [], code: null });
   const [ready, setReady] = useState(false);
+  const [storageAvailable, setStorageAvailable] = useState<boolean | null>(null);
   const [lastAdded, setLastAdded] = useState<AddedNotice | null>(null);
   const noticeId = useRef(0);
 
@@ -51,7 +53,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (ready) writeJSON(KEY, state);
+    if (ready) setStorageAvailable(writeJSON(KEY, state));
   }, [state, ready]);
 
   const add = useCallback((variantId: string, qty = 1) => {
@@ -99,6 +101,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       count: lines.reduce((s, l) => s + l.qty, 0),
       code: state.code,
       ready,
+      storageAvailable,
       lastAdded,
       add,
       setQty,
@@ -108,7 +111,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       removeCode,
       dismissNotice,
     };
-  }, [state, ready, lastAdded, add, setQty, remove, clear, applyCode, removeCode, dismissNotice]);
+  }, [state, ready, storageAvailable, lastAdded, add, setQty, remove, clear, applyCode, removeCode, dismissNotice]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

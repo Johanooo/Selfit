@@ -4,6 +4,7 @@ import { Header } from './Header';
 import { Footer } from './Footer';
 import { CookieConsent } from './CookieConsent';
 import { CartToast } from './CartToast';
+import { CartStorageWarning } from './CartStorageWarning';
 
 export function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
@@ -17,6 +18,7 @@ export function Layout({ children }: { children: ReactNode }) {
         Hoppa till innehåll
       </a>
       <Header />
+      <CartStorageWarning />
       <main id="main" tabIndex={-1}>
         {children}
       </main>

@@ -1827,6 +1827,12 @@ a.chip:hover {
   background: var(--c-success-soft);
   color: var(--c-success);
 }
+.cart-storage-warning-wrap {
+  margin-block: var(--space-4) 0;
+}
+.cart-storage-warning {
+  margin: 0;
+}
 .buy-box {
   border: 1px solid var(--c-border);
   border-radius: var(--radius-lg);
