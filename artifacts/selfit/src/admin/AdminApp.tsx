@@ -1,6 +1,26 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useLocation } from 'wouter';
 import { navGroups, orderRows, productRows } from './mockData';
+import {
+  defaultCategoryFilters,
+  defaultMediaItems,
+  defaultProductTypes,
+  defaultRedirectRows,
+  type CategoryFilterDefinition,
+  type LocalMediaItem,
+  type ProductTypeDefinition,
+  type RedirectRow,
+} from './extendedAdminData';
+import {
+  EmailTemplatesView,
+  MediaLibraryView,
+  MediaPicker,
+  ProductRelationsSection,
+  ProductPriceHistoryPanel,
+  RedirectsView,
+  WarehouseInboundLotsView,
+} from './extendedAdminViews';
+import { ProductTypeFieldsEditor, ProductTypesAndFiltersView } from './extendedProductViews';
 import './admin.css';
 
 type ButtonProps = { children: ReactNode; onClick?: () => void; kind?: 'primary' | 'quiet' | 'danger'; small?: boolean; testId: string; ariaLabel?: string; ariaExpanded?: boolean; ariaControls?: string; className?: string };
@@ -46,7 +66,7 @@ function Login({ onSubmit }: { onSubmit: () => void }) {
 
 function Dashboard({ go, notice, setNotice }: { go: (path: string) => void; notice: string; setNotice: (s: string) => void }) {
   return <>
-    <Heading kicker="Tisdag 18 juni 2024" title="Dagens läge" description="En snabb överblick över det som behöver uppmärksamhet." actions={<Button kind="quiet" onClick={() => setNotice('Översikten uppdaterades lokalt 10:48.')} testId="button-refresh-overview">Uppdatera läge</Button>} />
+    <Heading kicker="Fredag 20 november 2026" title="Dagens läge" description="En snabb överblick över det som behöver uppmärksamhet." actions={<Button kind="quiet" onClick={() => setNotice('Översikten uppdaterades lokalt 10:48.')} testId="button-refresh-overview">Uppdatera läge</Button>} />
     {notice && <div className="admin-inline-message" role="status" data-testid="status-notice">{notice}</div>}
     <div className="admin-grid three admin-stat-grid">
       {[['Nya ordrar', '28', '+6 sedan 09:00'], ['Att plocka', '14', '3 väntar på betalning'], ['Nettoomsättning', '18 420 kr', '31 ordrar idag']].map(([label, value, foot]) => <div className="admin-panel admin-stat" key={label}><span className="admin-stat-label">{label}</span><strong>{value}</strong><div className="admin-stat-foot"><span className="admin-stat-mark">↗</span> {foot}</div></div>)}
@@ -141,7 +161,15 @@ function createEditorVariants(slug: string): VariantRow[] {
   }];
 }
 
-function ProductEditor({ slug, go, notify }: { slug: string; go: (path: string) => void; notify: (s: string) => void }) {
+function ProductEditor({ slug, go, notify, productTypes, mediaItems, onMediaItemsChange, onAddRedirect }: {
+  slug: string;
+  go: (path: string) => void;
+  notify: (s: string) => void;
+  productTypes: ProductTypeDefinition[];
+  mediaItems: LocalMediaItem[];
+  onMediaItemsChange: (items: LocalMediaItem[]) => void;
+  onAddRedirect: (oldUrl: string, newUrl: string) => void;
+}) {
   const product = productRows.find((p) => p.slug === slug) ?? productRows[0];
   const variantConfig = productVariantConfig[slug] ?? { flavours: ['Standard'], packs: ['1'], rows: createEditorVariants(slug) };
   const [tab, setTab] = useState('Grunddata');
@@ -154,7 +182,18 @@ function ProductEditor({ slug, go, notify }: { slug: string; go: (path: string) 
   const [url, setUrl] = useState(slug);
   const [urlOriginal] = useState(slug);
   const [mediaAlt, setMediaAlt] = useState(`${product.name} produktbild mot ljus bakgrund`);
+  const [productType, setProductType] = useState(
+    slug === 'fuktkram-ansikte' ? 'kroppsvard'
+      : ['shaker-600', 'traningsband-set'].includes(slug) ? 'redskap-tillbehor'
+        : ['kreatin-monohydrat', 'd-vitamin-50', 'omega-3'].includes(slug) ? 'kosttillskott'
+          : 'dryck-livsmedel',
+  );
+  const [selectedMediaId, setSelectedMediaId] = useState(
+    () => mediaItems.find((item) => item.usedBy.includes(product.name))?.id ?? mediaItems[0]?.id ?? '',
+  );
+  const [priceChanged, setPriceChanged] = useState(false);
   const [reviewed, setReviewed] = useState(false);
+  const selectedMedia = mediaItems.find((item) => item.id === selectedMediaId);
   const duplicateSku = variants.some((v, i) => variants.findIndex((other) => other.sku === v.sku) !== i);
   const duplicateGtin = variants.some((v, i) => variants.findIndex((other) => other.gtin === v.gtin) !== i);
   const missing = !name.trim() || !description.trim() || !mediaAlt.trim() || duplicateSku || duplicateGtin || variants.some((v) => !v.sku.trim() || !v.gtin.trim() || !v.price.trim());
@@ -177,18 +216,31 @@ function ProductEditor({ slug, go, notify }: { slug: string; go: (path: string) 
     setVariants(next);
     notify(`${next.length} variantkombinationer genererades lokalt. Kontrollera SKU och GTIN innan publicering.`);
   };
-  const setV = (index: number, key: keyof VariantRow, value: string) => setVariants((current) => current.map((variant, i) => i === index ? { ...variant, [key]: value } : variant));
-  const tabNames = ['Grunddata', 'Beskrivning', 'Media & SEO', 'Näring & innehåll', 'Varianter'];
+  const setV = (index: number, key: keyof VariantRow, value: string) => {
+    if (key === 'price') setPriceChanged(true);
+    setVariants((current) => current.map((variant, i) => i === index ? { ...variant, [key]: value } : variant));
+  };
+  const selectMedia = (item: LocalMediaItem) => {
+    setSelectedMediaId(item.id);
+    setMediaAlt(item.alt);
+    onMediaItemsChange(mediaItems.map((media) => {
+      const withoutProduct = media.usedBy.filter((usedBy) => usedBy !== product.name);
+      return media.id === item.id
+        ? { ...media, usedBy: [...new Set([...withoutProduct, product.name])] }
+        : { ...media, usedBy: withoutProduct };
+    }));
+  };
+  const tabNames = ['Grunddata', 'Beskrivning', 'Media & SEO', 'Näring & innehåll', 'Varianter', 'Relationer'];
   const editorTabs = <div className="admin-tabs" role="group" aria-label="Produktens redigeringsavsnitt">{tabNames.map((item) => <button key={item} type="button" aria-pressed={tab === item} className="admin-tab" onClick={() => setTab(item)} data-testid={`tab-product-${item.toLowerCase().replaceAll(' ', '-')}`}>{item}</button>)}</div>;
   return <>
     <Heading kicker="Katalog / produktfamilj" title={product.name} description="Redigera produktfamilj och dess försäljningsvarianter." actions={<><Button onClick={() => notify('Ändringarna sparades som lokalt utkast.')} testId="button-save-draft">Spara utkast</Button><Button kind="primary" onClick={() => notify(missing ? 'Publicering stoppad: komplettera obligatoriska fält och granska varningslistan.' : 'Produkten markerades som publicerad i prototypen.')} testId="button-publish-product">Publicera</Button></>} />
-    <div className="admin-product-editor">
+    <div className={`admin-product-editor ${tab === 'Varianter' ? 'variant-layout' : ''}`}>
       <div className="admin-panel"><div className="admin-panel-body">{editorTabs}
-        {tab === 'Grunddata' && <div className="admin-form-grid"><Field label="Produktnamn" value={name} onChange={setName} testId="input-product-name" error={!name.trim() ? 'Produktnamn måste fyllas i.' : undefined} /><Field label="Varumärke" value={product.brand} testId="input-product-brand" /><Field label="Produktens URL" value={url} onChange={setUrl} testId="input-product-url" /><Field label="Kategori" value={product.category} testId="input-product-category" /><Field label="Kort ingress" value="Kolsyrad pre-workout med beta-alanin, AAKG och koffein." multiline testId="input-product-intro" /><div className="admin-field"><label htmlFor="product-visibility">Synlighet</label><select id="product-visibility" className="admin-control" data-testid="select-product-visibility"><option>Publicerad</option><option>Utkast</option><option>Arkiverad</option></select></div><div className="admin-field"><label htmlFor="product-type">Produkttyp</label><select id="product-type" className="admin-control" data-testid="select-product-type"><option>Kosttillskott / dryck</option><option>Livsmedel</option><option>Kroppsvård</option><option>Utrustning</option></select></div></div>}
+        {tab === 'Grunddata' && <div className="admin-form-grid"><Field label="Produktnamn" value={name} onChange={setName} testId="input-product-name" error={!name.trim() ? 'Produktnamn måste fyllas i.' : undefined} /><Field label="Varumärke" value={product.brand} testId="input-product-brand" /><Field label="Produktens URL" value={url} onChange={setUrl} testId="input-product-url" /><Field label="Kategori" value={product.category} testId="input-product-category" /><Field label="Kort ingress" value="Kolsyrad pre-workout med beta-alanin, AAKG och koffein." multiline testId="input-product-intro" /><div className="admin-field"><label htmlFor="product-visibility">Synlighet</label><select id="product-visibility" className="admin-control" data-testid="select-product-visibility"><option>Publicerad</option><option>Utkast</option><option>Arkiverad</option></select></div><div className="admin-field"><label htmlFor="product-type">Produkttyp</label><select id="product-type" className="admin-control" value={productType} onChange={(event) => setProductType(event.target.value)} data-testid="select-product-type">{productTypes.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}</select></div></div>}
          {tab === 'Beskrivning' && <div className="admin-form-grid"><Field label="Produktbeskrivning" value={description} onChange={setDescription} multiline testId="input-product-description" error={!description.trim() ? 'Beskrivningen måste fyllas i.' : undefined} /><Field label="Användning och varningar" value="Drick före träning. Innehåller 300 mg koffein per burk. Rekommenderas inte för barn, gravida eller ammande." multiline testId="input-product-usage" /><fieldset className="admin-option-set span-2"><legend>Kategorier</legend><div className="admin-toolbar"><label className="admin-toggle-row"><input type="checkbox" defaultChecked data-testid="check-category-training" /> Träning</label><label className="admin-toggle-row"><input type="checkbox" data-testid="check-category-health" /> Hälsa</label><label className="admin-toggle-row"><input type="checkbox" data-testid="check-category-new" /> Nyheter</label></div></fieldset></div>}
-         {tab === 'Media & SEO' && <div className="admin-form-grid"><Field label="Bildens alt-text" value={mediaAlt} onChange={setMediaAlt} testId="input-media-alt" error={!mediaAlt.trim() ? 'Alt-text krävs för produktbilden.' : undefined} /><Field label="SEO-titel" value="PWO+ Pre-workout – SELFiT" testId="input-seo-title" /><Field label="SEO-beskrivning" value="Färdigblandad pre-workout med 300 mg koffein. Välj smak och packstorlek." multiline testId="input-seo-description" /><Field label="URL-slug" value={url} onChange={setUrl} testId="input-seo-url" /><div className="admin-field span-2"><span className="admin-section-label">Produktmedia</span><div className="admin-notice info">Produktbild · {product.name} · Alt-text sparas per mediaobjekt. <Button small onClick={() => notify('Mediafält öppnat i lokal prototyp.')} testId="button-add-media">Lägg till media</Button></div></div>{url !== urlOriginal && <div className="admin-notice error span-2"><div><strong>URL ändras — omdirigering krävs</strong>En 301-omdirigering från /produkt/{urlOriginal} till /produkt/{url} bör skapas vid publicering.</div></div>}</div>}
-        {tab === 'Näring & innehåll' && <div className="admin-form-grid"><Field label="Ingredienser" value="Kolsyrat vatten, beta-alanin, AAKG, koffein, aromer, sötningsmedel." multiline testId="input-ingredients" /><Field label="Allergener" value="Inga deklarerade allergener" testId="input-allergens" /><Panel title="Näringsvärde" subtitle="Värde per 100 ml / per burk"><div className="admin-metric-line"><span>Energi</span><strong>4 kJ / 1 kcal · 13 kJ / 3 kcal</strong></div><div className="admin-metric-line"><span>Koffein</span><strong>91 mg · 300 mg</strong></div><Button small onClick={() => notify('Näringsraden kan redigeras i en separat produktionsversion.')} testId="button-edit-nutrition">＋ Lägg till näringsrad</Button></Panel><div className="admin-notice error"><div><strong>Hälsopåståenden kräver granskning</strong>Påståenden om effekt ska verifieras mot godkända formuleringar före publicering.</div></div><label className="admin-toggle-row"><input type="checkbox" checked={reviewed} onChange={(e) => setReviewed(e.target.checked)} data-testid="check-health-claim-reviewed" /> Jag har granskat hälsopåståenden</label></div>}
-        {tab === 'Varianter' && <><p className="muted small admin-variant-intro">Välj kombinationer och generera SKU-rader. Varje rad kan sedan justeras separat.</p><div className="admin-form-grid"><fieldset className="admin-option-set"><legend>Smak</legend>{variantConfig.flavours.map((flavour) => <label key={flavour} className="admin-toggle-row"><input type="checkbox" checked={flavours.includes(flavour)} onChange={(e) => setFlavours((list) => e.target.checked ? [...list, flavour] : list.filter((f) => f !== flavour))} data-testid={`check-flavour-${flavour.toLowerCase().replaceAll(' ', '-')}`} />{flavour}</label>)}</fieldset><fieldset className="admin-option-set"><legend>Packstorlek</legend>{variantConfig.packs.map((pack) => <label key={pack} className="admin-toggle-row"><input type="checkbox" checked={packs.includes(pack)} onChange={(e) => setPacks((list) => e.target.checked ? [...list, pack] : list.filter((p) => p !== pack))} data-testid={`check-pack-${pack}`} />{pack === '1' ? 'Standardförpackning' : `${pack}-pack`}</label>)}</fieldset><div className="admin-field span-2"><Button kind="primary" onClick={createVariants} testId="button-generate-variants">Generera varianter</Button></div></div><hr className="admin-divider" /><Table headers={['Smak / pack', 'SKU', 'GTIN', 'Pris kr', 'Jämförpris', 'Pant', 'Moms', 'DSV', 'Eget lager', 'Status']} testId="table-variants">{variants.map((v, index) => {
+         {tab === 'Media & SEO' && <div className="admin-form-grid"><Field label="Bildens alt-text" value={mediaAlt} onChange={setMediaAlt} testId="input-media-alt" error={!mediaAlt.trim() ? 'Alt-text krävs för produktbilden.' : undefined} /><Field label="SEO-titel" value={`${product.name} – SELFiT`} testId="input-seo-title" /><Field label="SEO-beskrivning" value="Färdigblandad pre-workout med 300 mg koffein. Välj smak och packstorlek." multiline testId="input-seo-description" /><Field label="URL-slug" value={url} onChange={setUrl} testId="input-seo-url" /><div className="admin-field span-2"><span className="admin-section-label">Välj produktmedia</span><div className="admin-notice info">Vald bild: {selectedMedia?.name ?? 'ingen bild vald'}. Bild och alt-text ändras lokalt.</div><MediaPicker items={mediaItems} selectedId={selectedMediaId} onSelect={selectMedia} /></div>{url !== urlOriginal && <div className="admin-notice error span-2"><div><strong>URL ändras — omdirigering krävs</strong>En permanent omdirigering från /produkt/{urlOriginal} till /produkt/{url} bör skapas.</div><Button small kind="primary" onClick={() => { onAddRedirect(`/produkt/${urlOriginal}`, `/produkt/${url}`); notify('Omdirigeringen lades till i listan.'); go('/admin/omdirigeringar'); }} testId="button-add-product-redirect">Lägg till omdirigering</Button></div>}</div>}
+         {tab === 'Näring & innehåll' && <div className="admin-form-grid"><Field label="Ingredienser" value="Kolsyrat vatten, beta-alanin, AAKG, koffein, aromer, sötningsmedel." multiline testId="input-ingredients" /><Field label="Allergener" value="Inga deklarerade allergener" testId="input-allergens" /><Panel title="Näringsvärde" subtitle="Värde per 100 ml / per burk"><div className="admin-metric-line"><span>Energi</span><strong>4 kJ / 1 kcal · 13 kJ / 3 kcal</strong></div><div className="admin-metric-line"><span>Koffein</span><strong>91 mg · 300 mg</strong></div><Button small onClick={() => notify('Näringsraden kan redigeras lokalt i prototypen.')} testId="button-edit-nutrition">＋ Lägg till näringsrad</Button></Panel><div className="admin-notice error"><div><strong>Hälsopåståenden kräver granskning</strong>Påståenden om effekt ska verifieras mot godkända formuleringar före publicering.</div></div><label className="admin-toggle-row"><input type="checkbox" checked={reviewed} onChange={(e) => setReviewed(e.target.checked)} data-testid="check-health-claim-reviewed" /> Jag har granskat hälsopåståenden</label><div className="span-2"><ProductTypeFieldsEditor productType={productType} productTypes={productTypes} /></div></div>}
+         {tab === 'Varianter' && <><p className="muted small admin-variant-intro">Välj kombinationer och generera SKU-rader. Varje rad kan sedan justeras separat.</p><div className="admin-form-grid"><fieldset className="admin-option-set"><legend>Smak</legend>{variantConfig.flavours.map((flavour) => <label key={flavour} className="admin-toggle-row"><input type="checkbox" checked={flavours.includes(flavour)} onChange={(e) => setFlavours((list) => e.target.checked ? [...list, flavour] : list.filter((f) => f !== flavour))} data-testid={`check-flavour-${flavour.toLowerCase().replaceAll(' ', '-')}`} />{flavour}</label>)}</fieldset><fieldset className="admin-option-set"><legend>Packstorlek</legend>{variantConfig.packs.map((pack) => <label key={pack} className="admin-toggle-row"><input type="checkbox" checked={packs.includes(pack)} onChange={(e) => setPacks((list) => e.target.checked ? [...list, pack] : list.filter((p) => p !== pack))} data-testid={`check-pack-${pack}`} />{pack === '1' ? 'Standardförpackning' : `${pack}-pack`}</label>)}</fieldset><div className="admin-field span-2"><Button kind="primary" onClick={createVariants} testId="button-generate-variants">Generera varianter</Button></div></div><hr className="admin-divider" />{priceChanged && <div className="admin-notice info" role="note" data-testid="warning-price-changed"><div><strong>Prisändring behöver prisinformation</strong>Kontrollera att lägsta pris de senaste 30 dagarna visas för kunden.</div></div>}<Table headers={['Smak / pack', 'SKU', 'GTIN', 'Pris kr', 'Jämförpris', 'Pant', 'Moms', 'DSV', 'Eget lager', 'Status']} testId="table-variants">{variants.map((v, index) => {
           const duplicateSkuCell = Boolean(v.sku) && variants.findIndex((other) => other.sku === v.sku) !== index;
           const duplicateGtinCell = Boolean(v.gtin) && variants.findIndex((other) => other.gtin === v.gtin) !== index;
           const fieldKeys: (keyof VariantRow)[] = ['sku', 'gtin', 'price', 'compare', 'deposit', 'vat', 'stockDsv', 'stockOwn', 'status'];
@@ -199,9 +251,10 @@ function ProductEditor({ slug, go, notify }: { slug: string; go: (path: string) 
             const error = duplicate ? `Dubblett: ${key === 'sku' ? 'SKU' : 'GTIN'} måste vara unik.` : missingField ? 'Obligatoriskt fält.' : '';
             return <td key={key}><div className="admin-cell-editor"><input aria-label={`${v.flavour} ${v.pack === 1 ? 'standardförpackning' : `${v.pack}-pack`} · ${fieldLabels[key]}`} className="admin-control admin-variant-control" aria-invalid={Boolean(error)} aria-describedby={error ? `variant-${key}-${index}-error` : undefined} value={v[key]} onChange={(e) => setV(index, key, e.target.value)} data-testid={`input-variant-${key}-${index}`} />{error && <span className="admin-cell-error" id={`variant-${key}-${index}-error`} role="alert" data-testid={`error-variant-${key}-${index}`}>{error}</span>}</div></td>;
           })}</tr>;
-        })}</Table></>}
+         })}</Table><div className="admin-price-history"><ProductPriceHistoryPanel productSlug={slug} /></div></>}
+         {tab === 'Relationer' && <ProductRelationsSection productSlug={slug} />}
       </div></div>
-      <aside className="admin-preview"><Panel title="Butikförhandsvisning" subtitle="Ungefärlig produktvy" action={<div className="admin-actions"><Button small onClick={() => setView('Mobil')} testId="button-preview-mobile">Mobil</Button><Button small onClick={() => setView('Dator')} testId="button-preview-desktop">Dator</Button></div>}><div className={`admin-preview-card ${view === 'Mobil' ? 'mobile' : ''}`}><div className="admin-preview-hero"><div className="admin-preview-can" /></div><div className="admin-preview-content"><h3>{name || 'Produktnamn saknas'}</h3><p>{description}</p><div className="admin-preview-price">{variants[0]?.price || product.price} kr <span className="admin-preview-note">{Number(variants[0]?.deposit ?? 0) > 0 ? `inkl. ${variants[0].deposit} kr pant` : 'inkl. moms'}</span></div></div></div><ul className="admin-checklist"><li className={name.trim() ? '' : 'missing'}>{name.trim() ? 'Produktnamn finns' : 'Produktnamn saknas'}</li><li className={description.trim() ? '' : 'missing'}>{description.trim() ? 'Beskrivning finns' : 'Beskrivning saknas'}</li><li className={mediaAlt.trim() ? '' : 'missing'}>{mediaAlt.trim() ? 'Alt-text finns' : 'Alt-text saknas'}</li><li className={variants.every((v) => v.sku && v.gtin && v.price) ? '' : 'missing'}>SKU, GTIN och pris för alla varianter</li><li className={reviewed ? '' : 'missing'}>{reviewed ? 'Hälsopåstående granskat' : 'Hälsopåstående ej granskat'}</li></ul><div className="admin-actions"><Button small onClick={() => notify('Produkt sparad som utkast lokalt.')} testId="button-product-draft">Spara utkast</Button><Button small kind="danger" onClick={() => notify('Produktfamiljen arkiverades lokalt.')} testId="button-product-archive">Arkivera</Button></div></Panel></aside>
+      <aside className="admin-preview"><Panel title="Butikförhandsvisning" subtitle="Ungefärlig produktvy" action={<div className="admin-actions"><Button small onClick={() => setView('Mobil')} testId="button-preview-mobile">Mobil</Button><Button small onClick={() => setView('Dator')} testId="button-preview-desktop">Dator</Button></div>}><div className={`admin-preview-card ${view === 'Mobil' ? 'mobile' : ''}`}><div className="admin-preview-hero">{selectedMedia ? <img src={selectedMedia.src} alt={mediaAlt} /> : <div className="admin-preview-can" />}</div><div className="admin-preview-content"><h3>{name || 'Produktnamn saknas'}</h3><p>{description}</p><div className="admin-preview-price">{variants[0]?.price || product.price} kr <span className="admin-preview-note">{Number(variants[0]?.deposit ?? 0) > 0 ? `inkl. ${variants[0].deposit} kr pant` : 'inkl. moms'}</span></div></div></div><ul className="admin-checklist"><li className={name.trim() ? '' : 'missing'}>{name.trim() ? 'Produktnamn finns' : 'Produktnamn saknas'}</li><li className={description.trim() ? '' : 'missing'}>{description.trim() ? 'Beskrivning finns' : 'Beskrivning saknas'}</li><li className={mediaAlt.trim() ? '' : 'missing'}>{mediaAlt.trim() ? 'Alt-text finns' : 'Alt-text saknas'}</li><li className={variants.every((v) => v.sku && v.gtin && v.price) ? '' : 'missing'}>SKU, GTIN och pris för alla varianter</li><li className={reviewed ? '' : 'missing'}>{reviewed ? 'Hälsopåstående granskat' : 'Hälsopåstående ej granskat'}</li></ul><div className="admin-actions"><Button small onClick={() => notify('Produkt sparad som utkast lokalt.')} testId="button-product-draft">Spara utkast</Button><Button small kind="danger" onClick={() => notify('Produktfamiljen arkiverades lokalt.')} testId="button-product-archive">Arkivera</Button></div></Panel></aside>
     </div>
   </>;
 }
@@ -230,7 +283,7 @@ function OrderDetail({ id, notify }: { id: string; notify: (s: string) => void }
           </Table>
           <div className="admin-panel-body"><div className="admin-metric-line"><span>Varor</span><strong>528 kr</strong></div><div className="admin-metric-line"><span>Pant</span><strong>12 kr</strong></div><div className="admin-metric-line"><span>Frakt</span><strong>38 kr</strong></div><div className="admin-metric-line"><span>Totalt</span><strong>578 kr</strong></div></div>
         </Panel>
-        <Panel title="Händelser" subtitle="Lokal orderhistorik"><div className="admin-timeline">{[['Order skapad', order.date, 'Kassan genomförd'], ['Betalning mottagen', '18 juni, 10:43', 'Kustom · betalningen godkänd'], ['Plockkö', '18 juni, 10:44', 'Väntar på plockning']].map(([title, time, detail]) => <div className="admin-event" key={title}><strong>{title}</strong>{detail}<time>{time}</time></div>)}</div></Panel>
+        <Panel title="Händelser" subtitle="Lokal orderhistorik"><div className="admin-timeline">{[['Order skapad', order.date, 'Kassan genomförd'], ['Betalning mottagen', '20 november, 10:43', 'Kustom · betalningen godkänd'], ['Plockkö', '20 november, 10:44', 'Väntar på plockning']].map(([title, time, detail]) => <div className="admin-event" key={title}><strong>{title}</strong>{detail}<time>{time}</time></div>)}</div></Panel>
       </div>
       <div className="admin-grid">
         <Panel title="Betalning & leverans">
@@ -250,7 +303,47 @@ function OrderDetail({ id, notify }: { id: string; notify: (s: string) => void }
   </>;
 }
 
-function Categories({ notify }: { notify: (s: string) => void }) {
+function CategoryFiltersPanel({ productTypes, categoryFilters, onChange }: {
+  productTypes: ProductTypeDefinition[];
+  categoryFilters: CategoryFilterDefinition[];
+  onChange: (filters: CategoryFilterDefinition[]) => void;
+}) {
+  const [category, setCategory] = useState('Träning');
+  const current = categoryFilters.find((filter) => filter.category === category) ?? { category, fieldIds: [] };
+  const fields = productTypes.flatMap((type) => type.fields.map((field) => ({ ...field, typeName: type.name })));
+  const update = (fieldIds: string[]) => {
+    const next = { category, fieldIds };
+    onChange(categoryFilters.some((filter) => filter.category === category)
+      ? categoryFilters.map((filter) => filter.category === category ? next : filter)
+      : [...categoryFilters, next]);
+  };
+  const move = (index: number, direction: -1 | 1) => {
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= current.fieldIds.length) return;
+    const fieldIds = [...current.fieldIds];
+    [fieldIds[index], fieldIds[nextIndex]] = [fieldIds[nextIndex], fieldIds[index]];
+    update(fieldIds);
+  };
+  return <Panel title="Kategorifilter" subtitle="Välj och ordna de produktegenskaper som kunder kan filtrera på.">
+    <div className="admin-form-grid">
+      <div className="admin-field"><label htmlFor="category-filter-name">Kategori</label><select id="category-filter-name" className="admin-control" value={category} onChange={(event) => setCategory(event.target.value)} data-testid="select-category-filter-name">{['Träning', 'Hälsa', 'Skönhet'].map((name) => <option key={name}>{name}</option>)}</select></div>
+      <fieldset className="admin-option-set span-2"><legend>Fält som visas som filter</legend>{fields.map((field) => <label className="admin-toggle-row" key={field.id}><input type="checkbox" checked={current.fieldIds.includes(field.id)} onChange={(event) => update(event.target.checked ? [...current.fieldIds, field.id] : current.fieldIds.filter((id) => id !== field.id))} data-testid={`check-category-page-filter-${field.id}`} />{field.name} <span className="subtext">{field.typeName}</span></label>)}</fieldset>
+      <div className="admin-field span-2"><span className="admin-section-label">Visningsordning</span><div className="admin-tree">{current.fieldIds.map((id, index) => {
+        const field = fields.find((item) => item.id === id);
+        if (!field) return null;
+        return <div className="admin-tree-row" key={id}><span className="admin-tree-name">{index + 1}. {field.name}<span className="subtext">{field.typeName}</span></span><Button small onClick={() => move(index, -1)} ariaLabel={`Flytta ${field.name} upp`} testId={`button-category-filter-up-${id}`}>↑</Button><Button small onClick={() => move(index, 1)} ariaLabel={`Flytta ${field.name} ned`} testId={`button-category-filter-down-${id}`}>↓</Button></div>;
+      })}{current.fieldIds.length === 0 && <div className="admin-empty">Inga filter valda för kategorin.</div>}</div></div>
+    </div>
+  </Panel>;
+}
+
+function Categories({ notify, go, productTypes, categoryFilters, onCategoryFiltersChange }: {
+  notify: (s: string) => void;
+  go: (path: string) => void;
+  productTypes: ProductTypeDefinition[];
+  categoryFilters: CategoryFilterDefinition[];
+  onCategoryFiltersChange: (filters: CategoryFilterDefinition[]) => void;
+}) {
   const [rows, setRows] = useState([{ name: 'Träning', slug: 'traning', count: 42, level: 0 }, { name: 'Pre-workout', slug: 'pre-workout', count: 8, level: 1 }, { name: 'Hälsa', slug: 'halsa', count: 31, level: 0 }, { name: 'Vitaminer', slug: 'vitaminer', count: 12, level: 1 }, { name: 'Skönhet', slug: 'skonhet', count: 24, level: 0 }]);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const move = (from: number, to: number) => setRows((current) => {
@@ -261,7 +354,7 @@ function Categories({ notify }: { notify: (s: string) => void }) {
     return next;
   });
   return <>
-    <Heading kicker="Butik / navigering" title="Kategorier" description="Styr butikens hierarki och redaktionella innehåll." actions={<Button kind="primary" onClick={() => { setRows([...rows, { name: 'Ny kategori', slug: 'ny-kategori', count: 0, level: 0 }]); notify('Kategori tillagd lokalt.'); }} testId="button-add-category">＋ Ny kategori</Button>} />
+     <Heading kicker="Butik / navigering" title="Kategorier" description="Styr butikens hierarki och redaktionella innehåll." actions={<><Button onClick={() => go('/admin/produkttyper')} testId="button-category-filters">Produkttyper & filter</Button><Button kind="primary" onClick={() => { setRows([...rows, { name: 'Ny kategori', slug: 'ny-kategori', count: 0, level: 0 }]); notify('Kategori tillagd lokalt.'); }} testId="button-add-category">＋ Ny kategori</Button></>} />
     <div className="admin-grid two">
       <Panel title="Kategoriträd" subtitle="Dra för att ändra ordning eller använd knapparna för tangentbord.">
         <div className="admin-tree" onDragEnd={() => setDragIndex(null)}>
@@ -282,7 +375,8 @@ function Categories({ notify }: { notify: (s: string) => void }) {
         <Panel title="Startsida" subtitle="Utvald kategori och innehållsmodul"><div className="admin-form-grid"><Field label="Startsiderubrik" value="Hitta din rutin" testId="input-homepage-title" /><Field label="Beskrivning" value="Små val som gör träningen enklare." multiline testId="input-homepage-description" /><label className="admin-toggle-row"><input type="checkbox" defaultChecked data-testid="check-homepage-featured" /> Visa kategorin på startsidan</label><Button onClick={() => notify('Startsidesinnehåll uppdaterades lokalt.')} testId="button-save-homepage">Spara startsida</Button></div></Panel>
         <Panel title="Supportsidor" subtitle="Redigera hjälpinnehåll och vanliga frågor"><div className="admin-form-grid"><Field label="Sidrubrik" value="Vanliga frågor om träning" testId="input-support-title" /><Field label="Ingress" value="Här hittar kunden svar om produkter, leverans och retur." multiline testId="input-support-intro" /><Field label="Fråga" value="Hur väljer jag rätt PWO+?" testId="input-support-question" /><Field label="Svar" value="Välj smak och packstorlek på produktsidan. Läs alltid innehåll och användningsråd före köp." multiline testId="input-support-answer" /><Button kind="primary" onClick={() => notify('Supportsidans exempeltext sparades lokalt.')} testId="button-save-support-page">Spara supportsida</Button></div></Panel>
       </div>
-    </div>
+     </div>
+     <CategoryFiltersPanel productTypes={productTypes} categoryFilters={categoryFilters} onChange={onCategoryFiltersChange} />
   </>;
 }
 
@@ -294,8 +388,8 @@ function Warehouse({ notify }: { notify: (s: string) => void }) {
     <div className="admin-grid two">
       <Panel title="Anslutna lager" subtitle="Källa för lagerstatus och orderrouting">
         <Table headers={['Lager', 'Typ', 'Status', 'Senaste synk', 'Nästa försök', 'Fel och åtgärd']} testId="table-warehouses">
-          <tr><td><strong>DSV Jönköping</strong><span className="subtext">Standardlager</span></td><td>3PL via API</td><td><Status testId="status-warehouse-dsv">Synkad</Status></td><td>18 jun · 10:32</td><td>18 jun · 11:02</td><td><span className="subtext">Inga fel · orderfeed svarade 200</span><Button small onClick={() => { setRetry(retry + 1); notify(`DSV-synk försök ${retry + 1} kördes lokalt.`); }} testId="button-retry-sync-dsv">Försök igen</Button></td></tr>
-          <tr><td><strong>Eget lager</strong><span className="subtext">Stockholm</span></td><td>Eget lager</td><td><Status testId="status-warehouse-own">Fel</Status></td><td>18 jun · 08:14</td><td>18 jun · 10:55</td><td><span className="admin-sync-error-detail">2 fel: lagersaldo saknar platskod för SKU SHA-600; order SF-240618-0817 väntar på reservation.</span><Button small onClick={() => { setRetry(retry + 1); notify(`Eget lager: felkö markerad för nytt försök ${retry + 1}. Nästa försök 10:55.`); }} testId="button-retry-sync-own">Försök igen</Button></td></tr>
+          <tr><td><strong>DSV Jönköping</strong><span className="subtext">Standardlager</span></td><td>3PL via API</td><td><Status testId="status-warehouse-dsv">Synkad</Status></td><td>20 nov · 10:32</td><td>20 nov · 11:02</td><td><span className="subtext">Inga fel · orderfeed svarade 200</span><Button small onClick={() => { setRetry(retry + 1); notify(`DSV-synk försök ${retry + 1} kördes lokalt.`); }} testId="button-retry-sync-dsv">Försök igen</Button></td></tr>
+          <tr><td><strong>Eget lager</strong><span className="subtext">Stockholm</span></td><td>Eget lager</td><td><Status testId="status-warehouse-own">Fel</Status></td><td>20 nov · 08:14</td><td>20 nov · 10:55</td><td><span className="admin-sync-error-detail">2 fel: lagersaldo saknar platskod för SKU SHA-600; order SF-261120-0817 väntar på reservation.</span><Button small onClick={() => { setRetry(retry + 1); notify(`Eget lager: felkö markerad för nytt försök ${retry + 1}. Nästa försök 10:55.`); }} testId="button-retry-sync-own">Försök igen</Button></td></tr>
         </Table>
         <div className="admin-panel-body"><Button small onClick={() => notify('2 misslyckade orderrader markerade för lokalt nytt försök.')} testId="button-retry-failed-orders">Försök om misslyckade ordrar</Button></div>
       </Panel>
@@ -309,14 +403,14 @@ function Warehouse({ notify }: { notify: (s: string) => void }) {
 
 function OwnWarehouse({ notify }: { notify: (s: string) => void }) {
   const [tracking, setTracking] = useState('');
-  return <><Heading kicker="Order & lager" title="Eget lager" description="Plock, pack och inleveranser för det egna lagret." actions={<Button onClick={() => window.print()} testId="button-print-packing-slip">Skriv ut packsedel</Button>} /><div className="admin-grid dashboard"><div className="admin-grid"><Panel title="Plocklista" subtitle="4 orderrader · prioriterad efter ordertid" action={<Button small onClick={() => notify('Plocklista öppnades i utskriftsvänlig vy.')} testId="button-print-pick-list">Skriv ut</Button>}><Table headers={['Order', 'Artikel', 'Plats', 'Antal', 'Plockad']} testId="table-pick-list"><tr><td>SF-240618-0842</td><td>PWO+ Blåbär 12-pack</td><td>A-03-02</td><td>1</td><td><input type="checkbox" aria-label="Markera PWO Blåbär plockad" data-testid="check-picked-0842" /></td></tr><tr><td>SF-240618-0817</td><td>D-vitamin 50 µg</td><td>B-01-04</td><td>2</td><td><input type="checkbox" aria-label="Markera D-vitamin plockad" data-testid="check-picked-0817" /></td></tr><tr><td>SF-240618-0809</td><td>Träningsband set</td><td>C-02-01</td><td>1</td><td><input type="checkbox" aria-label="Markera träningsband plockat" data-testid="check-picked-0809" /></td></tr></Table></Panel><Panel title="Inleverans" subtitle="Registrera batch och bäst före"><div className="admin-form-grid three"><Field label="Produkt / SKU" placeholder="SKU eller produkt" testId="input-inbound-sku" /><Field label="Antal" type="number" placeholder="0" testId="input-inbound-quantity" /><Field label="Batchnummer" placeholder="Batch" testId="input-inbound-batch" /><Field label="Bäst före" type="date" testId="input-inbound-expiry" /><Button kind="primary" onClick={() => notify('Inleverans registrerad i lokal lagerlista.')} testId="button-register-inbound">Registrera inleverans</Button></div></Panel></div><div className="admin-grid"><Panel title="Markera som skickad" subtitle="Order SF-240618-0842"><Field label="Transportör" value="PostNord" testId="input-carrier" /><div className="admin-field-gap" /><Field label="Spårningsnummer" value={tracking} onChange={setTracking} placeholder="Ange kolli-ID" testId="input-tracking-number" /><div className="admin-actions admin-panel-actions"><Button kind="primary" onClick={() => notify(tracking ? `Order markerad skickad med spårning ${tracking}.` : 'Ange ett spårningsnummer först.')} testId="button-confirm-shipped">Bekräfta skickad</Button></div></Panel><Panel title="Packsedel" subtitle="Förhandsgranskning"><div className="admin-metric-line"><span>Order</span><strong>SF-240618-0842</strong></div><div className="admin-metric-line"><span>Kund</span><strong>Elin Andersson</strong></div><div className="admin-metric-line"><span>Rader</span><strong>2 produkter</strong></div><div className="admin-metric-line"><span>Leveranssätt</span><strong>PostNord ombud</strong></div></Panel></div></div></>;
+  return <><Heading kicker="Order & lager" title="Eget lager" description="Plock, pack och inleveranser för det egna lagret." actions={<Button onClick={() => window.print()} testId="button-print-packing-slip">Skriv ut packsedel</Button>} /><div className="admin-grid dashboard"><div className="admin-grid"><Panel title="Plocklista" subtitle="4 orderrader · prioriterad efter ordertid" action={<Button small onClick={() => notify('Plocklista öppnades i utskriftsvänlig vy.')} testId="button-print-pick-list">Skriv ut</Button>}><Table headers={['Order', 'Artikel', 'Plats', 'Antal', 'Plockad']} testId="table-pick-list"><tr><td>SF-261120-0842</td><td>PWO+ Blåbär 12-pack</td><td>A-03-02</td><td>1</td><td><input type="checkbox" aria-label="Markera PWO Blåbär plockad" data-testid="check-picked-0842" /></td></tr><tr><td>SF-261120-0817</td><td>D-vitamin 50 µg</td><td>B-01-04</td><td>2</td><td><input type="checkbox" aria-label="Markera D-vitamin plockad" data-testid="check-picked-0817" /></td></tr><tr><td>SF-261120-0809</td><td>Träningsband set</td><td>C-02-01</td><td>1</td><td><input type="checkbox" aria-label="Markera träningsband plockat" data-testid="check-picked-0809" /></td></tr></Table></Panel><Panel title="Inleverans" subtitle="Registrera batch och bäst före"><div className="admin-form-grid three"><Field label="Produkt / SKU" placeholder="SKU eller produkt" testId="input-inbound-sku" /><Field label="Antal" type="number" placeholder="0" testId="input-inbound-quantity" /><Field label="Batchnummer" placeholder="Batch" testId="input-inbound-batch" /><Field label="Bäst före" type="date" testId="input-inbound-expiry" /><Button kind="primary" onClick={() => notify('Inleverans registrerad i lokal lagerlista.')} testId="button-register-inbound">Registrera inleverans</Button></div></Panel></div><div className="admin-grid"><Panel title="Markera som skickad" subtitle="Order SF-261120-0842"><Field label="Transportör" value="PostNord" testId="input-carrier" /><div className="admin-field-gap" /><Field label="Spårningsnummer" value={tracking} onChange={setTracking} placeholder="Ange kolli-ID" testId="input-tracking-number" /><div className="admin-actions admin-panel-actions"><Button kind="primary" onClick={() => notify(tracking ? `Order markerad skickad med spårning ${tracking}.` : 'Ange ett spårningsnummer först.')} testId="button-confirm-shipped">Bekräfta skickad</Button></div></Panel><Panel title="Packsedel" subtitle="Förhandsgranskning"><div className="admin-metric-line"><span>Order</span><strong>SF-261120-0842</strong></div><div className="admin-metric-line"><span>Kund</span><strong>Elin Andersson</strong></div><div className="admin-metric-line"><span>Rader</span><strong>2 produkter</strong></div><div className="admin-metric-line"><span>Leveranssätt</span><strong>PostNord ombud</strong></div></Panel></div></div></>;
 }
 
 function Returns({ notify }: { notify: (s: string) => void }) {
   const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState('RET-2406-018');
+  const [selected, setSelected] = useState('RET-2611-018');
   const [statusFilter, setStatusFilter] = useState('Alla statusar');
-  const cases = [{ id: 'RET-2406-018', order: 'SF-240611-0762', customer: 'Amanda Karlsson', reason: 'Fel smak vald', status: 'Granskas', items: 'PWO+ Jordgubb 6-pack' }, { id: 'RET-2406-014', order: 'SF-240608-0711', customer: 'Johan Persson', reason: 'Skadad förpackning', status: 'Godkänd', items: 'Omega-3 Fiskolja' }, { id: 'RET-2406-009', order: 'SF-240603-0620', customer: 'Lina Berg', reason: 'Ångrat köp', status: 'Återbetald', items: 'Protein pannkakor' }];
+  const cases = [{ id: 'RET-2611-018', order: 'SF-261119-0762', customer: 'Amanda Karlsson', reason: 'Fel smak vald', status: 'Granskas', items: 'PWO+ Jordgubb 6-pack' }, { id: 'RET-2611-014', order: 'SF-261118-0711', customer: 'Johan Persson', reason: 'Skadad förpackning', status: 'Godkänd', items: 'Omega-3 Fiskolja' }, { id: 'RET-2611-009', order: 'SF-261116-0620', customer: 'Lina Berg', reason: 'Ångrat köp', status: 'Återbetald', items: 'Protein pannkakor' }];
   const active = cases.find((item) => item.id === selected) ?? cases[0];
   const filteredCases = cases.filter((item) => `${item.id} ${item.order} ${item.customer}`.toLowerCase().includes(search.toLowerCase()) && (statusFilter === 'Alla statusar' || item.status === statusFilter));
   return <>
@@ -334,11 +428,11 @@ function Discounts({ notify }: { notify: (s: string) => void }) {
   const [statusFilter, setStatusFilter] = useState('Alla statusar');
   const [typeFilter, setTypeFilter] = useState('Alla typer');
   const [createType, setCreateType] = useState('Kod');
-  const [discounts, setDiscounts] = useState([{ code: 'VÄLKOMMEN10', type: 'Kod', value: '10 %', validity: '1–30 jun', uses: '82 / 250', status: 'Aktiv' }, { code: '3 FÖR 2 · BARS', type: 'Kvantitet', value: '3 för 2', validity: 'Löpande', uses: '—', status: 'Aktiv' }, { code: 'SOMMAR15', type: 'Kod', value: '15 %', validity: '1–15 jun', uses: '149 / 150', status: 'Avslutad' }]);
+  const [discounts, setDiscounts] = useState([{ code: 'VÄLKOMMEN10', type: 'Kod', value: '10 %', validity: '1–30 nov', uses: '82 / 250', status: 'Aktiv' }, { code: '3 FÖR 2 · BARS', type: 'Kvantitet', value: '3 för 2', validity: 'Löpande', uses: '—', status: 'Aktiv' }, { code: 'NOVEMBER15', type: 'Kod', value: '15 %', validity: '1–15 nov', uses: '149 / 150', status: 'Avslutad' }]);
   const filtered = discounts.filter((discount) => (statusFilter === 'Alla statusar' || discount.status === statusFilter) && (typeFilter === 'Alla typer' || discount.type === typeFilter));
   return <>
     <Heading kicker="Butik / kampanj" title="Rabatter" description="Rabattkoder, automatiska erbjudanden och mängdrabatter." actions={<Button kind="primary" onClick={() => setShow(!show)} testId="button-create-discount">＋ Skapa rabatt</Button>} />
-    {show && <div className="admin-panel admin-discount-form"><div className="admin-panel-head"><div><h2>Ny rabatt</h2><p>Alla ändringar stannar i denna prototyp.</p></div><Button small onClick={() => setShow(false)} testId="button-close-discount-form">Stäng</Button></div><div className="admin-panel-body"><div className="admin-form-grid three"><Field label="Namn / kod" placeholder="Ex. TRÄNA10" testId="input-discount-code" /><div className="admin-field"><label htmlFor="discount-kind">Rabattform</label><select id="discount-kind" className="admin-control" value={createType} onChange={(e) => setCreateType(e.target.value)} data-testid="select-discount-type"><option>Kod</option><option>Automatisk</option><option>Kvantitet</option></select></div><div className="admin-field"><label htmlFor="discount-value-kind">Värde</label><select id="discount-value-kind" className="admin-control" data-testid="select-discount-value"><option>Procent</option><option>Fast belopp (kr)</option></select></div><Field label="Rabattvärde" placeholder="10" testId="input-discount-value" /><Field label="Gäller från" type="date" testId="input-discount-from" /><Field label="Gäller till" type="date" testId="input-discount-to" /><Field label="Minsta ordervärde (kr)" type="number" placeholder="0" testId="input-discount-minimum" /><Field label="Max antal användningar" type="number" placeholder="Obegränsat" testId="input-discount-max-uses" /><Field label="Produkter / kategorier" placeholder="Välj produkter eller kategorier" testId="input-discount-applicable" /><label className="admin-toggle-row"><input type="checkbox" data-testid="check-discount-combinable" /> Kan kombineras med andra rabatter</label><Button kind="primary" onClick={() => { setDiscounts([{ code: createType === 'Kod' ? 'NY-RABATT' : createType === 'Automatisk' ? 'AUTOMATISK RABATT' : 'MÄNGDRABATT', type: createType, value: '10 %', validity: 'Utkast', uses: '0 / 100', status: 'Utkast' }, ...discounts]); setShow(false); notify('Rabatt skapad som lokalt utkast.'); }} testId="button-save-discount">Spara rabatt</Button></div></div></div>}
+    {show && <div className="admin-panel admin-discount-form"><div className="admin-panel-head"><div><h2>Ny rabatt</h2><p>Alla ändringar stannar i denna prototyp.</p></div><Button small onClick={() => setShow(false)} testId="button-close-discount-form">Stäng</Button></div><div className="admin-panel-body"><div className="admin-notice info" role="note" data-testid="warning-discount-30-day-price"><div><strong>Visa 30-dagars lägsta pris</strong>Vid en rabatt ska kunden också se produktens lägsta pris under de senaste 30 dagarna.</div></div><div className="admin-form-grid three"><Field label="Namn / kod" placeholder="Ex. TRÄNA10" testId="input-discount-code" /><div className="admin-field"><label htmlFor="discount-kind">Rabattform</label><select id="discount-kind" className="admin-control" value={createType} onChange={(e) => setCreateType(e.target.value)} data-testid="select-discount-type"><option>Kod</option><option>Automatisk</option><option>Kvantitet</option></select></div><div className="admin-field"><label htmlFor="discount-value-kind">Värde</label><select id="discount-value-kind" className="admin-control" data-testid="select-discount-value"><option>Procent</option><option>Fast belopp (kr)</option></select></div><Field label="Rabattvärde" placeholder="10" testId="input-discount-value" /><Field label="Gäller från" type="date" testId="input-discount-from" /><Field label="Gäller till" type="date" testId="input-discount-to" /><Field label="Minsta ordervärde (kr)" type="number" placeholder="0" testId="input-discount-minimum" /><Field label="Max antal användningar" type="number" placeholder="Obegränsat" testId="input-discount-max-uses" /><Field label="Produkter / kategorier" placeholder="Välj produkter eller kategorier" testId="input-discount-applicable" /><label className="admin-toggle-row"><input type="checkbox" data-testid="check-discount-combinable" /> Kan kombineras med andra rabatter</label><Button kind="primary" onClick={() => { setDiscounts([{ code: createType === 'Kod' ? 'NY-RABATT' : createType === 'Automatisk' ? 'AUTOMATISK RABATT' : 'MÄNGDRABATT', type: createType, value: '10 %', validity: 'Utkast', uses: '0 / 100', status: 'Utkast' }, ...discounts]); setShow(false); notify('Rabatt skapad som lokalt utkast.'); }} testId="button-save-discount">Spara rabatt</Button></div></div></div>}
     <div className="admin-toolbar">
       <label className="admin-filter-label">Status<select className="admin-control" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} data-testid="filter-discount-status"><option>Alla statusar</option><option>Aktiv</option><option>Avslutad</option><option>Utkast</option></select></label>
       <label className="admin-filter-label">Typ<select className="admin-control" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} data-testid="filter-discount-type"><option>Alla typer</option><option>Kod</option><option>Automatisk</option><option>Kvantitet</option></select></label>
@@ -353,9 +447,9 @@ function Settings({ notify }: { notify: (s: string) => void }) {
   const tabs = ['Frakt', 'Moms & pant', 'Behörigheter', 'Ändringslogg'];
   return <><Heading kicker="Administration" title="Inställningar" description="Operativa regler, åtkomst och spårbarhet." /><div className="admin-panel"><div className="admin-panel-body"><div className="admin-tabs" role="group" aria-label="Inställningsavsnitt">{tabs.map((t) => <button className="admin-tab" type="button" key={t} aria-pressed={tab === t} onClick={() => setTab(t)} data-testid={`tab-settings-${t.toLowerCase().replaceAll(' ', '-')}`}>{t}</button>)}</div>
     {tab === 'Frakt' && <div className="admin-grid two"><Panel title="Fraktmetoder" subtitle="Priser i SEK"><Table headers={['Metod', 'Pris', 'Leveranstid', 'Status', '']} testId="table-shipping-methods"><tr><td>PostNord ombud</td><td>39 kr</td><td>1–3 vardagar</td><td><Status testId="status-shipping-postnord">Aktiv</Status></td><td><Button small onClick={() => notify('PostNord öppnad för redigering.')} testId="button-edit-shipping-postnord">Redigera</Button></td></tr><tr><td>Hemleverans</td><td>69 kr</td><td>1–3 vardagar</td><td><Status testId="status-shipping-home">Aktiv</Status></td><td><Button small onClick={() => notify('Hemleverans öppnad för redigering.')} testId="button-edit-shipping-home">Redigera</Button></td></tr></Table><div className="admin-panel-body"><Button small onClick={() => notify('Ny fraktmetod öppnad.')} testId="button-add-shipping">＋ Lägg till fraktmetod</Button></div></Panel><Panel title="Fri frakt" subtitle="Tröskel för varukorg"><Field label="Fri frakt från (kr)" value="599" testId="input-free-shipping-threshold" /><div className="admin-actions admin-panel-actions"><Button kind="primary" onClick={() => notify('Fraktregler sparades lokalt.')} testId="button-save-shipping-settings">Spara fraktregler</Button></div></Panel></div>}
-    {tab === 'Moms & pant' && <div className="admin-grid two"><Panel title="Momssatser" subtitle="Gäller från och med"><Table headers={['Produkttyp', 'Moms', 'Gäller från']} testId="table-vat-rates"><tr><td>Kosttillskott / livsmedel</td><td>12 %</td><td>2024-01-01</td></tr><tr><td>Skönhet / utrustning</td><td>25 %</td><td>2024-01-01</td></tr></Table><div className="admin-panel-body"><Button small onClick={() => notify('Momssatsredigering öppnad.')} testId="button-edit-vat">＋ Lägg till momssats</Button></div></Panel><Panel title="Panttabell" subtitle="Belopp per enhet"><Table headers={['Förpackning', 'Pant', 'Gäller från']} testId="table-deposit-rates"><tr><td>Burk, 330 ml</td><td>1 kr / st</td><td>2024-01-01</td></tr><tr><td>Ej pantbelagd</td><td>0 kr</td><td>2024-01-01</td></tr></Table><div className="admin-panel-body"><Button small onClick={() => notify('Panttabell öppnad för redigering.')} testId="button-edit-deposit">＋ Lägg till pantregel</Button></div></Panel></div>}
+    {tab === 'Moms & pant' && <div className="admin-grid two"><Panel title="Momssatser" subtitle="Gäller från och med"><Table headers={['Produkttyp', 'Moms', 'Gäller från']} testId="table-vat-rates"><tr><td>Kosttillskott / livsmedel</td><td>12 %</td><td>2026-11-01</td></tr><tr><td>Skönhet / utrustning</td><td>25 %</td><td>2026-11-01</td></tr></Table><div className="admin-panel-body"><Button small onClick={() => notify('Momssatsredigering öppnad.')} testId="button-edit-vat">＋ Lägg till momssats</Button></div></Panel><Panel title="Panttabell" subtitle="Belopp per enhet"><Table headers={['Förpackning', 'Pant', 'Gäller från']} testId="table-deposit-rates"><tr><td>Burk, 330 ml</td><td>1 kr / st</td><td>2026-11-01</td></tr><tr><td>Ej pantbelagd</td><td>0 kr</td><td>2026-11-01</td></tr></Table><div className="admin-panel-body"><Button small onClick={() => notify('Panttabell öppnad för redigering.')} testId="button-edit-deposit">＋ Lägg till pantregel</Button></div></Panel></div>}
     {tab === 'Behörigheter' && <Panel title="Roller och behörigheter" subtitle="Exempelanvändare"><Table headers={['Namn', 'E-post', 'Katalog', 'Support', 'Ekonomi', 'Administration', 'Roll']} testId="table-roles"><tr><td>Ella Svensson</td><td>ella@selfit.se</td>{['check-ella-catalog', 'check-ella-support', 'check-ella-finance', 'check-ella-admin'].map((id, i) => <td key={id}><input type="checkbox" defaultChecked={i < 2} aria-label={`Behörighet ${['katalog', 'support', 'ekonomi', 'administration'][i]} för Ella Svensson`} data-testid={id} /></td>)}<td>Support</td></tr><tr><td>Martin Holm</td><td>martin@selfit.se</td>{['check-martin-catalog', 'check-martin-support', 'check-martin-finance', 'check-martin-admin'].map((id, i) => <td key={id}><input type="checkbox" defaultChecked={i !== 1} aria-label={`Behörighet ${['katalog', 'support', 'ekonomi', 'administration'][i]} för Martin Holm`} data-testid={id} /></td>)}<td>Administratör</td></tr></Table><div className="admin-panel-body"><Button small onClick={() => notify('Rollinställningar sparades lokalt.')} testId="button-save-roles">Spara behörigheter</Button><Button small onClick={() => notify('Dialog för ny medarbetare öppnades.')} testId="button-add-role-user">＋ Lägg till medarbetare</Button></div></Panel>}
-    {tab === 'Ändringslogg' && <Panel title="Ändringslogg" subtitle="Senaste pris-, publicerings- och ekonomiändringar"><Table headers={['Tid', 'Händelse', 'Objekt', 'Utförd av']} testId="table-audit-log"><tr><td>18 jun · 10:31</td><td>Pris ändrat · 279 → 289 kr</td><td>PWO+ Blåbär 12-pack</td><td>Ella Svensson</td></tr><tr><td>18 jun · 09:54</td><td>Produkt publicerad</td><td>Kreatin Monohydrat</td><td>Martin Holm</td></tr><tr><td>17 jun · 16:20</td><td>Delåterbetalning · 149 kr</td><td>SF-240617-0788</td><td>Ella Svensson</td></tr><tr><td>17 jun · 14:02</td><td>SEO-beskrivning ändrad</td><td>D-vitamin 50 µg</td><td>Martin Holm</td></tr></Table></Panel>}
+    {tab === 'Ändringslogg' && <Panel title="Ändringslogg" subtitle="Senaste pris-, publicerings- och ekonomiändringar"><Table headers={['Tid', 'Händelse', 'Objekt', 'Utförd av']} testId="table-audit-log"><tr><td>20 nov · 10:31</td><td>Pris ändrat · 279 → 289 kr</td><td>PWO+ Blåbär 12-pack</td><td>Ella Svensson</td></tr><tr><td>20 nov · 09:54</td><td>Produkt publicerad</td><td>Kreatin Monohydrat</td><td>Martin Holm</td></tr><tr><td>19 nov · 16:20</td><td>Delåterbetalning · 149 kr</td><td>SF-261119-0788</td><td>Ella Svensson</td></tr><tr><td>19 nov · 14:02</td><td>SEO-beskrivning ändrad</td><td>D-vitamin 50 µg</td><td>Martin Holm</td></tr></Table></Panel>}
   </div></div></>;
 }
 
@@ -364,8 +458,26 @@ export function AdminApp() {
   const [notice, setNotice] = useState('');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
+  const [productTypes, setProductTypes] = useState(defaultProductTypes);
+  const [categoryFilters, setCategoryFilters] = useState(defaultCategoryFilters);
+  const [mediaItems, setMediaItems] = useState(defaultMediaItems);
+  const [redirectRows, setRedirectRows] = useState(defaultRedirectRows);
   const go = (path: string) => { setLocation(path); setMobileOpen(false); setNotice(''); };
   const notify = (message: string) => setNotice(message);
+  const addRedirect = (oldUrl: string, newUrl: string) => {
+    setRedirectRows((current) => {
+      const existing = current.find((row) => row.oldUrl === oldUrl);
+      if (existing) return current.map((row) => row.id === existing.id ? { ...row, newUrl } : row);
+      const suggested: RedirectRow = {
+        id: `redirect-${oldUrl.replace(/[^a-z0-9]+/gi, '-')}`,
+        oldUrl,
+        newUrl,
+        type: 'Permanent (301)',
+        createdAt: '2026-11-20',
+      };
+      return [suggested, ...current];
+    });
+  };
   const route = location.replace(/\/$/, '') || '/admin';
   if (route === '/admin/logga-in') return <Login onSubmit={() => undefined} />;
   const searchTerm = globalSearch.trim().toLocaleLowerCase('sv-SE');
@@ -392,14 +504,19 @@ export function AdminApp() {
   let page: ReactNode;
   if (route === '/admin' || route === '/admin/') page = <Dashboard go={go} notice={notice} setNotice={notify} />;
   else if (route === '/admin/produkter') page = <Products go={go} notice={notice} setNotice={notify} />;
-  else if (detailProduct) page = <ProductEditor key={detailProduct[1]} slug={detailProduct[1]} go={go} notify={notify} />;
-  else if (route === '/admin/kategorier') page = <Categories notify={notify} />;
+  else if (detailProduct) page = <ProductEditor key={detailProduct[1]} slug={detailProduct[1]} go={go} notify={notify} productTypes={productTypes} mediaItems={mediaItems} onMediaItemsChange={setMediaItems} onAddRedirect={addRedirect} />;
+  else if (route === '/admin/kategorier') page = <Categories notify={notify} go={go} productTypes={productTypes} categoryFilters={categoryFilters} onCategoryFiltersChange={setCategoryFilters} />;
+  else if (route === '/admin/produkttyper') page = <ProductTypesAndFiltersView productTypes={productTypes} onProductTypesChange={setProductTypes} categoryFilters={categoryFilters} onCategoryFiltersChange={setCategoryFilters} />;
+  else if (route === '/admin/media') page = <MediaLibraryView items={mediaItems} onItemsChange={setMediaItems} />;
   else if (route === '/admin/order') page = <Orders go={go} notify={notify} />;
   else if (detailOrder) page = <OrderDetail id={detailOrder[1]} notify={notify} />;
   else if (route === '/admin/lager') page = <Warehouse notify={notify} />;
+  else if (route === '/admin/inleveranser') page = <WarehouseInboundLotsView />;
   else if (route === '/admin/eget-lager') page = <OwnWarehouse notify={notify} />;
   else if (route === '/admin/returer') page = <Returns notify={notify} />;
   else if (route === '/admin/rabatter') page = <Discounts notify={notify} />;
+  else if (route === '/admin/mejlmallar') page = <EmailTemplatesView />;
+  else if (route === '/admin/omdirigeringar') page = <RedirectsView rows={redirectRows} onRowsChange={setRedirectRows} />;
   else if (route === '/admin/installningar') page = <Settings notify={notify} />;
   else page = <Dashboard go={go} notice={notice} setNotice={notify} />;
   return <div className="admin-root"><div className="admin-shell">

@@ -89,7 +89,6 @@
 .admin-root .admin-panel-body.flush { padding: 0; }
 .admin-root .admin-panel-actions { margin-top: var(--space-3); }
 .admin-root .admin-stat { min-height: 112px; padding: var(--space-4); position: relative; overflow: hidden; }
-.admin-root .admin-stat::after { content: ''; position: absolute; top: calc(-1 * var(--space-5)); right: calc(-1 * var(--space-4)); width: 86px; height: 86px; border: 1px solid var(--c-primary-line); border-radius: var(--radius-pill); box-shadow: 0 0 0 var(--space-3) var(--c-primary-soft), 0 0 0 calc(var(--space-3) + 1px) var(--c-border); }
 .admin-root .admin-stat-label { display: block; color: var(--c-muted); font-size: var(--fs-xs); font-weight: 650; }
 .admin-root .admin-stat strong { display: block; margin-top: var(--space-2); font: 800 var(--fs-xl)/var(--lh-tight) var(--font-display); letter-spacing: var(--tracking-tight); }
 .admin-root .admin-stat-foot { margin-top: var(--space-2); color: var(--c-muted); font-size: var(--fs-xs); }
@@ -149,8 +148,34 @@
 .admin-root .admin-inline-message { margin-top: var(--space-3); padding: var(--space-2) var(--space-3); border-left: 3px solid var(--c-primary); color: var(--c-primary); background: var(--c-primary-soft); font-size: var(--fs-xs); }
 .admin-root .admin-product-editor { display: grid; grid-template-columns: minmax(0, 1fr) 300px; align-items: start; gap: var(--space-4); }
 .admin-root .admin-preview { position: sticky; top: var(--space-3); }
+.admin-root .admin-product-editor.variant-layout { grid-template-columns: minmax(0, 1fr); }
+.admin-root .admin-product-editor.variant-layout .admin-preview { position: static; }
+.admin-root .admin-product-editor.variant-layout .admin-table { width: max(100%, 74rem); table-layout: fixed; }
+.admin-root .admin-product-editor.variant-layout .admin-table th:first-child,
+.admin-root .admin-product-editor.variant-layout .admin-table td:first-child { position: sticky; left: 0; z-index: 2; width: 9rem; min-width: 9rem; background: var(--c-white); box-shadow: 1px 0 0 var(--c-border); }
+.admin-root .admin-product-editor.variant-layout .admin-table th:first-child { z-index: 3; background: var(--c-surface); }
+.admin-root .admin-product-editor.variant-layout .admin-table th:nth-child(2),
+.admin-root .admin-product-editor.variant-layout .admin-table td:nth-child(2) { width: 8.5rem; }
+.admin-root .admin-product-editor.variant-layout .admin-table th:nth-child(3),
+.admin-root .admin-product-editor.variant-layout .admin-table td:nth-child(3) { width: 9.5rem; }
+.admin-root .admin-product-editor.variant-layout .admin-table th:nth-child(4),
+.admin-root .admin-product-editor.variant-layout .admin-table td:nth-child(4) { width: 7rem; }
+.admin-root .admin-product-editor.variant-layout .admin-table th:nth-child(5),
+.admin-root .admin-product-editor.variant-layout .admin-table td:nth-child(5) { width: 9rem; }
+.admin-root .admin-product-editor.variant-layout .admin-table th:nth-child(6),
+.admin-root .admin-product-editor.variant-layout .admin-table td:nth-child(6) { width: 6rem; }
+.admin-root .admin-product-editor.variant-layout .admin-table th:nth-child(7),
+.admin-root .admin-product-editor.variant-layout .admin-table td:nth-child(7) { width: 5rem; }
+.admin-root .admin-product-editor.variant-layout .admin-table th:nth-child(8),
+.admin-root .admin-product-editor.variant-layout .admin-table td:nth-child(8),
+.admin-root .admin-product-editor.variant-layout .admin-table th:nth-child(9),
+.admin-root .admin-product-editor.variant-layout .admin-table td:nth-child(9) { width: 7rem; }
+.admin-root .admin-product-editor.variant-layout .admin-table th:nth-child(10),
+.admin-root .admin-product-editor.variant-layout .admin-table td:nth-child(10) { width: 7rem; }
+.admin-root .admin-price-history { margin-top: var(--space-4); }
 .admin-root .admin-preview-card { overflow: hidden; border: 1px solid var(--c-border); border-radius: var(--radius-sm); background: var(--c-white); }
-.admin-root .admin-preview-hero { height: 156px; display: grid; place-items: center; background: var(--c-primary-soft); }
+.admin-root .admin-preview-hero { height: 156px; display: grid; place-items: center; overflow: hidden; background: var(--c-primary-soft); }
+.admin-root .admin-preview-hero img { width: auto; max-width: 100%; height: 80%; max-height: 100%; padding: 0; object-fit: contain; }
 .admin-root .admin-preview-can { width: 45px; height: 110px; position: relative; border-radius: var(--radius-sm); background: var(--c-primary); box-shadow: var(--shadow-md); }
 .admin-root .admin-preview-can::after { content: 'SELFIT'; position: absolute; top: calc(var(--space-5) + var(--space-4)); left: var(--space-1); width: 100%; color: var(--c-on-primary); text-align: center; font: 700 var(--fs-xs)/var(--lh-tight) var(--font-display); transform: rotate(-90deg); }
 .admin-root .admin-preview-content { padding: var(--space-3); }
@@ -190,7 +215,7 @@
 .admin-root .admin-field-gap-top { margin-top: var(--space-3); }
 .admin-root .admin-discount-form { margin-bottom: var(--space-4); }
 .admin-root .admin-mobile-menu-button { display: none; }
-.admin-root .admin-mobile-sidebar { position: absolute; z-index: 9; top: calc(var(--space-7) + var(--space-3)); right: 0; left: 0; display: flex; box-shadow: var(--shadow-md); }
+.admin-root .admin-mobile-sidebar { position: absolute; z-index: 9; top: calc(var(--space-7) + var(--space-3)); right: 0; left: 0; max-height: calc(100dvh - var(--space-7) - var(--space-3)); overflow-y: auto; display: flex; box-shadow: var(--shadow-md); }
 .admin-login { min-height: 100dvh; display: grid; grid-template-columns: minmax(300px, .88fr) 1.12fr; color: var(--c-text); background: var(--c-surface); font-family: var(--font-body); }
 .admin-login .admin-login-aside { padding: var(--space-7); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; color: var(--c-on-primary); background: var(--c-primary); }
 .admin-login .admin-login-aside::after { content: ''; width: 460px; height: 460px; position: absolute; right: calc(-1 * var(--space-9) - var(--space-8) - var(--space-7) - var(--space-5)); bottom: calc(-1 * var(--space-9) - var(--space-8) - var(--space-7)); border: 1px solid var(--c-primary-line); border-radius: var(--radius-pill); box-shadow: 0 0 0 var(--space-5) var(--c-primary-soft), 0 0 0 var(--space-7) var(--c-primary-soft); }
