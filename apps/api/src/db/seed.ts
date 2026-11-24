@@ -4,8 +4,7 @@
  */
 import { brands as webBrands, categories as webCategories, collections as webCollections } from '../../../web/src/data/categories.ts';
 import { products as webProducts, pwoFlavours } from '../../../web/src/data/products.ts';
-import { createDb, type Db } from './client.ts';
-import { runMigrations } from './migrate.ts';
+import type { Db } from './client.ts';
 import * as s from './schema.ts';
 
 const PRICE_FROM = '2026-10-01';
@@ -145,9 +144,8 @@ export async function seed(db: Db) {
   });
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const db = createDb();
-  await runMigrations(db);
-  await seed(db);
-  console.log(`Klart: ${webProducts.length} produkter inlagda.`);
+/** Sant om databasen saknar produkter. */
+export async function isEmpty(db: Db) {
+  const rows = await db.select({ id: s.productFamilies.id }).from(s.productFamilies).limit(1);
+  return rows.length === 0;
 }

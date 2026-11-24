@@ -1,14 +1,12 @@
-import { fileURLToPath } from 'node:url';
 import { migrate } from 'drizzle-orm/libsql/migrator';
-import { createDb, type Db } from './client.ts';
+import { findDir, here } from '../lib/paths.ts';
+import type { Db } from './client.ts';
 
-export const migrationsFolder = fileURLToPath(new URL('../../migrations', import.meta.url));
+const dir = here(import.meta.url);
+// Fungerar både när koden körs direkt (src/db) och som byggd fil (dist).
+export const migrationsFolder = findDir(`${dir}/../../migrations`, `${dir}/../migrations`, `${process.cwd()}/migrations`);
 
 export async function runMigrations(db: Db) {
+  if (!migrationsFolder) throw new Error('Hittar inte mappen migrations.');
   await migrate(db, { migrationsFolder });
-}
-
-if (import.meta.url === `file://${process.argv[1]}`) {
-  await runMigrations(createDb());
-  console.log('Databasen är uppdaterad.');
 }

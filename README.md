@@ -26,6 +26,7 @@ pnpm dev          # starta server (port 3001) och butik (port 5173)
 
 ```sh
 pnpm test         # kör tester
+pnpm start        # kör den byggda versionen (efter pnpm build)
 pnpm typecheck    # typkontroll
 pnpm build        # bygg allt
 
@@ -33,6 +34,33 @@ pnpm --filter @selfit/api run db:generate   # ny migrering efter ändring i src/
 pnpm --filter @selfit/api run db:migrate    # kör migreringar
 pnpm --filter @selfit/api run db:reset      # töm och fyll databasen igen
 ```
+
+## Testversion hos Hostinger
+
+I produktion kör allt som en app: servern visar både API:t och butikens sidor.
+
+Inställningar i Hostinger (Webbplatser → Skapa webbplats → Web App → Importera Git-repo):
+
+| Inställning | Värde |
+|---|---|
+| Framework preset | Other |
+| Root directory | `/` (repots rot) |
+| Branch | `main` |
+| Node version | 22.x |
+| Package manager | pnpm |
+| Build command | `pnpm build` |
+| Output directory | (tomt) |
+| Entry file | `apps/api/dist/server.mjs` |
+
+Miljövariabler:
+
+| Namn | Värde |
+|---|---|
+| `SITE_PASSWORD` | ett lösenord, så att testversionen inte är öppen för alla (användarnamn: `selfit`) |
+| `SEED_IF_EMPTY` | `true` |
+| `NODE_ENV` | `production` |
+
+Hostinger skriver över filerna vid varje uppdatering, så testdatabasen nollställs och fylls med exempeldata igen. En riktig databas (MySQL hos Hostinger eller Postgres hos annan leverantör) behövs innan butiken tar emot riktiga order.
 
 ## API (hittills)
 
