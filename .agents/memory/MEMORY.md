@@ -1,2 +1,0 @@
-- [SELFITs projektavgränsning](selfit-scope.md) — Endast flyttbar svensk butiksdesign med lokal exempeldata; inga backendtjänster eller riktiga köp.
-- [Vänta in förhandsvisningen vid browserprov](preview-browser-checks.md) — Vänta på en unik sidkomponent efter navigation i stället för en fast fördröjning.

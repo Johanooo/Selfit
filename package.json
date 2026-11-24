@@ -1,13 +1,19 @@
 {
-  "name": "workspace",
+  "name": "selfit",
   "version": "0.0.0",
-  "license": "MIT",
-  "scripts": {
-    "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
-    "build": "pnpm run typecheck && pnpm -r --if-present run build",
-    "typecheck": "pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
-  },
   "private": true,
+  "packageManager": "pnpm@10.24.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "preinstall": "npx -y only-allow pnpm",
+    "db:reset": "pnpm --filter @selfit/api run db:reset",
+    "dev": "pnpm -r --parallel --filter \"./apps/*\" run dev",
+    "build": "pnpm run typecheck && pnpm -r --filter \"./apps/*\" --if-present run build",
+    "typecheck": "pnpm -r --filter \"./apps/*\" --if-present run typecheck",
+    "test": "pnpm -r --filter \"./apps/*\" --if-present run test"
+  },
   "devDependencies": {
     "prettier": "^3.9.10",
     "typescript": "~5.9.3"

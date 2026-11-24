@@ -14,15 +14,15 @@ Från projektets rot:
 
 ```sh
 pnpm install
-pnpm --filter @workspace/selfit run dev
+pnpm --filter @selfit/web run dev
 ```
 
 Standardport är 5173. Miljövariablerna `PORT` och `BASE_PATH` är valfria och kan användas för annan port eller sökväg.
 
 ```sh
-pnpm --filter @workspace/selfit run typecheck
-pnpm --filter @workspace/selfit run build
-pnpm --filter @workspace/selfit run serve
+pnpm --filter @selfit/web run typecheck
+pnpm --filter @selfit/web run build
+pnpm --filter @selfit/web run serve
 ```
 
 ## Flytta till annan kodbas
