@@ -1,0 +1,23 @@
+.admin-root .ops-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); min-width: 0; }
+.admin-root .ops-stack > * { min-width: 0; }
+.admin-root .ops-stack .admin-panel-head { flex-wrap: wrap; }
+.admin-root .ops-inline { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); }
+.admin-root .ops-summary-link { display: grid; gap: var(--space-2); padding: var(--space-5); text-align: left; color: var(--c-text); background: var(--c-white); border: 1px solid var(--c-border); border-radius: var(--radius-sm); cursor: pointer; }
+.admin-root .ops-summary-link:hover { background: var(--c-primary-soft); border-color: var(--c-primary); }
+.admin-root .ops-summary-link strong { font: 800 var(--fs-xl)/var(--lh-tight) var(--font-display); color: var(--c-primary); }
+.admin-root .ops-quantity { font-variant-numeric: tabular-nums; }
+.admin-root .ops-negative { color: var(--c-danger); font-weight: 700; }
+.admin-root .ops-difference { background: var(--c-primary-soft); font-weight: 700; }
+.admin-root .ops-note { color: var(--c-muted); font-size: var(--fs-xs); }
+.admin-root .ops-overlay { position: fixed; inset: 0; background: var(--c-overlay); z-index: 100; }
+.admin-root .ops-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(92vw, 48rem); max-height: 88dvh; overflow-y: auto; z-index: 101; background: var(--c-white); color: var(--c-text); border: 1px solid var(--c-border); border-radius: var(--radius-sm); box-shadow: var(--shadow-sm); }
+.admin-root .ops-modal h2 { font: 800 var(--fs-lg)/var(--lh-tight) var(--font-display); }
+.admin-root .ops-modal form { display: grid; gap: var(--space-4); }
+.admin-root .ops-row-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.admin-root .ops-role { display: grid; gap: var(--space-1); font-size: var(--fs-xs); }
+.admin-root .ops-compact-list { display: grid; gap: var(--space-2); }
+.admin-root.ops-dialog-scope { min-height: 0; }
+.admin-root .admin-tab[aria-selected="true"] { color: var(--c-primary); border-bottom-color: var(--c-primary); }
+@media (min-width: 981px) {
+  .admin-root .admin-sidebar:not(.admin-mobile-sidebar) { position: sticky; top: 0; height: 100dvh; overflow-y: auto; align-self: start; }
+}

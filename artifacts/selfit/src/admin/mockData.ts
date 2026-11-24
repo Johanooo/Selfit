@@ -20,9 +20,10 @@ export const orderRows: OrderRow[] = [
 ];
 
 export const navGroups = [
-  { label: 'Överblick', links: [{ path: '/admin', label: 'Dagens läge', icon: '◫' }] },
-  { label: 'Butik', links: [{ path: '/admin/produkter', label: 'Produkter', icon: '▤' }, { path: '/admin/kategorier', label: 'Kategorier', icon: '⌘' }, { path: '/admin/produkttyper', label: 'Produkttyper & fält', icon: '≡' }, { path: '/admin/media', label: 'Mediebibliotek', icon: '▧' }, { path: '/admin/rabatter', label: 'Rabatter', icon: '%' }] },
-  { label: 'Kund & analys', links: [{ path: '/admin/kunder', label: 'Kunder', icon: '♙' }, { path: '/admin/rapporter', label: 'Rapporter', icon: '▥' }] },
-  { label: 'Order & lager', links: [{ path: '/admin/order', label: 'Ordrar', icon: '▣' }, { path: '/admin/manuella-order', label: 'Manuella order', icon: '＋' }, { path: '/admin/inkopsordrar', label: 'Inköpsorder', icon: '▤' }, { path: '/admin/lager', label: 'Lager & synk', icon: '⇄' }, { path: '/admin/inleveranser', label: 'Inleveranser & partier', icon: '⇧' }, { path: '/admin/eget-lager', label: 'Eget lager', icon: '▦' }, { path: '/admin/returer', label: 'Returer', icon: '↶' }] },
-  { label: 'Administration', links: [{ path: '/admin/mejlmallar', label: 'Mejlmallar', icon: '✉' }, { path: '/admin/omdirigeringar', label: 'Omdirigeringar', icon: '↗' }, { path: '/admin/installningar', label: 'Inställningar', icon: '⚙' }] },
+  { label: 'Översikt', links: [{ path: '/admin', label: 'Dagens läge', icon: '◫' }] },
+  { label: 'Försäljning', links: [{ path: '/admin/order', label: 'Ordrar', icon: '▣' }, { path: '/admin/returer', label: 'Returer och byten', icon: '↶' }, { path: '/admin/kunder', label: 'Kunder', icon: '♙' }, { path: '/admin/rabatter', label: 'Rabatter', icon: '%' }] },
+  { label: 'Katalog', links: [{ path: '/admin/produkter', label: 'Produkter', icon: '▤' }, { path: '/admin/kategorier', label: 'Kategorier', icon: '⌘' }, { path: '/admin/produkttyper', label: 'Produkttyper och fält', icon: '≡' }, { path: '/admin/media', label: 'Mediebibliotek', icon: '▧' }] },
+  { label: 'Lager', links: [{ path: '/admin/saldo', label: 'Saldo', icon: '▦' }, { path: '/admin/inkop', label: 'Inköp och inleveranser', icon: '▤' }, { path: '/admin/partier', label: 'Partier och bäst före', icon: '◷' }, { path: '/admin/flyttar', label: 'Flyttar', icon: '⇄' }, { path: '/admin/inventering', label: 'Inventering', icon: '≡' }, { path: '/admin/plock-pack', label: 'Plock och pack', icon: '▣' }, { path: '/admin/lager', label: 'Lagerplatser och synk', icon: '⇧' }] },
+  { label: 'Rapporter', links: [{ path: '/admin/rapporter', label: 'Rapporter', icon: '▥' }] },
+  { label: 'Inställningar', links: [{ path: '/admin/installningar/frakt', label: 'Frakt', icon: '⇢' }, { path: '/admin/installningar/moms-pant', label: 'Moms och pant', icon: '%' }, { path: '/admin/mejlmallar', label: 'Mejlmallar', icon: '✉' }, { path: '/admin/omdirigeringar', label: 'Omdirigeringar', icon: '↗' }, { path: '/admin/installningar/roller', label: 'Roller och behörigheter', icon: '♙' }, { path: '/admin/installningar/logg', label: 'Ändringslogg', icon: '≡' }] },
 ];

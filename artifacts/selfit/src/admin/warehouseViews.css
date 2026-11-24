@@ -1,0 +1,8 @@
+.admin-root .wv-num { width: 6.5rem; }
+.admin-root .wv-toggle { min-height: 36px; }
+.admin-root .wv-gap { margin: 0 0 var(--space-3); }
+.admin-root .wv-gap-top { margin-top: var(--space-3); }
+.admin-root .wv-link { padding: 0; border: 0; background: none; color: var(--c-primary); font-weight: 700; text-decoration: underline; }
+.admin-root .wv-expired td { color: var(--c-muted); background: var(--c-danger-soft); }
+.admin-root .wv-expired td:first-child { box-shadow: inset 3px 0 var(--c-danger); }
+.admin-root .wv-checkgrid { grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); }

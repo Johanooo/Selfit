@@ -31,6 +31,9 @@ import {
 import { AdminNavigationContext, announcePrototypeAction, NavigableRows, readRowDetail, recordRowProps, RowDetailView, useAdminListState } from './adminInteractions';
 import { DiscountsView } from './discountsView';
 import { MediaLibraryView } from './mediaLibraryView';
+import { OperationsProvider, useOperations, balance, batchStatus, money } from './operationsModel';
+import { OperationalOrders, OperationalOrderDetail, OperationalReturns, ManualOrderForm, PickPackView } from './operationsOrders';
+import { StockView, PurchasingView, BatchView, TransfersView, CountsView } from './warehouseViews';
 import './admin.css';
 
 type ButtonProps = { children: ReactNode; onClick?: () => void; kind?: 'primary' | 'quiet' | 'danger'; small?: boolean; testId: string; ariaLabel?: string; ariaExpanded?: boolean; ariaControls?: string; className?: string; disabled?: boolean };
@@ -59,6 +62,8 @@ function Status({ children, testId }: { children: string; testId: string }) {
 }
 
 function Table({ headers, children, testId, go }: { headers: string[]; children: ReactNode; testId: string; go?: (path: string) => void }) {
+  const { state } = useOperations();
+  if (testId === 'table-variants') headers = ['Smak / pack', 'SKU', 'GTIN', 'Pris kr', 'Jämförpris', 'Pant', 'Moms', 'Status', ...(['Admin', 'Ekonomi'].includes(state.role) ? ['Inköpspris kr · Endast ekonomi'] : []), 'DSV · tillgängligt', 'Eget lager · tillgängligt'];
   return <div className="admin-table-wrap"><table className="admin-table" data-testid={testId}><thead><tr>{headers.map((h) => <th key={h} scope="col">{h}</th>)}</tr></thead><tbody><NavigableRows go={go} tableId={testId} headers={headers}>{children}</NavigableRows></tbody></table></div>;
 }
 
@@ -75,23 +80,28 @@ function Login({ onSubmit }: { onSubmit: () => void }) {
 }
 
 function Dashboard({ go, notice, setNotice }: { go: (path: string) => void; notice: string; setNotice: (s: string) => void }) {
+  const { state } = useOperations();
+  const paused = state.orders.filter((o) => o.status === 'Pausad').length;
+  const proposals = state.policies.filter((p) => balance(state, p.sku, p.warehouse).available < p.point).length;
+  const short = state.batches.filter((b) => batchStatus(state, b) === 'Kortdaterad' && b.quantity > 0).length;
   return <>
-    <Heading kicker="Fredag 20 november 2026" title="Dagens läge" description="En snabb överblick över det som behöver uppmärksamhet." actions={<><Button onClick={() => go('/admin/kunder')} testId="button-dashboard-customers">Kunder</Button><Button kind="quiet" onClick={() => setNotice('Översikten uppdaterades lokalt 10:48.')} testId="button-refresh-overview">Uppdatera läge</Button></>} />
+    <Heading kicker="Tisdag 24 november 2026" title="Dagens läge" description="En snabb överblick över det som behöver uppmärksamhet." actions={<><Button onClick={() => go('/admin/kunder')} testId="button-dashboard-customers">Kunder</Button><Button kind="quiet" onClick={() => setNotice('Översikten uppdaterades från den lokala exempeldatan.')} testId="button-refresh-overview">Uppdatera läge</Button></>} />
     {notice && <div className="admin-inline-message" role="status" data-testid="status-notice">{notice}</div>}
+    <div className="admin-grid three">{[{ label: 'Pausade order', value: paused, href: '/admin/order?status=pausad' }, { label: 'Inköpsförslag', value: proposals, href: '/admin/inkop?flik=forslag' }, { label: 'Partier som snart går ut', value: short, href: '/admin/partier?status=kortdaterad' }].map((item) => <button key={item.label} className="ops-summary-link" onClick={() => go(item.href)}><span>{item.label}</span><strong>{item.value}</strong><span>Visa och hantera →</span></button>)}</div>
     <div className="admin-grid three admin-stat-grid">
       {[['Nya ordrar', '28', '+6 sedan 09:00'], ['Att plocka', '14', '3 väntar på betalning'], ['Nettoomsättning', '18 420 kr', '31 ordrar idag']].map(([label, value, foot]) => <div className="admin-panel admin-stat" key={label}><span className="admin-stat-label">{label}</span><strong>{value}</strong><div className="admin-stat-foot"><span className="admin-stat-mark">↗</span> {foot}</div></div>)}
     </div>
     <div className="admin-grid dashboard">
       <Panel title="Plockkö" subtitle="Ordrar som behöver hanteras nu" action={<Button small onClick={() => go('/admin/order')} testId="button-all-orders">Alla ordrar</Button>}>
         <Table headers={['Order', 'Kund', 'Summa', 'Status']} testId="table-picking-queue">
-          {orderRows.slice(0, 4).map((o) => <tr key={o.id} data-row-href={`/admin/order/${o.id}`}><td><button className="admin-btn quiet small" onClick={() => go(`/admin/order/${o.id}`)} data-testid={`link-order-${o.id}`}>{o.id}</button></td><td>{o.email.split('@')[0]}</td><td className="num">{o.amount} kr</td><td><Status testId={`status-order-${o.id}`}>{o.status}</Status></td></tr>)}
+          {state.orders.filter((o) => ['Att plocka', 'Packas'].includes(o.status)).slice(0, 4).map((o) => <tr key={o.id} data-row-href={`/admin/order/${o.id}`}><td><button className="admin-btn quiet small" onClick={() => go(`/admin/order/${o.id}`)} data-testid={`link-order-${o.id}`}>{o.id}</button></td><td>{o.email.split('@')[0]}</td><td className="num">{o.amount} kr</td><td><Status testId={`status-order-${o.id}`}>{o.status}</Status></td></tr>)}
         </Table>
       </Panel>
       <div className="admin-grid">
         <Panel title="Lagersynk" subtitle="Senaste aktivitet från anslutna lager">
           <div className="admin-metric-line"><span>DSV 3PL</span><Status testId="status-sync-dsv">Synkad</Status></div><div className="admin-metric-line"><span>Senaste synk</span><strong>10:32</strong></div><div className="admin-metric-line"><span>Felkö</span><Status testId="status-sync-errors">2 fel</Status></div><div className="admin-actions admin-metric-actions"><Button small onClick={() => go('/admin/lager')} testId="button-open-warehouse">Öppna lagerstatus</Button></div>
         </Panel>
-        <Panel title="Lågt lagersaldo" subtitle="Varianter under miniminivå" action={<Button small onClick={() => go('/admin/eget-lager')} testId="button-stock-list">Lager</Button>}>
+        <Panel title="Lågt lagersaldo" subtitle="Varianter under miniminivå" action={<Button small onClick={() => go('/admin/saldo')} testId="button-stock-list">Lager</Button>}>
           <div className="admin-metric-line"><span>PWO+ · Blåbär · 6-pack</span><strong>4 st</strong></div><div className="admin-metric-line"><span>Träningsband · set om 3</span><strong>3 st</strong></div><div className="admin-metric-line"><span>Protein pannkakor · jordgubb</span><strong>5 st</strong></div>
         </Panel>
         <div className="admin-notice error"><div><strong>2 orderrader kunde inte synkas</strong>Kontrollera lagerkopplingen innan nästa plockvåg.</div></div>
@@ -180,6 +190,8 @@ function ProductEditor({ slug, go, notify, productTypes, mediaItems, onMediaItem
   onMediaItemsChange: (items: LocalMediaItem[]) => void;
   onAddRedirect: (oldUrl: string, newUrl: string) => void;
 }) {
+  const { state: operations, commit } = useOperations();
+  const canFinance = ['Admin', 'Ekonomi'].includes(operations.role);
   const [catalog] = useAdminListState('produkter', 'data', productRows);
   const product = catalog.find((p) => p.slug === slug) ?? productRows[0];
   const variantConfig = productVariantConfig[slug] ?? { flavours: ['Standard'], packs: ['1'], rows: createEditorVariants(slug) };
@@ -254,14 +266,15 @@ function ProductEditor({ slug, go, notify, productTypes, mediaItems, onMediaItem
          {tab === 'Varianter' && <><p className="muted small admin-variant-intro">Välj kombinationer och generera SKU-rader. Varje rad kan sedan justeras separat.</p><div className="admin-form-grid"><fieldset className="admin-option-set"><legend>Smak</legend>{variantConfig.flavours.map((flavour) => <label key={flavour} className="admin-toggle-row"><input type="checkbox" checked={flavours.includes(flavour)} onChange={(e) => setFlavours((list) => e.target.checked ? [...list, flavour] : list.filter((f) => f !== flavour))} data-testid={`check-flavour-${flavour.toLowerCase().replaceAll(' ', '-')}`} />{flavour}</label>)}</fieldset><fieldset className="admin-option-set"><legend>Packstorlek</legend>{variantConfig.packs.map((pack) => <label key={pack} className="admin-toggle-row"><input type="checkbox" checked={packs.includes(pack)} onChange={(e) => setPacks((list) => e.target.checked ? [...list, pack] : list.filter((p) => p !== pack))} data-testid={`check-pack-${pack}`} />{pack === '1' ? 'Standardförpackning' : `${pack}-pack`}</label>)}</fieldset><div className="admin-field span-2"><Button kind="primary" onClick={createVariants} testId="button-generate-variants">Generera varianter</Button></div></div><hr className="admin-divider" />{priceChanged && <div className="admin-notice info" role="note" data-testid="warning-price-changed"><div><strong>Prisändring behöver prisinformation</strong>Kontrollera att lägsta pris de senaste 30 dagarna visas för kunden.</div></div>}<Table headers={['Smak / pack', 'SKU', 'GTIN', 'Pris kr', 'Jämförpris', 'Pant', 'Moms', 'DSV', 'Eget lager', 'Status']} testId="table-variants">{variants.map((v, index) => {
           const duplicateSkuCell = Boolean(v.sku) && variants.findIndex((other) => other.sku === v.sku) !== index;
           const duplicateGtinCell = Boolean(v.gtin) && variants.findIndex((other) => other.gtin === v.gtin) !== index;
-          const fieldKeys: (keyof VariantRow)[] = ['sku', 'gtin', 'price', 'compare', 'deposit', 'vat', 'stockDsv', 'stockOwn', 'status'];
+          const fieldKeys: (keyof VariantRow)[] = ['sku', 'gtin', 'price', 'compare', 'deposit', 'vat', 'status'];
           const fieldLabels: Record<keyof VariantRow, string> = { flavour: 'smak', pack: 'packstorlek', sku: 'SKU', gtin: 'GTIN', price: 'pris', compare: 'jämförpris', deposit: 'pant', vat: 'moms', stockDsv: 'lager DSV', stockOwn: 'lager eget lager', status: 'status' };
-          return <tr key={`${v.sku}-${index}`}><td><strong>{v.flavour}</strong><span className="subtext">{v.pack === 1 ? 'Standard' : `${v.pack}-pack`}</span></td>{fieldKeys.map((key) => {
+          const stockVariant = operations.variants.find((item) => item.sku === v.sku);
+          return <tr key={`${v.sku}-${index}`} data-row-href={stockVariant ? `/admin/saldo/${v.sku}` : undefined}><td><strong>{v.flavour}</strong><span className="subtext">{v.pack === 1 ? 'Standard' : `${v.pack}-pack`}</span></td>{fieldKeys.map((key) => {
             const duplicate = (key === 'sku' && duplicateSkuCell) || (key === 'gtin' && duplicateGtinCell);
             const missingField = (key === 'sku' && !v.sku.trim()) || (key === 'gtin' && !v.gtin.trim()) || (key === 'price' && !v.price.trim());
             const error = duplicate ? `Dubblett: ${key === 'sku' ? 'SKU' : 'GTIN'} måste vara unik.` : missingField ? 'Obligatoriskt fält.' : '';
             return <td key={key}><div className="admin-cell-editor"><input aria-label={`${v.flavour} ${v.pack === 1 ? 'standardförpackning' : `${v.pack}-pack`} · ${fieldLabels[key]}`} className="admin-control admin-variant-control" aria-invalid={Boolean(error)} aria-describedby={error ? `variant-${key}-${index}-error` : undefined} value={v[key]} onChange={(e) => setV(index, key, e.target.value)} data-testid={`input-variant-${key}-${index}`} />{error && <span className="admin-cell-error" id={`variant-${key}-${index}-error`} role="alert" data-testid={`error-variant-${key}-${index}`}>{error}</span>}</div></td>;
-          })}</tr>;
+          })}{canFinance && <td><label className="admin-field"><span className="ops-note">Endast ekonomi</span><input className="admin-control" aria-label={`Inköpspris ${v.sku}`} type="number" min="0" step="0.01" value={stockVariant?.cost ?? ''} disabled={!stockVariant} onChange={(e) => { const value = Number(e.target.value); if (value >= 0) commit((d) => { const item = d.variants.find((item) => item.sku === v.sku); if (item) item.cost = value; }); }} /></label></td>}{['dsv', 'own'].map((warehouse) => <td key={warehouse}>{stockVariant ? <a href={`/admin/saldo/${v.sku}`} onClick={(e) => { e.preventDefault(); go(`/admin/saldo/${v.sku}`); }}>{balance(operations, v.sku, warehouse).available} st · Visa lager</a> : <span>Ingen lagerpost</span>}</td>)}</tr>;
          })}</Table><div className="admin-price-history"><ProductPriceHistoryPanel productSlug={slug} /></div></>}
          {tab === 'Relationer' && <ProductRelationsSection productSlug={slug} />}
       </div></div>
@@ -454,8 +467,9 @@ function Discounts({ notify }: { notify: (s: string) => void }) {
   </>;
 }
 
-function Settings({ notify }: { notify: (s: string) => void }) {
-  const [tab, setTab] = useAdminListState('installningar', 'tab', 'Frakt');
+function Settings({ notify, section, go }: { notify: (s: string) => void; section?: string; go: (path: string) => void }) {
+  const tab = ({ frakt: 'Frakt', 'moms-pant': 'Moms & pant', roller: 'Behörigheter', logg: 'Ändringslogg' } as Record<string, string>)[section ?? 'frakt'] ?? 'Frakt';
+  const setTab = (value: string) => go(`/admin/installningar/${({ Frakt: 'frakt', 'Moms & pant': 'moms-pant', Behörigheter: 'roller', Ändringslogg: 'logg' } as Record<string, string>)[value]}`);
   const tabs = ['Frakt', 'Moms & pant', 'Behörigheter', 'Ändringslogg'];
   return <><Heading kicker="Administration" title="Inställningar" description="Operativa regler, åtkomst och spårbarhet." /><div className="admin-panel"><div className="admin-panel-body"><div className="admin-tabs" role="group" aria-label="Inställningsavsnitt">{tabs.map((t) => <button className="admin-tab" type="button" key={t} aria-pressed={tab === t} onClick={() => setTab(t)} data-testid={`tab-settings-${t.toLowerCase().replaceAll(' ', '-')}`}>{t}</button>)}</div>
     {tab === 'Frakt' && <div className="admin-grid two"><Panel title="Fraktmetoder" subtitle="Priser i SEK"><Table headers={['Metod', 'Pris', 'Leveranstid', 'Status', '']} testId="table-shipping-methods"><tr><td>PostNord ombud</td><td>39 kr</td><td>1–3 vardagar</td><td><Status testId="status-shipping-postnord">Aktiv</Status></td><td><Button small onClick={() => notify('PostNord öppnad för redigering.')} testId="button-edit-shipping-postnord">Redigera</Button></td></tr><tr><td>Hemleverans</td><td>69 kr</td><td>1–3 vardagar</td><td><Status testId="status-shipping-home">Aktiv</Status></td><td><Button small onClick={() => notify('Hemleverans öppnad för redigering.')} testId="button-edit-shipping-home">Redigera</Button></td></tr></Table><div className="admin-panel-body"><Button small onClick={() => notify('Ny fraktmetod öppnad.')} testId="button-add-shipping">＋ Lägg till fraktmetod</Button></div></Panel><Panel title="Fri frakt" subtitle="Tröskel för varukorg"><Field label="Fri frakt från (kr)" value="599" testId="input-free-shipping-threshold" /><div className="admin-actions admin-panel-actions"><Button kind="primary" onClick={() => notify('Fraktregler sparades lokalt.')} testId="button-save-shipping-settings">Spara fraktregler</Button></div></Panel></div>}
@@ -465,7 +479,8 @@ function Settings({ notify }: { notify: (s: string) => void }) {
   </div></div></>;
 }
 
-export function AdminApp() {
+function AdminWorkspace() {
+  const { state: operations, commit } = useOperations();
   const [location, setLocation] = useLocation();
   const search = useSearch();
   const [notice, setNotice] = useState('');
@@ -477,7 +492,9 @@ export function AdminApp() {
   const [redirectRows, setRedirectRows] = useState(defaultRedirectRows);
   const [detailTitles, setDetailTitles] = useState<Record<string, string>>({});
   const go = (path: string) => {
-    const sameDetailGroup = location.split('/').length > 3 && path.split('/').length > 3 && location.slice(0, location.lastIndexOf('/')) === path.slice(0, path.lastIndexOf('/'));
+    const legacy: Record<string, string> = { '/admin/manuella-order': '/admin/order/ny', '/admin/inkopsordrar': '/admin/inkop', '/admin/inleveranser': '/admin/inkop?flik=inleveranser', '/admin/eget-lager': '/admin/plock-pack' };
+    path = legacy[path] ?? path;
+    const sameDetailGroup = location.endsWith('/ny') && location.slice(0, location.lastIndexOf('/')) === path.slice(0, path.split('?')[0].lastIndexOf('/'));
     const adminFrom = sameDetailGroup ? window.history.state?.adminFrom ?? location.slice(0, location.lastIndexOf('/')) : location + (search ? `?${search}` : '');
     setLocation(path, { replace: sameDetailGroup, state: { adminFrom } }); setMobileOpen(false); setNotice(''); window.scrollTo(0, 0);
   };
@@ -508,7 +525,7 @@ export function AdminApp() {
     ? productRows.filter((product) => `${product.name} ${product.brand} ${product.slug}`.toLocaleLowerCase('sv-SE').includes(searchTerm)).slice(0, 4)
     : [];
   const matchingOrders = searchTerm
-    ? orderRows.filter((order) => `${order.id} ${order.email} ${order.sku} ${order.tracking}`.toLocaleLowerCase('sv-SE').includes(searchTerm)).slice(0, 4)
+    ? operations.orders.filter((order) => `${order.id} ${order.email} ${order.sku} ${order.tracking}`.toLocaleLowerCase('sv-SE').includes(searchTerm)).slice(0, 4)
     : [];
   const openSearchResult = (path: string) => {
     setGlobalSearch('');
@@ -522,6 +539,7 @@ export function AdminApp() {
     else if (firstOrder) openSearchResult(`/admin/order/${firstOrder.id}`);
   };
   const title = navGroups.flatMap((g) => g.links).find((link) => link.path === route || (link.path !== '/admin' && route.startsWith(`${link.path}/`)))?.label ?? 'Detaljer';
+  const isActive = (path: string) => route === path || (path !== '/admin' && route.startsWith(`${path}/`));
   const detailOrder = route.match(/^\/admin\/order\/(.+)$/);
   const detailCustomer = route.match(/^\/admin\/kunder\/([^/]+)$/);
   const detailProduct = route.match(/^\/admin\/produkter\/(.+)$/);
@@ -531,9 +549,15 @@ export function AdminApp() {
   const detailType = route.match(/^\/admin\/produkttyper\/([^/]+)$/);
   const detailRedirect = route.match(/^\/admin\/omdirigeringar\/([^/]+)$/);
   const detailReturn = route.match(/^\/admin\/returer\/([^/]+)$/);
+  const detailStock = route.match(/^\/admin\/saldo\/([^/]+)$/);
+  const detailPurchase = route.match(/^\/admin\/inkop\/([^/]+)$/);
+  const detailBatch = route.match(/^\/admin\/partier\/([^/]+)$/);
+  const detailTransfer = route.match(/^\/admin\/flyttar\/([^/]+)$/);
+  const detailCount = route.match(/^\/admin\/inventering\/([^/]+)$/);
+  const settingsSection = route.match(/^\/admin\/installningar\/([^/]+)$/);
   const genericDetail = route.match(/^\/admin\/detalj\/(.+)$/);
   const detailParent = genericDetail ? readRowDetail(decodeURIComponent(genericDetail[1]))?.from ?? '/admin'
-    : route.split('/').length > 3 ? route.slice(0, route.lastIndexOf('/')) : '';
+    : navGroups.some((group) => group.links.some((link) => link.path === route)) ? '' : route.split('/').length > 3 ? route.slice(0, route.lastIndexOf('/')) : '';
   const from = (window.history.state?.adminFrom as string | undefined);
   const backPath = from && from !== route && from.startsWith('/admin') ? from : detailParent;
   const back = () => { if (from && from !== route && from.startsWith('/admin')) window.history.back(); else go(backPath || '/admin'); };
@@ -545,25 +569,30 @@ export function AdminApp() {
   else if (detailProduct) page = <ProductEditor key={detailProduct[1]} slug={detailProduct[1]} go={go} notify={notify} productTypes={productTypes} mediaItems={mediaItems} onMediaItemsChange={setMediaItems} onAddRedirect={addRedirect} />;
   else if (route === '/admin/kunder') page = <CustomersView go={go} />;
   else if (detailCustomer) page = <CustomerDetailView customerId={detailCustomer[1]} go={go} notify={notify} />;
-  else if (route === '/admin/manuella-order') page = <ManualOrdersView go={go} notify={notify} />;
-  else if (route === '/admin/inkopsordrar') page = <PurchaseOrdersView notify={notify} go={go} />;
+  else if (route === '/admin/manuella-order' || route === '/admin/order/ny') page = <ManualOrderForm go={go} notify={notify} />;
+  else if (route === '/admin/inkop' || detailPurchase || route === '/admin/inkopsordrar') page = <PurchasingView key={detailPurchase?.[1] ?? search} id={detailPurchase?.[1]} tab={new URLSearchParams(search).get('flik') ?? undefined} notify={notify} go={go} />;
   else if (route === '/admin/rapporter') page = <ReportsView />;
   else if (route === '/admin/kategorier') page = <Categories notify={notify} go={go} productTypes={productTypes} categoryFilters={categoryFilters} onCategoryFiltersChange={setCategoryFilters} />;
   else if (route === '/admin/produkttyper' || detailType) page = <ProductTypesAndFiltersView id={detailType?.[1]} go={go} productTypes={productTypes} onProductTypesChange={setProductTypes} categoryFilters={categoryFilters} onCategoryFiltersChange={setCategoryFilters} />;
   else if (route === '/admin/media' || detailMedia) page = <MediaLibraryView key={detailMedia?.[1] ?? 'library'} id={detailMedia?.[1]} go={go} notify={notify} items={mediaItems} onItemsChange={setMediaItems} />;
-  else if (route === '/admin/order') page = <Orders go={go} notify={notify} />;
-  else if (detailOrder) page = <OrderDetail id={detailOrder[1]} go={go} notify={notify} />;
+  else if (route === '/admin/order') page = <OperationalOrders key={search} go={go} notify={notify} />;
+  else if (detailOrder) page = <OperationalOrderDetail key={detailOrder[1]} id={detailOrder[1]} go={go} notify={notify} />;
   else if (route === '/admin/lager') page = <Warehouse notify={notify} />;
-  else if (route === '/admin/inleveranser') page = <WarehouseInboundLotsView />;
-  else if (route === '/admin/eget-lager') page = <OwnWarehouse notify={notify} />;
-  else if (route === '/admin/returer' || detailReturn) page = <Returns id={detailReturn?.[1]} go={go} notify={notify} />;
+  else if (route === '/admin/saldo' || detailStock) page = <StockView key={detailStock?.[1] ?? 'list'} id={detailStock?.[1]} go={go} notify={notify} />;
+  else if (route === '/admin/partier' || detailBatch) page = <BatchView key={detailBatch?.[1] ?? search} id={detailBatch?.[1]} go={go} notify={notify} />;
+  else if (route === '/admin/flyttar' || detailTransfer) page = <TransfersView key={detailTransfer?.[1] ?? 'list'} id={detailTransfer?.[1]} go={go} notify={notify} />;
+  else if (route === '/admin/inventering' || detailCount) page = <CountsView key={detailCount?.[1] ?? 'list'} id={detailCount?.[1]} go={go} notify={notify} />;
+  else if (route === '/admin/inleveranser') page = <PurchasingView tab="inleveranser" go={go} notify={notify} />;
+  else if (route === '/admin/eget-lager' || route === '/admin/plock-pack') page = <PickPackView go={go} notify={notify} />;
+  else if (route === '/admin/returer' || detailReturn) page = <OperationalReturns key={detailReturn?.[1] ?? 'list'} id={detailReturn?.[1]} go={go} notify={notify} />;
   else if (route === '/admin/rabatter' || detailDiscount) page = <DiscountsView id={detailDiscount?.[1]} go={go} notify={notify} onTitleChange={(value) => setDetailTitles((titles) => titles[route] === value ? titles : { ...titles, [route]: value })} />;
   else if (route === '/admin/mejlmallar' || detailEmail) page = <EmailTemplatesView id={detailEmail?.[1]} go={go} />;
   else if (route === '/admin/omdirigeringar' || detailRedirect) page = <RedirectsView id={detailRedirect?.[1]} go={go} rows={redirectRows} onRowsChange={setRedirectRows} />;
-  else if (route === '/admin/installningar') page = <Settings notify={notify} />;
+  else if (route === '/admin/installningar' || settingsSection) page = <Settings section={settingsSection?.[1]} notify={notify} go={go} />;
   else page = <Dashboard go={go} notice={notice} setNotice={notify} />;
-  const detailLabel = detailTitles[route]
-    ?? (detailMedia ? mediaItems.find((item) => item.id === detailMedia[1])?.name ?? 'Bild'
+  const detailLabel = ({ '/admin/order/ny': 'Ny manuell order', '/admin/inkop/ny': 'Ny inköpsorder', '/admin/flyttar/ny': 'Ny lagerflytt', '/admin/inventering/ny': 'Starta inventering' } as Record<string, string>)[route] ?? detailTitles[route]
+    ?? (detailStock ? operations.variants.find((v) => v.sku === decodeURIComponent(detailStock[1]))?.sku ?? 'Variant'
+      : detailMedia ? mediaItems.find((item) => item.id === detailMedia[1])?.name ?? 'Bild'
       : detailProduct ? productRows.find((item) => item.slug === detailProduct[1])?.name ?? 'Produkt'
         : detailType ? productTypes.find((item) => item.id === detailType[1])?.name ?? 'Produkttyp'
           : detailEmail ? ({ order: 'Orderbekräftelse', shipped: 'Skickad', delivered: 'Levererad', return: 'Retur / återbetalning', cancelled: 'Avbruten' } as Record<string, string>)[detailEmail[1]] ?? 'Mejlmall'
@@ -572,8 +601,8 @@ export function AdminApp() {
                 : genericDetail ? readRowDetail(decodeURIComponent(genericDetail[1]))?.title ?? 'Detaljer'
                   : decodeURIComponent(route.split('/').at(-1) ?? 'Detaljer'));
   return <AdminNavigationContext.Provider value={go}><div className="admin-root"><div className="admin-shell">
-    <aside className="admin-sidebar"><div className="admin-brand"><span className="admin-brand-mark">S</span><div><strong>SELFIT</strong><small>Administration</small></div></div><nav aria-label="Administrationsmeny">{navGroups.map((group) => <div className="admin-nav-group" key={group.label}><span className="admin-nav-label">{group.label}</span>{group.links.map((link) => <button className="admin-nav-link" key={link.path} aria-current={route === link.path ? 'page' : undefined} onClick={() => go(link.path)} data-testid={`nav-${link.path.split('/').filter(Boolean).join('-')}`}><span className="admin-nav-icon" aria-hidden="true">{link.icon}</span>{link.label}</button>)}</div>)}</nav><div className="admin-side-foot"><strong>Demo · Lokal prototyp</strong>Inga data skickas eller sparas.</div></aside>
-    {mobileOpen && <div id="admin-mobile-navigation" className="admin-sidebar admin-mobile-sidebar"><nav aria-label="Mobilmeny">{navGroups.map((group) => <div className="admin-nav-group" key={group.label}><span className="admin-nav-label">{group.label}</span>{group.links.map((link) => <button className="admin-nav-link" key={link.path} aria-current={route === link.path ? 'page' : undefined} onClick={() => go(link.path)} data-testid={`mobile-nav-${link.path.split('/').filter(Boolean).join('-')}`}><span className="admin-nav-icon" aria-hidden="true">{link.icon}</span>{link.label}</button>)}</div>)}</nav></div>}
+    <aside className="admin-sidebar"><div className="admin-brand"><span className="admin-brand-mark">S</span><div><strong>SELFIT</strong><small>Administration</small></div></div><nav aria-label="Administrationsmeny">{navGroups.map((group) => <div className="admin-nav-group" key={group.label}><span className="admin-nav-label">{group.label}</span>{group.links.map((link) => <button className="admin-nav-link" key={link.path} aria-current={isActive(link.path) ? 'page' : undefined} onClick={() => go(link.path)} data-testid={`nav-${link.path.split('/').filter(Boolean).join('-')}`}><span className="admin-nav-icon" aria-hidden="true">{link.icon}</span>{link.label}</button>)}</div>)}</nav><div className="admin-side-foot"><strong>Demo · Lokal prototyp</strong>Endast lokal exempeldata. Inga data skickas till lagret eller butiken.</div></aside>
+    {mobileOpen && <div id="admin-mobile-navigation" className="admin-sidebar admin-mobile-sidebar"><nav aria-label="Mobilmeny">{navGroups.map((group) => <div className="admin-nav-group" key={group.label}><span className="admin-nav-label">{group.label}</span>{group.links.map((link) => <button className="admin-nav-link" key={link.path} aria-current={isActive(link.path) ? 'page' : undefined} onClick={() => go(link.path)} data-testid={`mobile-nav-${link.path.split('/').filter(Boolean).join('-')}`}><span className="admin-nav-icon" aria-hidden="true">{link.icon}</span>{link.label}</button>)}</div>)}</nav></div>}
     <div className="admin-workspace"><header className="admin-topbar">
       <div className="admin-topbar-left"><Button small className="admin-mobile-menu-button" onClick={() => setMobileOpen(!mobileOpen)} testId="button-mobile-menu" ariaLabel="Visa eller dölj meny" ariaExpanded={mobileOpen} ariaControls={mobileOpen ? 'admin-mobile-navigation' : undefined}>Meny</Button><span>SELFIT · administration</span><span aria-hidden="true">/</span><strong>{title}</strong></div>
       <form className="admin-top-search" role="search" onSubmit={submitGlobalSearch}>
@@ -585,9 +614,10 @@ export function AdminApp() {
           {matchingProducts.length === 0 && matchingOrders.length === 0 && <p role="status">Inga produkter eller ordrar matchar sökningen.</p>}
         </div>}
       </form>
-      <div className="admin-topbar-right"><span className="admin-live">Lokal prototyp</span><span className="admin-user-chip" aria-label="Användare Ella Svensson" data-testid="text-admin-user">ES</span></div>
+      <div className="admin-topbar-right"><label className="ops-role">Visningsroll (demo)<select className="admin-control" aria-label="Visningsroll (demo)" value={operations.role} onChange={(e) => commit((d) => { d.role = e.target.value; })}>{['Admin', 'Ekonomi', 'Katalog', 'Kundservice'].map((role) => <option key={role}>{role}</option>)}</select></label><span className="admin-user-chip" aria-label="Användare Ella Svensson" data-testid="text-admin-user">ES</span></div>
     </header><main className="admin-content">{detailParent && <div className="admin-detail-navigation"><button type="button" className="admin-btn" onClick={back} data-testid="button-detail-back">← Tillbaka</button><nav aria-label="Brödsmulor"><a href={backPath} onClick={(event) => { event.preventDefault(); back(); }}>{parentLabel}</a><span aria-hidden="true"> / </span><span aria-current="page">{detailLabel}</span></nav></div>}{notice && <div className="admin-inline-message" role="status" data-testid="status-global-notice">{notice}</div>}{page}</main></div>
   </div></div></AdminNavigationContext.Provider>;
 }
 
+export function AdminApp() { return <OperationsProvider><AdminWorkspace /></OperationsProvider>; }
 export default AdminApp;

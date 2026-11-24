@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { orderRows, type OrderRow } from './mockData';
 import { announcePrototypeAction, NavigableRows, useAdminListState } from './adminInteractions';
 import './businessAdmin.css';
+import { useOperations, variantLabel } from './operationsModel';
 
 type ViewProps = { go: (path: string) => void };
 type ActionProps = ViewProps & { notify: (message: string) => void };
@@ -56,7 +57,7 @@ const customerOrdersFor = (customer: Customer): CustomerHistoryRow[] => [
   ...(pastCustomerOrders[customer.id] ?? []),
 ];
 
-const money = (value: number) => `${new Intl.NumberFormat('sv-SE').format(value)} kr`;
+const money = (value: number) => `${new Intl.NumberFormat('sv-SE', { maximumFractionDigits: 2 }).format(value)} kr`;
 const stamp = '20 november 2026, 10:48';
 
 function Heading({ kicker, title, description, actions }: { kicker: string; title: string; description: string; actions?: ReactNode }) {
@@ -115,13 +116,14 @@ export function CustomersView({ go }: ViewProps) {
 }
 
 export function CustomerDetailView({ customerId, go, notify }: { customerId: string; go: (path: string) => void; notify: (message: string) => void }) {
+  const { state: operations } = useOperations();
   const customer = initialCustomers.find((item) => item.id === customerId) ?? initialCustomers[0];
   const [notes, setNotes] = useState([{ text: 'Föredrar leverans till ombud nära hemmet.', author: 'Ella Svensson', time: '18 nov 2026, 14:22' }]);
   const [newNote, setNewNote] = useState('');
   const [tags, setTags] = useState(customer.tags);
   const [confirm, setConfirm] = useState(false);
   const [anonymized, setAnonymized] = useState(false);
-  const customerOrders = customerOrdersFor(customer);
+  const customerOrders = [...operations.orders.filter((o) => o.email === customer.email).map((o) => ({ id: o.id, date: o.date, amount: o.amount, status: o.kind === 'Byte' ? `Byte · ${o.status}` : o.status, current: true })), ...(pastCustomerOrders[customer.id] ?? [])];
   const addNote = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!newNote.trim()) return;
@@ -270,6 +272,8 @@ const reportProducts = [
 ];
 
 export function ReportsView() {
+  const { state: operations } = useOperations();
+  const canFinance = ['Admin', 'Ekonomi'].includes(operations.role);
   const [period, setPeriod] = useAdminListState('rapporter', 'period', 'Månad');
   const [from, setFrom] = useAdminListState('rapporter', 'from', '2026-11-01');
   const [to, setTo] = useAdminListState('rapporter', 'to', '2026-11-30');
@@ -299,7 +303,16 @@ export function ReportsView() {
     <Panel title="Lågt saldo per lager" subtitle="Varianter under miniminivå med aktuell lagerplats">
       <Table headers={['Produkt', 'Variant', 'Saldo', 'Lager']} testId="table-low-stock-by-warehouse">{reportProducts.filter((item) => item.stock <= 4).map((item, index) => <tr key={`${item.name}-${item.variant}`} data-testid={`row-low-stock-report-${index}`}><td>{item.name}</td><td>{item.variant}</td><td><Status testId={`status-low-stock-report-${index}`}>{`${item.stock} st`}</Status></td><td>{item.warehouse}</td></tr>)}</Table>
     </Panel>
-    <Panel title="Produkt- och variantförsäljning" subtitle="Sortera för att hitta bästsäljare"><div className="business-admin-sort-controls"><Button small onClick={() => setSort('units')} kind={sort === 'units' ? 'primary' : ''} testId="button-sort-sales-units">Flest sålda först</Button><Button small onClick={() => setSort('revenue')} kind={sort === 'revenue' ? 'primary' : ''} testId="button-sort-sales-revenue">Högst omsättning först</Button></div><Table headers={['Produkt', 'Variant', 'Sålda enheter', 'Omsättning', 'Lagersaldo', 'Lager', 'Lagervärde']} testId="table-product-sales">{sorted.map((item, index) => <tr key={`${item.name}-${item.variant}`} data-testid={`row-product-sales-${index}`}><td><strong>{item.name}</strong></td><td>{item.variant}</td><td>{item.units} st</td><td className="num">{money(item.revenue)}</td><td><Status testId={`status-stock-${index}`}>{`${item.stock} st`}</Status></td><td>{item.warehouse}</td><td className="num">{money(item.value)}</td></tr>)}</Table></Panel>
+    <Panel title="Produkt- och variantförsäljning" subtitle="Omsättning och bruttomarginal exklusive moms, pant och frakt. Inköpspris hämtas från varianten.">
+      <div className="business-admin-sort-controls"><Button small onClick={() => setSort('units')} kind={sort === 'units' ? 'primary' : ''} testId="button-sort-sales-units">Flest sålda först</Button><Button small onClick={() => setSort('revenue')} kind={sort === 'revenue' ? 'primary' : ''} testId="button-sort-sales-revenue">Högst omsättning först</Button></div>
+      {!canFinance && <p className="ops-note">Marginal och inköpspris visas endast för ekonomi och admin.</p>}
+      <Table headers={['Produkt / variant', 'Sålda enheter', 'Omsättning exkl. moms', ...(canFinance ? ['Inköpspris / st · Endast ekonomi', 'Bruttomarginal kr', 'Bruttomarginal %'] : [])]} testId="table-product-sales">{sorted.map((item, index) => {
+        const sku = item.name.includes('PWO') ? item.variant.includes('12-pack') ? 'PWO-BL-12' : 'PWO-JO-06' : item.name.includes('Kreatin') ? 'KRE-300' : item.name.includes('D-vitamin') ? 'DVT-050' : 'OMG-120';
+        const variant = operations.variants.find((v) => v.sku === sku)!;
+        const revenue = item.revenue / (1 + variant.vat / 100); const margin = revenue - item.units * variant.cost;
+        return <tr key={sku} data-row-href={`/admin/produkter/${variant.productSlug}`} data-testid={`row-product-sales-${index}`}><td><strong>{variantLabel(variant)}</strong><span className="subtext">{sku}</span></td><td>{item.units} st</td><td>{money(revenue)}</td>{canFinance && <><td>{money(variant.cost)}</td><td>{money(margin)}</td><td>{(revenue ? margin / revenue * 100 : 0).toLocaleString('sv-SE', { maximumFractionDigits: 1 })} %</td></>}</tr>;
+      })}</Table>
+    </Panel>
     <div className="business-admin-future-grid" aria-label="Rapporter som kommer senare">
       {['Konvertering', 'Övergivna kundvagnar', 'Återkommande kunder'].map((title) => <section className="admin-panel business-admin-future" key={title} data-testid={`placeholder-report-${title.toLowerCase().replace(/\s+/g, '-')}`}><span>Kommer senare</span><h2>{title}</h2><p>Rapporten är inte tillgänglig i den lokala prototypen.</p></section>)}
     </div>
