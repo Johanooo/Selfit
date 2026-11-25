@@ -68,7 +68,9 @@ export function ImageLightbox({
         if (e.key === 'ArrowLeft') step(-1);
       }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        // Stäng vid klick var som helst utom på själva bilden, knapparna och miniatyrerna.
+        const t = e.target as HTMLElement;
+        if (!t.closest('.lightbox-stage, button, .lightbox-thumbs')) onClose();
       }}
     >
       <div className="lightbox-top">
@@ -116,7 +118,7 @@ export function ImageLightbox({
         )}
       </div>
 
-      <p className="lightbox-hint small muted">{zoomed ? 'Flytta musen eller fingret för att se detaljer. Klicka för att zooma ut.' : 'Klicka på bilden för att zooma in.'}</p>
+      <p className="lightbox-hint small muted">{zoomed ? 'Flytta musen eller fingret för att se detaljer. Klicka på bilden för att zooma ut.' : 'Klicka på bilden för att zooma in. Klicka utanför för att stänga.'}</p>
 
       {many && (
         <ul className="lightbox-thumbs" aria-label="Välj bild">
