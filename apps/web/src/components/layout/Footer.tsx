@@ -1,4 +1,5 @@
 import { Link } from 'wouter';
+import { COMPANY } from '@/data/support';
 import { Logo } from '@/components/Logo';
 import { categories } from '@/data/categories';
 import { useCookies } from '@/state/cookies';
@@ -47,6 +48,9 @@ export function Footer() {
                 <Link href="/support/kontakt">Kontakt</Link>
               </li>
               <li>
+                <Link href="/support/om-selfit">Om SELFIT</Link>
+              </li>
+              <li>
                 <Link href="/support/frakt-och-leverans">Frakt och leverans</Link>
               </li>
               <li>
@@ -70,7 +74,7 @@ export function Footer() {
                 <Link href="/support/kopvillkor">Köpvillkor</Link>
               </li>
               <li>
-                <Link href="/support/integritet">Integritet</Link>
+                <Link href="/support/integritet">Integritetspolicy</Link>
               </li>
               <li>
                 <Link href="/support/cookies">Om cookies</Link>
@@ -84,7 +88,7 @@ export function Footer() {
           </nav>
         </div>
         <div className="footer-bottom">
-          <span>© {new Date().getFullYear()} SELFIT AB · Org.nr 559000-0000 (demo)</span>
+          <span>© {new Date().getFullYear()} {COMPANY.legalName} · Org.nr {COMPANY.orgNr}</span>
           <span>Designprototyp – inga riktiga köp genomförs.</span>
         </div>
       </div>
