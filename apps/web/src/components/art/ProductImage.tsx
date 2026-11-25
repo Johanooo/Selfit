@@ -34,6 +34,8 @@ export function ProductImage({
     return (
       <img
         className="product-photo"
+        width={720}
+        height={720}
         src={`${base}${variant.image.slice('photo:'.length)}`}
         alt={`${product.brand} ${product.name}${flavour ? ` med smak av ${flavour.toLowerCase()}` : ''}, ${product.sizeLabel}`}
         loading="lazy"
@@ -56,6 +58,8 @@ export function ProductImage({
     return (
       <img
         className={product.slug === 'pwo-plus' ? 'pwo-gallery-photo' : undefined}
+        width={640}
+        height={640}
         src={`${base}${p.src}`}
         alt={p.alt}
         loading="lazy"
@@ -71,6 +75,8 @@ export function ProductImage({
     return (
       <img
         className="product-photo"
+        width={720}
+        height={720}
         src={`${base}${product.primaryImage}`}
         alt={product.primaryImageAlt ?? product.name}
         loading="lazy"

@@ -88,6 +88,9 @@ export function Header({ desktopMenuButton = false }: { desktopMenuButton?: bool
               defaultValue=""
               placeholder="Sök bland vitaminer, hudvård, PWO+ …"
               autoComplete="off"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-haspopup="dialog"
               aria-controls="search-suggest"
               aria-expanded={suggestOpen && query.trim().length >= 2}
               onChange={(e) => {

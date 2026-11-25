@@ -185,7 +185,7 @@ export function Listing({ eyebrow, title, intro, tone, crumbs, items, emptyBase,
             </div>
           </aside>
 
-          <div ref={resultsRef} tabIndex={-1} aria-label="Produkter">
+          <div ref={resultsRef} tabIndex={-1} role="region" aria-label="Produkter">
             <div className="listing-toolbar">
               <p aria-live="polite" data-testid="text-result-count">
                 <strong>{filtered.length}</strong> {filtered.length === 1 ? 'produkt' : 'produkter'}
@@ -215,7 +215,7 @@ export function Listing({ eyebrow, title, intro, tone, crumbs, items, emptyBase,
             </div>
 
             {pills.length > 0 && (
-              <div className="active-filters" aria-label="Aktiva filter">
+              <div className="active-filters" role="group" aria-label="Aktiva filter">
                 {pills.map((p) => (
                   <button
                     type="button"

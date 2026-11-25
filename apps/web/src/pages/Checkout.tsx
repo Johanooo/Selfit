@@ -317,8 +317,9 @@ export default function CheckoutPage() {
               <li key={l.variantId} className="mini-line">
                 <span className={`mini-line-media tone-${getCategory(l.product.category)?.tone ?? 'lavender'}`}>
                   <ProductImage product={l.product} variant={l.variant} />
-                  <span className="mini-qty" aria-label={`${l.qty} st`}>
-                    {l.qty}
+                  <span className="mini-qty">
+                    <span aria-hidden="true">{l.qty}</span>
+                    <span className="sr-only">{l.qty} st</span>
                   </span>
                 </span>
                 <span>

@@ -22,6 +22,8 @@ export function PwoCan({ flavour, label, className }: { flavour: string; label?:
     <img
       src={canImage(flavour)}
       className={`can-art pwo-real-can ${className ?? ''}`}
+      width={720}
+      height={720}
       alt={label === '' ? '' : (label ?? `Burk PWO+ ${f?.name ?? ''}, 330 ml`)}
       loading="lazy"
       decoding="async"
@@ -42,6 +44,8 @@ export function PwoPack({ flavour, pack, className }: { flavour: string; pack: n
           key={can}
           src={canImage(flavour)}
           alt=""
+          width={720}
+          height={720}
           loading="lazy"
           decoding="async"
         />

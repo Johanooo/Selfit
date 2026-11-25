@@ -60,14 +60,14 @@ export function SearchSuggest({
   if (q.length < 2) return null;
 
   return (
-    <div id={id} ref={boxRef} className="search-suggest" onKeyDown={onKey} data-testid="search-suggest">
+    <div id={id} ref={boxRef} className="search-suggest" role="dialog" aria-label="Sökförslag" onKeyDown={onKey} data-testid="search-suggest">
       <Link href={`/sok?q=${encodeURIComponent(q)}`} className="search-suggest-all" onClick={onPick}>
         Se alla {items.length} resultat för ”{q}”
         <ArrowRight size={16} aria-hidden="true" />
       </Link>
 
       {cats.length > 0 && (
-        <div className="search-suggest-cats" aria-label="Kategorier">
+        <div className="search-suggest-cats" role="group" aria-label="Kategorier">
           {cats.map((c) => (
             <Link key={c.slug} href={`/kategori/${c.slug}`} className="chip" onClick={onPick}>
               {c.name}

@@ -187,6 +187,10 @@ svg {
   display: block;
   max-width: 100%;
 }
+/* Bilder har width/height i HTML (så att sidan inte hoppar) men ska skalas proportionerligt. */
+img {
+  height: auto;
+}
 a {
   color: inherit;
 }
@@ -3182,4 +3186,17 @@ a.chip:hover {
 
 .page-fallback {
   min-height: 60vh;
+}
+
+/* PWO+-rutan: rubrik och text överst, burkarna på en rad – även utan vänstermeny. */
+@media (min-width: 768px) {
+  .pwo-band {
+    grid-template-columns: 1fr;
+  }
+  .pwo-band .stack-5 {
+    max-width: 640px;
+  }
+  .can-row {
+    grid-template-columns: repeat(6, 1fr);
+  }
 }

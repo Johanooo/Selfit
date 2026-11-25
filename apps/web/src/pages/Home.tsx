@@ -157,7 +157,7 @@ export default function Home() {
           <div className="cat-tiles">
             {categories.map((c) => (
               <Link key={c.slug} href={`/kategori/${c.slug}`} className={`cat-tile tone-${c.tone}`} data-testid={`link-category-${c.slug}`}>
-                <img src={`${base}${c.image}`} alt="" loading="lazy" />
+                <img src={`${base}${c.image}`} alt="" loading="lazy" width={640} height={640} />
                 <div className="cat-tile-body">
                   <h3>{c.name}</h3>
                   <p>{c.short}</p>
