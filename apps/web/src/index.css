@@ -3200,3 +3200,9 @@ a.chip:hover {
     grid-template-columns: repeat(6, 1fr);
   }
 }
+
+/* Returformulär: lyft fram bildfältet när kunden anger fel på varan */
+.field--highlight {
+  border-left: 3px solid var(--c-primary);
+  padding-left: 0.75rem;
+}

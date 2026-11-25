@@ -6,12 +6,19 @@ import { TextField, swedishMessage } from '@/components/Field';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import { ORDER_PATTERN } from '@/lib/order';
 
-const REASONS = ['Ångrat köpet', 'Fel vara levererad', 'Skadad vara', 'Annat'];
+const REASONS = ['Ångrat köpet (oöppnad vara)', 'Fel vara levererad', 'Skadad eller trasig vara', 'Fel på varan (smak, konsistens m.m.)', 'Annat'];
+/** Anledningar där en bild gör att vi kan hjälpa snabbare. */
+const DEFECT = new Set(REASONS.slice(1, 4));
+const MAX_FILES = 4;
 
 export default function ReturnPage() {
-  usePageMeta('Anmäl retur', 'Returnera en vara från SELFIT. 14 dagars ångerrätt och 30 dagars öppet köp.');
+  usePageMeta('Anmäl retur', 'Returnera en vara från SELFIT. 30 dagars öppet köp på oöppnade varor.');
   const [done, setDone] = useState<string | null>(null);
   const [reasonError, setReasonError] = useState('');
+  const [reason, setReason] = useState('');
+  const [files, setFiles] = useState<string[]>([]);
+  const [fileError, setFileError] = useState('');
+  const defect = DEFECT.has(reason);
 
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -91,6 +98,7 @@ export default function ReturnPage() {
                   onChange={(e) => {
                     e.currentTarget.setCustomValidity('');
                     setReasonError('');
+                    setReason(e.currentTarget.value);
                   }}
                   data-testid="select-reason"
                 >
@@ -112,6 +120,48 @@ export default function ReturnPage() {
                   Vilka varor vill du returnera? <span className="muted">(valfritt)</span>
                 </label>
                 <textarea id="comment" name="comment" className="textarea" data-testid="input-comment" />
+              </div>
+              <div className={`field${defect ? ' field--highlight' : ''}`}>
+                <label htmlFor="photos">
+                  Bilder på varan <span className="muted">(valfritt, max {MAX_FILES})</span>
+                </label>
+                <p id="photos-hint" className="small muted">
+                  {defect
+                    ? 'Med en bild på felet, förpackningen och bäst före-datumet kan vi oftast lösa ärendet direkt – utan att du behöver skicka tillbaka något. Utan bild behöver vi i regel få tillbaka varan först, och det tar längre tid.'
+                    : 'En bild hjälper oss att hantera returen snabbare.'}
+                </p>
+                <input
+                  id="photos"
+                  name="photos"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  aria-describedby={fileError ? 'photos-hint photos-error' : 'photos-hint'}
+                  onChange={(e) => {
+                    const list = Array.from(e.currentTarget.files ?? []);
+                    if (list.length > MAX_FILES) {
+                      setFileError(`Välj högst ${MAX_FILES} bilder.`);
+                      e.currentTarget.value = '';
+                      setFiles([]);
+                      return;
+                    }
+                    setFileError('');
+                    setFiles(list.map((f) => f.name));
+                  }}
+                  data-testid="input-photos"
+                />
+                {fileError && (
+                  <p id="photos-error" className="field-error" role="alert">
+                    {fileError}
+                  </p>
+                )}
+                {files.length > 0 && (
+                  <ul className="small muted" aria-label="Valda bilder">
+                    {files.map((f) => (
+                      <li key={f}>{f}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
               <button type="submit" className="btn btn--primary" data-testid="button-submit-return">
                 Skicka returanmälan (demo)
@@ -135,11 +185,11 @@ export default function ReturnPage() {
               <span>Fäst returetiketten och lämna paketet hos närmaste ombud.</span>
             </li>
             <li>
-              <span>Pengarna, inklusive pant, återbetalas inom 5 vardagar efter att vi tagit emot returen.</span>
+              <span>Vi kontrollerar varan. Pengarna, inklusive pant, återbetalas inom 5 vardagar efter att vi tagit emot och godkänt returen.</span>
             </li>
           </ol>
           <p className="small muted">
-            Öppnade kosttillskott och hudvård kan av hygienskäl inte returneras om de inte är felaktiga.{' '}
+            Öppnade livsmedel och kosttillskott kan av hygienskäl inte returneras om de inte är felaktiga. Spara kvittot och kollinumret från ombudet.{' '}
             <Link href="/support/retur-och-angerratt" className="text-link">
               Läs villkoren
             </Link>

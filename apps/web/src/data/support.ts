@@ -20,6 +20,12 @@ export const COMPANY = {
   emailProvider: '[FYLL I: e-posttjänst för orderbekräftelser]',
   ageLimit: 18,
   dispatchDays: '1–2 vardagar',
+  /** Frivilligt öppet köp (utöver lagens 14 dagars ångerrätt). */
+  openPurchaseDays: 30,
+  /** Avdrag för returfrakt när kunden ångrar sig (ska motsvara verklig kostnad). */
+  returnFee: 39,
+  /** Normal kostnad för outhämtat paket (frakt + returfrakt). */
+  uncollectedFee: 149,
   /** Senast uppdaterad – ändra när villkoren ändras. */
   termsUpdated: '2026-11-25',
 } as const;
@@ -126,7 +132,8 @@ export const supportPages: SupportPage[] = [
       {
         heading: 'Paket som inte hämtas ut',
         paragraphs: [
-          'Hämtar du inte ut paketet räknas det inte som att du ångrat köpet. Vi får då ta betalt för våra faktiska kostnader för frakt och returfrakt. Vill du ångra dig – gör det hellre via returformuläret.',
+          `Paket som inte hämtas ut skickas tillbaka till oss. Det räknas inte som att du ångrat köpet. Vi debiterar då våra faktiska kostnader för frakt, returfrakt och hantering, normalt ${kr(C.uncollectedFee)} (konsumentköplagen 41 §). Vill du ångra dig – anmäl det hellre via returformuläret, så blir det billigare för dig.`,
+          'Ombudet håller oftast paketet i 7–14 dagar. Paketboxar skickar tillbaka efter kortare tid.',
         ],
       },
     ],
@@ -138,12 +145,19 @@ export const supportPages: SupportPage[] = [
   {
     slug: 'retur-och-angerratt',
     title: 'Retur och ångerrätt',
-    summary: '14 dagars ångerrätt på oöppnade varor. Så här gör du.',
+    summary: `${C.openPurchaseDays} dagars öppet köp på oöppnade varor. Så här gör du.`,
     sections: [
       {
         heading: 'Du har 14 dagars ångerrätt',
         paragraphs: [
           'Du får ångra ditt köp inom 14 dagar från den dag du (eller någon du utsett) tog emot varan. Du behöver inte ange något skäl. Har du beställt flera varor som levereras vid olika tillfällen räknas tiden från den sista leveransen.',
+        ],
+      },
+      {
+        heading: `${C.openPurchaseDays} dagars öppet köp`,
+        paragraphs: [
+          `Utöver ångerrätten har du ${C.openPurchaseDays} dagars öppet köp från leveransdagen. Öppet köp är ett frivilligt erbjudande från oss och gäller när varan är oöppnad, oskadad och i originalförpackning med förseglingen kvar.`,
+          'Öppet köp gäller inte varor som sålts till nedsatt pris på grund av kort bäst före-datum. Vid upprepade returer eller misstänkt missbruk kan vi neka öppet köp. Din lagstadgade ångerrätt på 14 dagar påverkas inte.',
         ],
       },
       {
@@ -165,14 +179,16 @@ export const supportPages: SupportPage[] = [
       {
         heading: 'Skicka tillbaka varan',
         paragraphs: [
-          'Skicka tillbaka varan senast 14 dagar efter att du meddelat oss. Du står för kostnaden för returfrakten. Varan ska vara oöppnad och väl förpackad.',
+          `Skicka tillbaka varan senast 14 dagar efter att du meddelat oss. Returfrakten betalar du själv. Använder du vår returetikett drar vi ${kr(C.returnFee)} från återbetalningen. Varan ska vara oöppnad och väl förpackad.`,
+          'Spara kvittot och kollinumret från ombudet. Det är ditt bevis på att paketet är skickat. Returer som skickas utan att ha anmälts tar längre tid att hantera.',
           'Om varan har hanterats mer än vad som behövs för att se vad det är för vara, får vi dra av för värdeminskningen.',
         ],
       },
       {
         heading: 'Återbetalning',
         paragraphs: [
-          'Vi betalar tillbaka varans pris, panten och den ursprungliga fraktkostnaden (för vårt billigaste leveranssätt) senast 14 dagar efter att vi fått ditt meddelande. Vi får vänta med återbetalningen tills vi har fått tillbaka varan, eller du visat att den är skickad. Pengarna betalas tillbaka med samma betalsätt som du använde.',
+          'Vi betalar tillbaka varans pris, panten och den ursprungliga fraktkostnaden (för vårt billigaste leveranssätt) senast 14 dagar efter att vi fått ditt meddelande. Vi kontrollerar varan när den kommer tillbaka och väntar med återbetalningen tills vi har fått den, eller du visat att den är skickad. Pengarna betalas tillbaka med samma betalsätt som du använde.',
+          `Vid öppet köp (dag 15–${C.openPurchaseDays}) återbetalar vi varans pris och pant när vi har tagit emot och godkänt varan. Den ursprungliga frakten återbetalas inte.`,
         ],
       },
       {
@@ -190,7 +206,8 @@ export const supportPages: SupportPage[] = [
       },
     ],
     faq: [
-      { q: 'Kostar det att returnera?', a: 'Ångrar du dig betalar du returfrakten. Är varan felaktig står vi för alla kostnader.' },
+      { q: 'Kostar det att returnera?', a: `Ångrar du dig drar vi ${kr(C.returnFee)} för returfrakten. Är varan felaktig står vi för alla kostnader.` },
+      { q: 'Hur byter jag en vara?', a: 'Returnera varan och lägg en ny beställning. Det går snabbast så.' },
       { q: 'Får jag tillbaka pant?', a: 'Ja, pant för returnerade burkar betalas tillbaka tillsammans med varans pris.' },
       { q: 'Jag har öppnat en förpackning och ångrar mig. Vad gäller?', a: 'Då gäller inte ångerrätten, eftersom förseglingen är bruten. Är varan trasig eller felaktig kan du alltid reklamera.' },
     ],
@@ -214,6 +231,8 @@ export const supportPages: SupportPage[] = [
         heading: '3. Avtalet',
         paragraphs: [
           'Avtalet blir bindande när du har fått en orderbekräftelse via e-post. Kontrollera att uppgifterna i bekräftelsen stämmer och hör av dig direkt om något är fel. Om en vara inte finns i lager meddelar vi dig, och du får välja att vänta eller få pengarna tillbaka.',
+          'Vi kan behöva kontrollera en order innan den skickas, till exempel vid ovanligt stora köp eller om leveransadressen inte stämmer med betalningen. Vid misstanke om bedrägeri eller missbruk har vi rätt att stoppa eller häva ordern. Redan betalda belopp betalas då tillbaka. Bedrägeriförsök polisanmäls.',
+          'Vi kan begränsa hur många av en vara man får köpa per order eller hushåll, till exempel vid kampanjer.',
         ],
       },
       {
@@ -221,6 +240,7 @@ export const supportPages: SupportPage[] = [
         paragraphs: [
           'Alla priser anges i svenska kronor inklusive moms. Pant (1 kr per burk) visas separat. Fraktkostnaden visas i kassan innan du betalar. Vi reserverar oss för uppenbara felskrivningar av priser – då kontaktar vi dig innan ordern skickas.',
           'När ett pris sänks i en kampanj visar vi också det lägsta priset de senaste 30 dagarna före sänkningen, enligt prisinformationslagen.',
+          'Rabattkoder gäller under angiven tid och kan inte kombineras med varandra. Om en kod gäller redan nedsatta varor står det i erbjudandet. Har du glömt koden kan vi lägga till den så länge ordern inte är skickad. Rabattkoder kan inte bytas mot pengar.',
         ],
       },
       {
@@ -236,31 +256,38 @@ export const supportPages: SupportPage[] = [
         ],
       },
       {
-        heading: '7. Ångerrätt',
+        heading: '7. Ångerrätt och öppet köp',
         paragraphs: [
-          'Du har 14 dagars ångerrätt enligt lagen om distansavtal. Ångerrätten gäller inte förseglade livsmedel och kosttillskott där förseglingen har brutits. Läs hela villkoren och hitta ångerblanketten under Retur och ångerrätt.',
+          `Du har 14 dagars ångerrätt enligt lagen om distansavtal och ${C.openPurchaseDays} dagars öppet köp på oöppnade varor. Ångerrätten gäller inte förseglade livsmedel och kosttillskott där förseglingen har brutits. Vid ånger drar vi ${kr(C.returnFee)} för returfrakt om du använder vår returetikett. Läs hela villkoren och hitta ångerblanketten under Retur och ångerrätt.`,
         ],
       },
       {
         heading: '8. Reklamation (fel på varan)',
         paragraphs: [
           'Är varan trasig, felaktig eller inte som utlovat har du rätt att reklamera enligt konsumentköplagen. Du kan reklamera fel som fanns när du tog emot varan i upp till tre år. Fel som visar sig inom två år räknas som att de fanns från början, om vi inte kan visa något annat.',
-          'Meddela oss inom skälig tid efter att du upptäckt felet. Inom två månader räknas alltid som i tid. Skicka ordernummer och gärna en bild. Vi står för returfrakten vid godkänd reklamation.',
+          'Meddela oss inom skälig tid efter att du upptäckt felet. Inom två månader räknas alltid som i tid. Vi står för returfrakten vid godkänd reklamation.',
+          'Så går det snabbast: skicka ordernummer, en kort beskrivning av felet och en bild på varan, förpackningen och bäst före-datum/batchnummer. Spara varan tills ärendet är klart. Du får hjälp även utan bild, men då behöver vi oftast få tillbaka varan för att undersöka den, och det tar längre tid.',
           'Tänk på att livsmedel har ett bäst före-datum. Att en vara blivit sämre efter bäst före-datum räknas normalt inte som fel.',
         ],
       },
       {
-        heading: '9. Personuppgifter',
+        heading: '9. Utebliven eller försenad leverans',
+        paragraphs: [
+          `Paket som inte hämtas ut skickas tillbaka till oss. Vi debiterar då våra faktiska kostnader, normalt ${kr(C.uncollectedFee)}. Vid försening har du de rättigheter som konsumentköplagen ger, till exempel att häva köpet om leveransen dröjer väsentligt. Vi ansvarar inte för förseningar orsakade av omständigheter utanför vår kontroll, till exempel strejk, extremväder eller störningar hos transportören.`,
+        ],
+      },
+      {
+        heading: '10. Personuppgifter',
         paragraphs: ['Hur vi hanterar dina personuppgifter står i vår integritetspolicy.'],
       },
       {
-        heading: '10. Om vi inte kommer överens',
+        heading: '11. Om vi inte kommer överens',
         paragraphs: [
           'Kontakta oss först, så försöker vi lösa det. Om vi ändå inte blir överens kan du vända dig till Allmänna reklamationsnämnden (ARN), arn.se. Vi följer ARN:s rekommendationer. Tvist kan också prövas i svensk allmän domstol.',
         ],
       },
       {
-        heading: '11. Ändringar',
+        heading: '12. Ändringar',
         paragraphs: ['Vi kan ändra villkoren. De villkor som gällde när du lade din order gäller för den ordern.'],
       },
     ],
@@ -389,7 +416,8 @@ export const supportPages: SupportPage[] = [
       { q: 'Hur fungerar pant?', a: 'Varje burk har 1 kr pant som visas separat i varukorgen. Pantar du burken i en butik får du tillbaka beloppet.' },
       { q: 'Vad betyder jämförpris?', a: 'Jämförpriset visar vad produkten kostar per liter, kilo eller styck, så att du enkelt kan jämföra olika förpackningar.' },
       { q: 'Hur spårar jag min order?', a: 'Använd sidan Spåra order med ditt ordernummer, eller länken i leveransbeskedet.' },
-      { q: 'Kan jag ångra ett köp?', a: 'Ja, inom 14 dagar om förpackningen är oöppnad. Läs mer under Retur och ångerrätt.' },
+      { q: 'Kan jag ångra ett köp?', a: `Ja, du har ${C.openPurchaseDays} dagars öppet köp om förpackningen är oöppnad. Läs mer under Retur och ångerrätt.` },
+      { q: 'Varan är trasig. Vad gör jag?', a: 'Kontakta kundtjänst med ordernummer och en bild på varan och bäst före-datumet. Med bild kan vi oftast lösa det direkt, utan att du behöver skicka tillbaka något.' },
     ],
   },
 ];
