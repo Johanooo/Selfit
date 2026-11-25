@@ -851,13 +851,9 @@ textarea {
   display: grid;
   gap: var(--space-4);
 }
-@media (min-width: 768px) {
+@media (min-width: 640px) {
   .cat-tiles {
-    grid-template-columns: 1.3fr 1fr;
-    grid-template-rows: auto auto;
-  }
-  .cat-tile:first-child {
-    grid-row: span 2;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   }
 }
 .cat-tile {
@@ -892,8 +888,31 @@ textarea {
 .cat-tile:hover img {
   transform: scale(1.04);
 }
-.cat-tile:first-child {
-  min-height: 420px;
+.cat-tile-product {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: -1;
+  width: 42%;
+  height: 52%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cat-tile .cat-tile-product > *,
+.cat-tile .cat-tile-product img,
+.cat-tile .cat-tile-product svg {
+  position: static;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  -webkit-mask-image: none;
+  mask-image: none;
+  border-radius: 0;
+}
+.cat-tile {
+  min-height: 300px;
 }
 .cat-tile h3 {
   font-size: var(--fs-lg);
@@ -3147,15 +3166,12 @@ a.chip:hover {
   .shop-main .hero-media img {
     aspect-ratio: 4 / 3.6;
   }
-  /* Tre lika stora kategorirutor bredvid varandra. */
+  /* Kategorirutor i ett jämnt rutnät. */
   .shop-main .cat-tiles {
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: auto;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   }
-  .shop-main .cat-tile,
-  .shop-main .cat-tile:first-child {
-    grid-row: auto;
-    min-height: 200px;
+  .shop-main .cat-tile {
+    min-height: 260px;
   }
   /* PWO+: rubrik och text överst, burkarna på en rad, fakta på en rad. */
   .shop-main .pwo-band {

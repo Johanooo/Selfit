@@ -1,4 +1,4 @@
-export type CategorySlug = 'traning' | 'halsa' | 'skonhet';
+export type CategorySlug = string;
 export type Tone = 'lavender' | 'sage' | 'sand';
 
 export interface Category {
@@ -7,8 +7,9 @@ export interface Category {
   short: string;
   intro: string;
   tone: Tone;
-  image: string;
-  imageAlt: string;
+  /** Bild för kategorirutan. Saknas den används en produktbild. */
+  image?: string;
+  imageAlt?: string;
 }
 
 /** Underkategori, t.ex. "Pre-workout" under Träning. */
@@ -76,6 +77,8 @@ export interface Product {
   brandSlug: string;
   category: CategorySlug;
   subcategory?: string;
+  /** Fler underkategorier där produkten också visas, t.ex. PWO+ både under Drycker och Sporttillskott. */
+  alsoIn?: string[];
   kind?: ProductKind;
   /** Produktspecifika varningstexter från etiketten. */
   warnings?: string[];

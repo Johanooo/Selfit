@@ -1,4 +1,5 @@
 import type { Flavour, PricePoint, Product, Variant } from './types';
+import { getSubcategory } from './categories';
 
 /** Builds a valid EAN-13 from a 12-digit body. */
 function ean(body: string): string {
@@ -795,18 +796,19 @@ function demoHistory(v: Variant): { price: number; history: PricePoint[] } {
 
 // ---------- Klassificering och underkategori ----------
 // Klassificeringen ska verifieras mot varje produkts etikett före lansering.
-const META: Record<string, Pick<Product, 'kind' | 'subcategory' | 'warnings'>> = {
+const META: Record<string, Pick<Product, 'kind' | 'subcategory' | 'warnings' | 'alsoIn'>> = {
   'pwo-plus': {
     kind: 'dryck',
-    subcategory: 'pre-workout',
+    subcategory: 'energidryck',
+    alsoIn: ['pre-workout'],
     warnings: [PWO_CAFFEINE_WARNING],
   },
-  'kreatin-monohydrat': { kind: 'kosttillskott', subcategory: 'kreatin-och-prestation' },
-  'elektrolyt-brus': { kind: 'kosttillskott', subcategory: 'kreatin-och-prestation' },
-  'protein-pannkakor': { kind: 'livsmedel', subcategory: 'proteinprodukter' },
-  'proteinbar-kakao': { kind: 'livsmedel', subcategory: 'proteinprodukter' },
-  'shaker-600': { kind: 'redskap', subcategory: 'traningstillbehor' },
-  'traningsband-set': { kind: 'redskap', subcategory: 'traningstillbehor' },
+  'kreatin-monohydrat': { kind: 'kosttillskott', subcategory: 'kreatin' },
+  'elektrolyt-brus': { kind: 'kosttillskott', subcategory: 'elektrolyter' },
+  'protein-pannkakor': { kind: 'livsmedel', subcategory: 'proteinmat' },
+  'proteinbar-kakao': { kind: 'livsmedel', subcategory: 'proteinbars' },
+  'shaker-600': { kind: 'redskap', subcategory: 'shakers-och-flaskor' },
+  'traningsband-set': { kind: 'redskap', subcategory: 'traningsband' },
   'd-vitamin-50': { kind: 'kosttillskott', subcategory: 'vitaminer' },
   multivitamin: { kind: 'kosttillskott', subcategory: 'vitaminer' },
   'c-vitamin-brus': { kind: 'kosttillskott', subcategory: 'vitaminer' },
@@ -819,15 +821,17 @@ const META: Record<string, Pick<Product, 'kind' | 'subcategory' | 'warnings'>> =
   ansiktsrengoring: { kind: 'kroppsvard', subcategory: 'ansiktsvard' },
   'solskydd-50': { kind: 'kroppsvard', subcategory: 'sol-och-lappar' },
   laeppbalsam: { kind: 'kroppsvard', subcategory: 'sol-och-lappar' },
-  handkram: { kind: 'kroppsvard', subcategory: 'kroppsvard' },
-  'duschkram-havre': { kind: 'kroppsvard', subcategory: 'kroppsvard' },
-  'deo-roll-on': { kind: 'kroppsvard', subcategory: 'kroppsvard' },
+  handkram: { kind: 'kroppsvard', subcategory: 'dusch-och-hud' },
+  'duschkram-havre': { kind: 'kroppsvard', subcategory: 'dusch-och-hud' },
+  'deo-roll-on': { kind: 'kroppsvard', subcategory: 'dusch-och-hud' },
 };
 
 const withHistory = (list: Product[]): Product[] =>
   list.map((p) => ({
     ...p,
     ...META[p.slug],
+    // Huvudkategorin följer underkategorin, så att en produkt bara behöver en underkategori.
+    category: getSubcategory(META[p.slug]?.subcategory ?? p.subcategory)?.parent ?? p.category,
     variants: p.variants.map((v) => {
       const { price, history } = demoHistory(v);
       return { ...v, price, priceHistory: history };

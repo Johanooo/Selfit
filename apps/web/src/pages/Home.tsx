@@ -1,7 +1,8 @@
 import { Link } from 'wouter';
 import { ArrowRight, Truck, Clock, ShieldCheck, MessageCircle, PackageSearch, RotateCcw, HelpCircle } from 'lucide-react';
 import { usePageMeta } from '@/hooks/use-page-meta';
-import { categories, subcategoriesOf } from '@/data/categories';
+import { filledCategories, productsIn } from '@/data/taxonomy';
+import { ProductImage } from '@/components/art/ProductImage';
 import { products, pwoFlavours, PWO_RECIPE } from '@/data/products';
 import { comparison, kr } from '@/lib/format';
 import { lowestPrice30Days } from '@/lib/price-history';
@@ -50,8 +51,8 @@ export default function Home() {
               <Link href="/produkt/pwo-plus?smak=blueberry&pack=6" className="btn btn--primary" data-testid="link-hero-pwo">
                 Upptäck PWO+ <ArrowRight size={18} aria-hidden="true" />
               </Link>
-              <Link href="/kategori/halsa" className="btn btn--secondary" data-testid="link-hero-shop">
-                Handla hälsa
+              <Link href="/kategori/kosttillskott" className="btn btn--secondary" data-testid="link-hero-shop">
+                Handla kosttillskott
               </Link>
             </div>
           </div>
@@ -152,14 +153,22 @@ export default function Home() {
             <div className="stack-2">
               <p className="eyebrow">Sortiment</p>
               <h2 id="cat-title" className="h2">
-                Tre områden. Ett ställe.
+                Hela sortimentet. Ett ställe.
               </h2>
             </div>
           </div>
           <div className="cat-tiles">
-            {categories.map((c) => (
+            {filledCategories().map((c) => {
+              const top = productsIn(c.slug).sort((a, b) => b.popularity - a.popularity)[0];
+              return (
               <Link key={c.slug} href={`/kategori/${c.slug}`} className={`cat-tile tone-${c.tone}`} data-testid={`link-category-${c.slug}`}>
-                <img src={`${base}${c.image}`} alt="" loading="lazy" width={640} height={640} />
+                {c.image ? (
+                  <img src={`${base}${c.image}`} alt="" loading="lazy" width={640} height={640} />
+                ) : (
+                  <span className="cat-tile-product" aria-hidden="true">
+                    <ProductImage product={top} variant={top.variants.find((v) => v.offered) ?? top.variants[0]} />
+                  </span>
+                )}
                 <div className="cat-tile-body">
                   <h3>{c.name}</h3>
                   <p>{c.short}</p>
@@ -168,25 +177,8 @@ export default function Home() {
                   </span>
                 </div>
               </Link>
-            ))}
-          </div>
-          <div className="cat-quicklinks">
-            {categories.map((c) => (
-              <div key={c.slug} className="cat-quicklinks-group">
-                <h3 className="sr-only">{c.name}</h3>
-                <ul aria-label={`Underkategorier i ${c.name}`}>
-                  {subcategoriesOf(c.slug)
-                    .filter((sc) => products.some((p) => p.subcategory === sc.slug))
-                    .map((sc) => (
-                      <li key={sc.slug}>
-                        <Link href={`/kategori/${sc.slug}`} className="chip">
-                          {sc.name}
-                        </Link>
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

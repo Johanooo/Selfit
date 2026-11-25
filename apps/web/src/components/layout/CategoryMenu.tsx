@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { ChevronDown } from 'lucide-react';
-import { categories, getSubcategory, subcategoriesOf } from '@/data/categories';
+import { getSubcategory } from '@/data/categories';
+import { visibleCategories, visibleSubcategoriesOf } from '@/data/taxonomy';
 import { products } from '@/data/products';
 
 /** Snabblänkar överst i menyn. */
@@ -27,8 +28,6 @@ function categoryForPath(path: string): string | undefined {
   return undefined;
 }
 
-const subsWithProducts = (parent: string) =>
-  subcategoriesOf(parent).filter((sc) => products.some((p) => p.subcategory === sc.slug));
 
 /**
  * Butikens meny: populära länkar, kategorier som kan fällas ut och hjälplänkar.
@@ -63,7 +62,7 @@ export function CategoryMenu({ idPrefix }: { idPrefix: string }) {
 
       <h2 className="cat-menu-heading">Kategorier</h2>
       <ul className="cat-menu-list">
-        {categories.map((c) => {
+        {visibleCategories().map((c) => {
           const isOpen = open === c.slug;
           const panelId = `${idPrefix}-cat-${c.slug}`;
           const href = `/kategori/${c.slug}`;
@@ -87,7 +86,7 @@ export function CategoryMenu({ idPrefix }: { idPrefix: string }) {
               </div>
               {isOpen && (
                 <ul id={panelId} className="cat-menu-sub">
-                  {subsWithProducts(c.slug).map((sc) => (
+                  {visibleSubcategoriesOf(c.slug).map((sc) => (
                     <li key={sc.slug}>
                       <Link
                         href={`/kategori/${sc.slug}`}

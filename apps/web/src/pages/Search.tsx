@@ -4,7 +4,7 @@ import { Listing } from '@/components/Listing';
 import { EmptyState } from '@/components/EmptyState';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import { allItems, searchItems } from '@/lib/catalog';
-import { categories } from '@/data/categories';
+import { filledCategories } from '@/data/taxonomy';
 
 const SUGGESTIONS = ['PWO+', 'D-vitamin', 'Magnesium', 'Fuktkräm', 'Blåbär', 'Kreatin'];
 
@@ -39,7 +39,7 @@ export default function SearchPage() {
           title={`Vi hittade inget för ”${q}”`}
           actions={
             <>
-              {categories.map((c) => (
+              {filledCategories().map((c) => (
                 <Link key={c.slug} href={`/kategori/${c.slug}`} className="btn btn--secondary btn--sm">
                   {c.name}
                 </Link>

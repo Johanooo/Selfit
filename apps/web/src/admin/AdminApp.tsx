@@ -369,7 +369,7 @@ function Categories({ notify, go, productTypes, categoryFilters, onCategoryFilte
   categoryFilters: CategoryFilterDefinition[];
   onCategoryFiltersChange: (filters: CategoryFilterDefinition[]) => void;
 }) {
-  const [rows, setRows] = useState([{ name: 'Träning', slug: 'traning', count: 42, level: 0 }, { name: 'Pre-workout', slug: 'pre-workout', count: 8, level: 1 }, { name: 'Hälsa', slug: 'halsa', count: 31, level: 0 }, { name: 'Vitaminer', slug: 'vitaminer', count: 12, level: 1 }, { name: 'Skönhet', slug: 'skonhet', count: 24, level: 0 }]);
+  const [rows, setRows] = useState([{ name: 'Sporttillskott', slug: 'sporttillskott', count: 42, level: 0 }, { name: 'Pre-workout', slug: 'pre-workout', count: 8, level: 1 }, { name: 'Vitaminer och mineraler', slug: 'vitaminer-och-mineraler', count: 31, level: 0 }, { name: 'Vitaminer', slug: 'vitaminer', count: 12, level: 1 }, { name: 'Kroppsvård', slug: 'kroppsvard', count: 24, level: 0 }]);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const move = (from: number, to: number) => setRows((current) => {
     if (to < 0 || to >= current.length || from === to) return current;

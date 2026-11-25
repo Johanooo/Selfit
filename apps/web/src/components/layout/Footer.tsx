@@ -1,7 +1,7 @@
 import { Link } from 'wouter';
 import { COMPANY } from '@/data/support';
 import { Logo } from '@/components/Logo';
-import { categories } from '@/data/categories';
+import { visibleCategories } from '@/data/taxonomy';
 import { useCookies } from '@/state/cookies';
 
 export function Footer() {
@@ -25,7 +25,7 @@ export function Footer() {
           <nav aria-labelledby="f-shop">
             <h2 id="f-shop">Sortiment</h2>
             <ul>
-              {categories.map((c) => (
+              {visibleCategories().map((c) => (
                 <li key={c.slug}>
                   <Link href={`/kategori/${c.slug}`}>{c.name}</Link>
                 </li>

@@ -2,7 +2,7 @@
  * Fyller databasen med prototypens exempeldata (apps/web/src/data).
  * Belopp räknas om till öre och lagersaldo läggs in via lagerhistoriken.
  */
-import { brands as webBrands, categories as webCategories, collections as webCollections } from '../../../web/src/data/categories.ts';
+import { brands as webBrands, categories as webCategories, collections as webCollections, getSubcategory } from '../../../web/src/data/categories.ts';
 import { products as webProducts, pwoFlavours } from '../../../web/src/data/products.ts';
 import type { Db } from './client.ts';
 import * as s from './schema.ts';
@@ -19,7 +19,7 @@ const PRODUCT_TYPES: Record<string, string> = {
   'traningsband-set': 'redskap',
 };
 const typeFor = (slug: string, category: string) =>
-  PRODUCT_TYPES[slug] ?? (category === 'skonhet' ? 'kroppsvard' : 'kosttillskott');
+  PRODUCT_TYPES[slug] ?? (category === 'kroppsvard' ? 'kroppsvard' : 'kosttillskott');
 
 export async function seed(db: Db) {
   await db.transaction(async (tx) => {
@@ -85,6 +85,10 @@ export async function seed(db: Db) {
         popularity: p.popularity,
       });
       await tx.insert(s.productCategories).values({ familyId, categoryId: `cat_${p.category}`, isPrimary: true });
+      const extraCats = [...new Set((p.alsoIn ?? []).map((sc) => getSubcategory(sc)?.parent).filter((c): c is string => !!c && c !== p.category))];
+      if (extraCats.length) {
+        await tx.insert(s.productCategories).values(extraCats.map((c) => ({ familyId, categoryId: `cat_${c}`, isPrimary: false })));
+      }
       if (p.collections.length) {
         await tx.insert(s.productCollections).values(p.collections.map((c) => ({ familyId, collectionId: `col_${c}` })));
       }

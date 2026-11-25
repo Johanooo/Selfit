@@ -30,7 +30,7 @@ describe('katalog', () => {
   it('hittar PWO+ via sök på smak och via kategori', async () => {
     const bySearch = await get(`/products?q=${encodeURIComponent('Blåbär')}`);
     expect(bySearch.body.map((p: any) => p.slug)).toContain('pwo-plus');
-    const byCategory = await get('/products?category=traning');
+    const byCategory = await get('/products?category=drycker');
     expect(byCategory.body.map((p: any) => p.slug)).toContain('pwo-plus');
     expect(byCategory.body.every((p: any) => p.slug !== 'handkram')).toBe(true);
   });

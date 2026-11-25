@@ -4,6 +4,9 @@ import { Listing } from '@/components/Listing';
 import { ProductImage } from '@/components/art/ProductImage';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import { getBrand, getCategory, getCollection, getSubcategory, subcategoriesOf } from '@/data/categories';
+import { productsIn } from '@/data/taxonomy';
+import { EmptyState } from '@/components/EmptyState';
+import { PackageOpen } from 'lucide-react';
 import { products } from '@/data/products';
 import { toItems } from '@/lib/catalog';
 import { lowestPrice30Days } from '@/lib/price-history';
@@ -13,7 +16,7 @@ import NotFound from './not-found';
 /** Bildrutor för underkategorierna, som på Apotea. */
 function SubcategoryTiles({ parent, tone }: { parent: string; tone: Tone }) {
   const subs = subcategoriesOf(parent)
-    .map((sc) => ({ sc, list: products.filter((p) => p.subcategory === sc.slug).sort((a, b) => b.popularity - a.popularity) }))
+    .map((sc) => ({ sc, list: productsIn(sc.slug).sort((a, b) => b.popularity - a.popularity) }))
     .filter((x) => x.list.length > 0);
   if (!subs.length) return null;
   return (
@@ -42,7 +45,24 @@ function SubcategoryTiles({ parent, tone }: { parent: string; tone: Tone }) {
   );
 }
 
-/** Kategorisida för både huvudkategorier (/kategori/traning) och underkategorier (/kategori/pre-workout). */
+/** Visas när en kategori ännu inte har några produkter. */
+function ComingSoon({ name }: { name: string }) {
+  return (
+    <EmptyState
+      icon={<PackageOpen size={28} />}
+      title={`${name} kommer snart`}
+      actions={
+        <Link href="/kollektion/nyheter" className="btn btn--primary">
+          Se nyheter
+        </Link>
+      }
+    >
+      Vi håller på att fylla på sortimentet här. Titta gärna in igen snart.
+    </EmptyState>
+  );
+}
+
+/** Kategorisida för både huvudkategorier (/kategori/kosttillskott) och underkategorier (/kategori/pre-workout). */
 export function CategoryPage() {
   const { slug } = useParams<{ slug: string }>();
   const c = getCategory(slug);
@@ -61,7 +81,8 @@ export function CategoryPage() {
         tone={c.tone}
         crumbs={[{ label: c.name }]}
         before={<SubcategoryTiles parent={c.slug} tone={c.tone} />}
-        items={toItems(products.filter((p) => p.category === c.slug))}
+        items={toItems(productsIn(c.slug))}
+        emptyBase={<ComingSoon name={c.name} />}
       />
     );
   }
@@ -73,7 +94,8 @@ export function CategoryPage() {
         intro={sub.intro}
         tone={parent.tone}
         crumbs={[{ label: parent.name, href: `/kategori/${parent.slug}` }, { label: sub.name }]}
-        items={toItems(products.filter((p) => p.subcategory === sub.slug))}
+        items={toItems(productsIn(sub.slug))}
+        emptyBase={<ComingSoon name={sub.name} />}
       />
     );
   }
