@@ -1,6 +1,7 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useMemo, useRef, type ReactNode } from 'react';
 import { useLocation, useSearch } from 'wouter';
-import { ChevronLeft, ChevronRight, SlidersHorizontal, X, SearchX } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, SearchX } from 'lucide-react';
+import { FilterDropdown } from '@/components/FilterDropdown';
 import { Breadcrumbs, type Crumb } from '@/components/Breadcrumbs';
 import { ProductCard } from '@/components/ProductCard';
 import { EmptyState } from '@/components/EmptyState';
@@ -39,7 +40,6 @@ export function Listing({ eyebrow, title, intro, tone, crumbs, items, emptyBase,
   const [location, navigate] = useLocation();
   const search = useSearch();
   const params = useMemo(() => new URLSearchParams(search), [search]);
-  const [panelOpen, setPanelOpen] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
 
   const filters: Filters = {
@@ -113,89 +113,66 @@ export function Listing({ eyebrow, title, intro, tone, crumbs, items, emptyBase,
         emptyBase
       ) : (
         <div className="listing-layout">
-          <aside className="filters" aria-label="Filtrera produkter">
-            <button
-              type="button"
-              className="btn btn--secondary filters-toggle"
-              aria-expanded={panelOpen}
-              aria-controls="filters-panel"
-              onClick={() => setPanelOpen((o) => !o)}
-              data-testid="button-toggle-filters"
-            >
-              <SlidersHorizontal size={18} aria-hidden="true" />
-              {panelOpen ? 'Dölj filter' : 'Visa filter'}
-              {activeCount > 0 && ` (${activeCount})`}
-            </button>
-            <div id="filters-panel" className="filters-panel" data-open={panelOpen}>
-              {packFacet.length > 0 && (
-                <fieldset className="filter-group">
-                  <legend>Förpackning</legend>
-                  {packFacet.map((p) => (
-                    <label className="check" key={p}>
-                      <input
-                        type="checkbox"
-                        checked={filters.packs.includes(p)}
-                        onChange={() => toggle('pack', String(p))}
-                        data-testid={`checkbox-pack-${p}`}
-                      />
-                      {packLabel(p)}
-                      <span className="check-count">{countWith({ packs: [p] })}</span>
-                    </label>
-                  ))}
-                </fieldset>
-              )}
-              {flavourFacet.length > 0 && (
-                <fieldset className="filter-group">
-                  <legend>Smak</legend>
-                  {flavourFacet.map((f) => (
-                    <label className="check" key={f.slug}>
-                      <input
-                        type="checkbox"
-                        checked={filters.flavours.includes(f.slug)}
-                        onChange={() => toggle('smak', f.slug)}
-                        data-testid={`checkbox-flavour-${f.slug}`}
-                      />
-                      <span className="swatch" style={{ background: `var(--flavour-${f.slug})` }} aria-hidden="true" />
-                      {f.name}
-                      <span className="check-count">{countWith({ flavours: [f.slug] })}</span>
-                    </label>
-                  ))}
-                </fieldset>
-              )}
-              <fieldset className="filter-group">
-                <legend>Pris</legend>
-                {PRICE_BUCKETS.map((b) => (
-                  <label className="check" key={b.id}>
-                    <input
-                      type="checkbox"
-                      checked={filters.prices.includes(b.id)}
-                      onChange={() => toggle('pris', b.id)}
-                      data-testid={`checkbox-price-${b.id}`}
-                    />
-                    {b.label}
-                    <span className="check-count">{items.filter((i) => b.test(displayVariant(i).price)).length}</span>
-                  </label>
-                ))}
-              </fieldset>
-              {activeCount > 0 && (
-                <button type="button" className="btn btn--ghost btn--sm" onClick={resetAll} data-testid="button-reset-filters-side">
-                  Rensa alla filter
-                </button>
-              )}
-            </div>
-          </aside>
-
           <div ref={resultsRef} tabIndex={-1} role="region" aria-label="Produkter">
-            <div className="listing-toolbar">
-              <p aria-live="polite" data-testid="text-result-count">
-                <strong>{filtered.length}</strong> {filtered.length === 1 ? 'produkt' : 'produkter'}
-                {filtered.length > PAGE_SIZE && (
-                  <span className="muted">
-                    {' '}
-                    · visar {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)}
-                  </span>
+            <div className="filter-bar">
+              <div className="filter-buttons" role="group" aria-label="Filtrera produkter">
+                {packFacet.length > 0 && (
+                  <FilterDropdown label="Förpackning" count={filters.packs.length} testId="button-filter-pack">
+                    <fieldset className="filter-group">
+                      <legend className="sr-only">Förpackning</legend>
+                      {packFacet.map((p) => (
+                        <label className="check" key={p}>
+                          <input
+                            type="checkbox"
+                            checked={filters.packs.includes(p)}
+                            onChange={() => toggle('pack', String(p))}
+                            data-testid={`checkbox-pack-${p}`}
+                          />
+                          {packLabel(p)}
+                          <span className="check-count">{countWith({ packs: [p] })}</span>
+                        </label>
+                      ))}
+                    </fieldset>
+                  </FilterDropdown>
                 )}
-              </p>
+                {flavourFacet.length > 0 && (
+                  <FilterDropdown label="Smak" count={filters.flavours.length} testId="button-filter-flavour">
+                    <fieldset className="filter-group">
+                      <legend className="sr-only">Smak</legend>
+                      {flavourFacet.map((f) => (
+                        <label className="check" key={f.slug}>
+                          <input
+                            type="checkbox"
+                            checked={filters.flavours.includes(f.slug)}
+                            onChange={() => toggle('smak', f.slug)}
+                            data-testid={`checkbox-flavour-${f.slug}`}
+                          />
+                          <span className="swatch" style={{ background: `var(--flavour-${f.slug})` }} aria-hidden="true" />
+                          {f.name}
+                          <span className="check-count">{countWith({ flavours: [f.slug] })}</span>
+                        </label>
+                      ))}
+                    </fieldset>
+                  </FilterDropdown>
+                )}
+                <FilterDropdown label="Pris" count={filters.prices.length} testId="button-filter-price">
+                  <fieldset className="filter-group">
+                    <legend className="sr-only">Pris</legend>
+                    {PRICE_BUCKETS.map((b) => (
+                      <label className="check" key={b.id}>
+                        <input
+                          type="checkbox"
+                          checked={filters.prices.includes(b.id)}
+                          onChange={() => toggle('pris', b.id)}
+                          data-testid={`checkbox-price-${b.id}`}
+                        />
+                        {b.label}
+                        <span className="check-count">{items.filter((i) => b.test(displayVariant(i).price)).length}</span>
+                      </label>
+                    ))}
+                  </fieldset>
+                </FilterDropdown>
+              </div>
               <div className="select-wrap">
                 <label htmlFor="sort">Sortera</label>
                 <select
@@ -212,6 +189,23 @@ export function Listing({ eyebrow, title, intro, tone, crumbs, items, emptyBase,
                   ))}
                 </select>
               </div>
+            </div>
+
+            <div className="listing-toolbar">
+              <p aria-live="polite" data-testid="text-result-count">
+                <strong>{filtered.length}</strong> {filtered.length === 1 ? 'produkt' : 'produkter'}
+                {filtered.length > PAGE_SIZE && (
+                  <span className="muted">
+                    {' '}
+                    · visar {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)}
+                  </span>
+                )}
+              </p>
+              {activeCount > 0 && (
+                <button type="button" className="btn btn--ghost btn--sm" onClick={resetAll} data-testid="button-reset-filters-side">
+                  Rensa alla filter
+                </button>
+              )}
             </div>
 
             {pills.length > 0 && (
