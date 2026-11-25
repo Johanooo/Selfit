@@ -730,9 +730,41 @@ function demoHistory(v: Variant): { price: number; history: PricePoint[] } {
   return { price: sale ? sale.price : base, history };
 }
 
+// ---------- Klassificering och underkategori ----------
+// Klassificeringen ska verifieras mot varje produkts etikett före lansering.
+const META: Record<string, Pick<Product, 'kind' | 'subcategory' | 'warnings'>> = {
+  'pwo-plus': {
+    kind: 'dryck',
+    subcategory: 'pre-workout',
+    warnings: ['Hög koffeinhalt (300 mg per burk). Rekommenderas inte för barn eller gravida eller ammande kvinnor.'],
+  },
+  'kreatin-monohydrat': { kind: 'kosttillskott', subcategory: 'kreatin-och-prestation' },
+  'elektrolyt-brus': { kind: 'kosttillskott', subcategory: 'kreatin-och-prestation' },
+  'protein-pannkakor': { kind: 'livsmedel', subcategory: 'proteinprodukter' },
+  'proteinbar-kakao': { kind: 'livsmedel', subcategory: 'proteinprodukter' },
+  'shaker-600': { kind: 'redskap', subcategory: 'traningstillbehor' },
+  'traningsband-set': { kind: 'redskap', subcategory: 'traningstillbehor' },
+  'd-vitamin-50': { kind: 'kosttillskott', subcategory: 'vitaminer' },
+  multivitamin: { kind: 'kosttillskott', subcategory: 'vitaminer' },
+  'c-vitamin-brus': { kind: 'kosttillskott', subcategory: 'vitaminer' },
+  'magnesium-kvall': { kind: 'kosttillskott', subcategory: 'mineraler' },
+  'jarn-c': { kind: 'kosttillskott', subcategory: 'mineraler' },
+  'zink-15': { kind: 'kosttillskott', subcategory: 'mineraler' },
+  'omega-3': { kind: 'kosttillskott', subcategory: 'omega-3' },
+  probiotika: { kind: 'kosttillskott', subcategory: 'mage-och-tarm' },
+  'fuktkram-ansikte': { kind: 'kroppsvard', subcategory: 'ansiktsvard' },
+  ansiktsrengoring: { kind: 'kroppsvard', subcategory: 'ansiktsvard' },
+  'solskydd-50': { kind: 'kroppsvard', subcategory: 'sol-och-lappar' },
+  laeppbalsam: { kind: 'kroppsvard', subcategory: 'sol-och-lappar' },
+  handkram: { kind: 'kroppsvard', subcategory: 'kroppsvard' },
+  'duschkram-havre': { kind: 'kroppsvard', subcategory: 'kroppsvard' },
+  'deo-roll-on': { kind: 'kroppsvard', subcategory: 'kroppsvard' },
+};
+
 const withHistory = (list: Product[]): Product[] =>
   list.map((p) => ({
     ...p,
+    ...META[p.slug],
     variants: p.variants.map((v) => {
       const { price, history } = demoHistory(v);
       return { ...v, price, priceHistory: history };

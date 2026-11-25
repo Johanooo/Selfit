@@ -22,6 +22,8 @@ export function ProductCard({ item, filters, index = 0 }: { item: ListingItem; f
   const title = flavour ? `${product.name} ${flavour.name}` : product.name;
   const cmp = comparison(v);
   const low30 = lowestPrice30Days(v.priceHistory);
+  // En annan förpackning än den som visas kan vara på kampanj.
+  const otherSale = low30 === null ? item.variants.find((x) => isBuyable(x) && lowestPrice30Days(x.priceHistory) !== null) : undefined;
   const testId = item.key;
 
   useEffect(() => {
@@ -38,6 +40,8 @@ export function ProductCard({ item, filters, index = 0 }: { item: ListingItem; f
           {product.primaryImage && <span className="badge badge--new">Exempelbild</span>}
           {allOut ? (
             <span className="badge badge--out">Slutsåld</span>
+          ) : low30 !== null || otherSale ? (
+            <span className="badge badge--sale">Kampanj</span>
           ) : product.isNew ? (
             <span className="badge badge--new">Nyhet</span>
           ) : low ? (
@@ -77,6 +81,11 @@ export function ProductCard({ item, filters, index = 0 }: { item: ListingItem; f
               {low30 !== null && <span className="price-was">{kr(low30)}</span>}
             </p>
             {low30 !== null && <p className="price-compare">Lägsta pris 30 dagar: {kr(low30)}</p>}
+            {otherSale && (
+              <p className="price-compare price-compare--sale">
+                Kampanj: {otherSale.pack ? packLabel(otherSale.pack) : 'utvald variant'} {kr(otherSale.price)}
+              </p>
+            )}
             {cmp && <p className="price-compare">Jämförpris {cmp}</p>}
             {depositTotal(v) > 0 && <p className="price-compare">+ pant {kr(depositTotal(v))}</p>}
           </div>

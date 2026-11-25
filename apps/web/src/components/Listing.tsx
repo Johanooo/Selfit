@@ -31,9 +31,11 @@ export interface ListingProps {
   items: ListingItem[];
   /** Rendered when `items` is empty before filtering (e.g. no search hits). */
   emptyBase?: ReactNode;
+  /** Innehåll mellan introt och produkterna, t.ex. underkategorier. */
+  before?: ReactNode;
 }
 
-export function Listing({ eyebrow, title, intro, tone, crumbs, items, emptyBase }: ListingProps) {
+export function Listing({ eyebrow, title, intro, tone, crumbs, items, emptyBase, before }: ListingProps) {
   const [location, navigate] = useLocation();
   const search = useSearch();
   const params = useMemo(() => new URLSearchParams(search), [search]);
@@ -104,6 +106,8 @@ export function Listing({ eyebrow, title, intro, tone, crumbs, items, emptyBase 
           {intro && <div className="lead">{intro}</div>}
         </div>
       </header>
+
+      {before}
 
       {items.length === 0 && emptyBase ? (
         emptyBase

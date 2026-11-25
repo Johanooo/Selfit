@@ -3,6 +3,7 @@ import { Link, useLocation, useSearch } from 'wouter';
 import { Menu, Search, ShoppingBag, Truck, ShieldCheck, Clock, LifeBuoy } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { MobileMenu } from './MobileMenu';
+import { SearchSuggest } from './SearchSuggest';
 import { useCart } from '@/state/cart';
 
 export function Header({ desktopMenuButton = false }: { desktopMenuButton?: boolean }) {
@@ -11,16 +12,33 @@ export function Header({ desktopMenuButton = false }: { desktopMenuButton?: bool
   const { count, ready } = useCart();
   const searchInput = useRef<HTMLInputElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Stäng förslagen vid sidbyte och vid klick utanför.
+  useEffect(() => setSuggestOpen(false), [location]);
+  useEffect(() => {
+    if (!suggestOpen) return;
+    const close = (e: PointerEvent) => {
+      if (!formRef.current?.contains(e.target as Node)) setSuggestOpen(false);
+    };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, [suggestOpen]);
 
   useEffect(() => {
     if (location === '/sok' && searchInput.current) {
-      searchInput.current.value = new URLSearchParams(search).get('q') ?? '';
+      const q = new URLSearchParams(search).get('q') ?? '';
+      searchInput.current.value = q;
+      setQuery(q);
     }
   }, [location, search]);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const term = searchInput.current?.value.trim() ?? '';
+    setSuggestOpen(false);
     navigate(term ? `/sok?q=${encodeURIComponent(term)}` : '/sok');
   };
 
@@ -57,7 +75,7 @@ export function Header({ desktopMenuButton = false }: { desktopMenuButton?: bool
           <div className="header-logo">
             <Logo />
           </div>
-          <form role="search" className="header-search search-field" onSubmit={submit} action="/sok">
+          <form ref={formRef} role="search" className="header-search search-field" onSubmit={submit} action="/sok">
             <label htmlFor="site-search" className="sr-only">
               Sök produkter
             </label>
@@ -70,11 +88,39 @@ export function Header({ desktopMenuButton = false }: { desktopMenuButton?: bool
               defaultValue=""
               placeholder="Sök bland vitaminer, hudvård, PWO+ …"
               autoComplete="off"
+              aria-controls="search-suggest"
+              aria-expanded={suggestOpen && query.trim().length >= 2}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setSuggestOpen(true);
+              }}
+              onFocus={() => setSuggestOpen(true)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setSuggestOpen(false);
+                if (e.key === 'ArrowDown') {
+                  const first = document.querySelector<HTMLElement>('#search-suggest a, #search-suggest button');
+                  if (first) {
+                    e.preventDefault();
+                    first.focus();
+                  }
+                }
+              }}
               data-testid="input-search"
             />
             <button type="submit" className="btn btn--primary btn--sm" data-testid="button-search">
               Sök
             </button>
+            {suggestOpen && (
+              <SearchSuggest
+                id="search-suggest"
+                query={query}
+                onPick={() => setSuggestOpen(false)}
+                onEscape={() => {
+                  setSuggestOpen(false);
+                  searchInput.current?.focus();
+                }}
+              />
+            )}
           </form>
           <div className="header-actions">
             <Link href="/support" className="header-link" data-testid="link-header-support">

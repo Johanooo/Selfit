@@ -1,8 +1,10 @@
 import { Link } from 'wouter';
 import { ArrowRight, Truck, Clock, ShieldCheck, MessageCircle, PackageSearch, RotateCcw, HelpCircle } from 'lucide-react';
 import { usePageMeta } from '@/hooks/use-page-meta';
-import { categories } from '@/data/categories';
-import { pwoFlavours } from '@/data/products';
+import { categories, subcategoriesOf } from '@/data/categories';
+import { products, pwoFlavours } from '@/data/products';
+import { comparison, kr } from '@/lib/format';
+import { lowestPrice30Days } from '@/lib/price-history';
 import { PwoCan } from '@/components/art/PwoCan';
 import { ProductCard } from '@/components/ProductCard';
 import { allItems, sortItems } from '@/lib/catalog';
@@ -17,11 +19,15 @@ export default function Home() {
   );
 
   const items = sortItems(allItems(), 'popularitet', EMPTY);
+  const onSale = items.filter((i) => i.variants.some((v) => lowestPrice30Days(v.priceHistory) !== null)).slice(0, 4);
   const featured = [
     ...items.filter((i) => i.product.slug === 'pwo-plus').slice(0, 2),
     ...items.filter((i) => i.product.slug === 'protein-pannkakor').slice(0, 2),
-    ...items.filter((i) => !['pwo-plus', 'protein-pannkakor'].includes(i.product.slug)).slice(0, 6),
+    ...items.filter((i) => !['pwo-plus', 'protein-pannkakor'].includes(i.product.slug)).slice(0, 4),
   ];
+  // Produkten i bildens pratbubbla: pris och jämförpris hämtas från datan.
+  const badgeVariant = products.find((p) => p.slug === 'pwo-plus')?.variants.find((v) => v.id === 'pwo-plus-blueberry-12');
+  const badgeCmp = badgeVariant ? comparison(badgeVariant) : null;
 
   return (
     <>
@@ -44,20 +50,6 @@ export default function Home() {
                 Handla hälsa
               </Link>
             </div>
-            <dl className="hero-stats">
-              <div>
-                <dt>Leverans</dt>
-                <dd>1–2 vardagar</dd>
-              </div>
-              <div>
-                <dt>Fri frakt från</dt>
-                <dd>499 kr</dd>
-              </div>
-              <div>
-                <dt>Öppet köp</dt>
-                <dd>30 dagar</dd>
-              </div>
-            </dl>
           </div>
           <div className="hero-media">
             <img
@@ -70,7 +62,10 @@ export default function Home() {
               <span className="small">
                 <strong>PWO+ Blåbär, 12-pack</strong>
                 <br />
-                <span className="muted">279 kr · Jämförpris 70 kr/l</span>
+                <span className="muted">
+                  {badgeVariant ? kr(badgeVariant.price) : ''}
+                  {badgeCmp ? ` · Jämförpris ${badgeCmp}` : ''}
+                </span>
               </span>
             </Link>
           </div>
@@ -118,12 +113,37 @@ export default function Home() {
         </ul>
       </div>
 
+      {onSale.length > 0 && (
+        <section className="section--tight" aria-labelledby="sale-title">
+          <div className="container">
+            <div className="section-head">
+              <div className="stack-2">
+                <p className="eyebrow">Sänkt pris</p>
+                <h2 id="sale-title" className="h2">
+                  Kampanjer just nu
+                </h2>
+              </div>
+              <Link href="/kollektion/kampanjer" className="arrow-link">
+                Alla kampanjer <ArrowRight size={18} aria-hidden="true" />
+              </Link>
+            </div>
+            <ul className="product-grid product-grid--4">
+              {onSale.map((item, i) => (
+                <li key={item.key}>
+                  <ProductCard item={item} index={i} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+
       <section className="section" aria-labelledby="cat-title">
         <div className="container">
           <div className="section-head">
             <div className="stack-2">
               <p className="eyebrow">Sortiment</p>
-              <h2 id="cat-title" className="h1">
+              <h2 id="cat-title" className="h2">
                 Tre områden. Ett ställe.
               </h2>
             </div>
@@ -142,6 +162,24 @@ export default function Home() {
               </Link>
             ))}
           </div>
+          <div className="cat-quicklinks">
+            {categories.map((c) => (
+              <div key={c.slug} className="cat-quicklinks-group">
+                <h3 className="sr-only">{c.name}</h3>
+                <ul aria-label={`Underkategorier i ${c.name}`}>
+                  {subcategoriesOf(c.slug)
+                    .filter((sc) => products.some((p) => p.subcategory === sc.slug))
+                    .map((sc) => (
+                      <li key={sc.slug}>
+                        <Link href={`/kategori/${sc.slug}`} className="chip">
+                          {sc.name}
+                        </Link>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -150,7 +188,7 @@ export default function Home() {
           <div className="pwo-band">
             <div className="stack-5">
               <p className="eyebrow">Vårt första egna</p>
-              <h2 id="pwo-title" className="h1">
+              <h2 id="pwo-title" className="h2">
                 PWO+. Pre-workout du bara öppnar.
               </h2>
               <p className="lead">
@@ -186,7 +224,7 @@ export default function Home() {
           <div className="section-head">
             <div className="stack-2">
               <p className="eyebrow">Populärt just nu</p>
-              <h2 id="featured-title" className="h1">
+              <h2 id="featured-title" className="h2">
                 Det andra lägger i korgen
               </h2>
             </div>
@@ -209,7 +247,7 @@ export default function Home() {
           <div className="section-head">
             <div className="stack-2">
               <p className="eyebrow">Så väljer vi</p>
-              <h2 id="how-title" className="h1">
+              <h2 id="how-title" className="h2">
                 Färre produkter. Bättre förklarade.
               </h2>
             </div>
@@ -239,13 +277,13 @@ export default function Home() {
 
       <section className="section" aria-labelledby="help-title">
         <div className="container">
-          <h2 id="help-title" className="h1" style={{ marginBottom: 'var(--space-6)' }}>
+          <h2 id="help-title" className="h2" style={{ marginBottom: 'var(--space-6)' }}>
             Hjälp när du behöver den
           </h2>
           <div className="help-grid">
             <Link href="/support" className="help-card tone-lavender" data-testid="link-help-support">
               <HelpCircle size={24} aria-hidden="true" />
-              <h3 className="h2">Kundservice</h3>
+              <h3 className="h3">Kundservice</h3>
               <p className="muted">Frakt, betalning, pant och allt om PWO+. Svar på det vanligaste direkt.</p>
               <span className="arrow-link">
                 Till kundservice <ArrowRight size={18} aria-hidden="true" />

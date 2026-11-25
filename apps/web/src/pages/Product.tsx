@@ -6,7 +6,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { QuantityStepper } from '@/components/QuantityStepper';
 import { ProductImage, galleryViews, type ImageView } from '@/components/art/ProductImage';
 import { usePageMeta } from '@/hooks/use-page-meta';
-import { getCategory } from '@/data/categories';
+import { getCategory, getSubcategory } from '@/data/categories';
 import { getFlavour, getProduct, pwoFlavours, CAN_ML } from '@/data/products';
 import type { Product, Variant } from '@/data/types';
 import { itemsForSlugs } from '@/lib/catalog';
@@ -15,6 +15,10 @@ import { lowestPrice30Days } from '@/lib/price-history';
 import { PriceHistory } from '@/components/PriceHistory';
 import { useCart } from '@/state/cart';
 import NotFound from './not-found';
+
+/** Obligatorisk text för kosttillskott (LIVSFS 2003:9). */
+const SUPPLEMENT_WARNING =
+  'Detta är ett kosttillskott. Rekommenderad daglig dos bör inte överskridas. Kosttillskott bör inte användas som ersättning för en varierad kost och en hälsosam livsstil. Förvaras utom räckhåll för små barn.';
 
 export default function ProductPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -162,6 +166,11 @@ function ProductView({ product }: { product: Product }) {
   };
 
   const st = stockState(variant);
+  const sub = getSubcategory(product.subcategory);
+  const warningTexts = [
+    ...(product.kind === 'kosttillskott' ? [SUPPLEMENT_WARNING] : []),
+    ...(product.warnings ?? []),
+  ];
   const related = itemsForSlugs(product.related.length ? product.related : []);
   const pairs = itemsForSlugs(product.pairsWith);
 
@@ -170,6 +179,7 @@ function ProductView({ product }: { product: Product }) {
       <Breadcrumbs
         items={[
           ...(category ? [{ label: category.name, href: `/kategori/${category.slug}` }] : []),
+          ...(sub ? [{ label: sub.name, href: `/kategori/${sub.slug}` }] : []),
           { label: title },
         ]}
       />
@@ -357,6 +367,17 @@ function ProductView({ product }: { product: Product }) {
               </li>
             </ul>
           </section>
+
+          {warningTexts.length > 0 && (
+            <aside className="label-warning" aria-label="Viktig information" data-testid="text-product-warning">
+              <AlertTriangle size={18} aria-hidden="true" />
+              <div>
+                {warningTexts.map((w) => (
+                  <p key={w}>{w}</p>
+                ))}
+              </div>
+            </aside>
+          )}
 
           <div className="details-list">
             <details className="details-item" open>

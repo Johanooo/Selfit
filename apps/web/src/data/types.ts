@@ -11,6 +11,17 @@ export interface Category {
   imageAlt: string;
 }
 
+/** Underkategori, t.ex. "Pre-workout" under Träning. */
+export interface Subcategory {
+  slug: string;
+  name: string;
+  parent: CategorySlug;
+  intro: string;
+}
+
+/** Produktens klassificering styr t.ex. vilka obligatoriska texter som visas. */
+export type ProductKind = 'dryck' | 'livsmedel' | 'kosttillskott' | 'kroppsvard' | 'redskap';
+
 export interface Flavour {
   slug: string;
   name: string;
@@ -60,6 +71,10 @@ export interface Product {
   brand: string;
   brandSlug: string;
   category: CategorySlug;
+  subcategory?: string;
+  kind?: ProductKind;
+  /** Produktspecifika varningstexter från etiketten. */
+  warnings?: string[];
   collections: string[];
   tagline: string;
   description: string[];

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { ChevronDown } from 'lucide-react';
-import { categories } from '@/data/categories';
+import { categories, getSubcategory, subcategoriesOf } from '@/data/categories';
 import { products } from '@/data/products';
 
 /** Snabblänkar överst i menyn. */
@@ -9,6 +9,7 @@ export const POPULAR = [
   { href: '/kollektion/pwo-plus', label: 'PWO+' },
   { href: '/kollektion/nyheter', label: 'Nyheter' },
   { href: '/kollektion/bastsaljare', label: 'Bästsäljare' },
+  { href: '/kollektion/kampanjer', label: 'Kampanjer' },
 ];
 
 export const HELP = [
@@ -17,8 +18,17 @@ export const HELP = [
   { href: '/support', label: 'Kundservice' },
 ];
 
-const productsIn = (slug: string) =>
-  products.filter((p) => p.category === slug).sort((a, b) => b.popularity - a.popularity);
+/** Vilken huvudkategori en adress hör till (kategori, underkategori eller produkt). */
+function categoryForPath(path: string): string | undefined {
+  const cat = path.match(/^\/kategori\/([^/?]+)/)?.[1];
+  if (cat) return getSubcategory(cat)?.parent ?? cat;
+  const prod = path.match(/^\/produkt\/([^/?]+)/)?.[1];
+  if (prod) return products.find((p) => p.slug === prod)?.category;
+  return undefined;
+}
+
+const subsWithProducts = (parent: string) =>
+  subcategoriesOf(parent).filter((sc) => products.some((p) => p.subcategory === sc.slug));
 
 /**
  * Butikens meny: populära länkar, kategorier som kan fällas ut och hjälplänkar.
@@ -26,9 +36,10 @@ const productsIn = (slug: string) =>
  */
 export function CategoryMenu({ idPrefix }: { idPrefix: string }) {
   const [location] = useLocation();
-  const activeCategory = categories.find(
-    (c) => location === `/kategori/${c.slug}` || productsIn(c.slug).some((p) => location === `/produkt/${p.slug}`),
-  )?.slug;
+  const activeCategory = categoryForPath(location);
+  const activeSub =
+    getSubcategory(location.match(/^\/kategori\/([^/?]+)/)?.[1])?.slug ??
+    products.find((p) => location === `/produkt/${p.slug}`)?.subcategory;
   const [open, setOpen] = useState<string | null>(activeCategory ?? null);
 
   useEffect(() => {
@@ -67,7 +78,7 @@ export function CategoryMenu({ idPrefix }: { idPrefix: string }) {
                   className="cat-menu-toggle"
                   aria-expanded={isOpen}
                   aria-controls={panelId}
-                  aria-label={`${isOpen ? 'Dölj' : 'Visa'} produkter i ${c.name}`}
+                  aria-label={`${isOpen ? 'Dölj' : 'Visa'} underkategorier i ${c.name}`}
                   onClick={() => setOpen(isOpen ? null : c.slug)}
                   data-testid={`${idPrefix}-toggle-${c.slug}`}
                 >
@@ -76,10 +87,14 @@ export function CategoryMenu({ idPrefix }: { idPrefix: string }) {
               </div>
               {isOpen && (
                 <ul id={panelId} className="cat-menu-sub">
-                  {productsIn(c.slug).map((p) => (
-                    <li key={p.slug}>
-                      <Link href={`/produkt/${p.slug}`} aria-current={current(`/produkt/${p.slug}`)}>
-                        {p.name}
+                  {subsWithProducts(c.slug).map((sc) => (
+                    <li key={sc.slug}>
+                      <Link
+                        href={`/kategori/${sc.slug}`}
+                        aria-current={activeSub === sc.slug ? 'page' : undefined}
+                        data-testid={`${idPrefix}-link-${sc.slug}`}
+                      >
+                        {sc.name}
                       </Link>
                     </li>
                   ))}
