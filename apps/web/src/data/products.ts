@@ -11,13 +11,62 @@ export const CAN_ML = 330;
 export const DEPOSIT_PER_CAN = 1;
 
 export const pwoFlavours: Flavour[] = [
-  { slug: 'blueberry', name: 'Blåbär', note: 'Söt och fyllig blåbärssmak' },
-  { slug: 'strawberry', name: 'Jordgubb', note: 'Frisk smak av jordgubb' },
-  { slug: 'berry-fusion', name: 'Bärmix', note: 'En blandning av blåbär och hallon' },
-  { slug: 'mango-passion', name: 'Mango & passionsfrukt', note: 'Fruktig mango med passionsfrukt' },
-  { slug: 'green-apple', name: 'Grönt äpple', note: 'Frisk smak av grönt äpple' },
-  { slug: 'black-edition', name: 'Black Edition', note: 'SELFITs Black Edition-smak' },
+  { slug: 'blueberry', name: 'Blåbär', note: 'Söt och fyllig blåbärssmak', aroma: 'naturlig blåbärsarom, arom', acid: 'citronsyra' },
+  { slug: 'strawberry', name: 'Jordgubb', note: 'Frisk och söt jordgubbssmak', aroma: 'naturlig jordgubbsarom, arom', acid: 'citronsyra' },
+  { slug: 'berry-fusion', name: 'Bärmix', note: 'Blåbär och hallon', aroma: 'naturliga aromer (blåbär, hallon), arom', acid: 'citronsyra, äppelsyra' },
+  { slug: 'mango-passion', name: 'Mango & passionsfrukt', note: 'Tropisk mango med syrlig passionsfrukt', aroma: 'naturliga aromer (mango, passionsfrukt), arom', acid: 'citronsyra' },
+  { slug: 'green-apple', name: 'Grönt äpple', note: 'Syrligt och friskt grönt äpple', aroma: 'naturlig äppelarom, arom', acid: 'äppelsyra' },
+  { slug: 'black-edition', name: 'Black Edition', note: 'Svarta vinbär och lime', aroma: 'naturliga aromer (svarta vinbär, lime), arom', acid: 'citronsyra, äppelsyra' },
 ];
+
+/**
+ * Recept per burk (330 ml) – samma aktiva ingredienser i alla smaker.
+ * Preliminärt: slutliga värden och näringsdeklaration kommer från tillverkaren.
+ */
+export const PWO_RECIPE = {
+  caffeineMg: 200,
+  citrullineMg: 5000,
+  betaAlanineMg: 2000,
+  tyrosineMg: 1000,
+  theanineMg: 100,
+  sodiumMg: 200,
+  potassiumMg: 150,
+  magnesiumMg: 94,
+  vitaminCMg: 40,
+  vitaminB6Mg: 0.7,
+  vitaminB12Ug: 1.25,
+} as const;
+
+const R = PWO_RECIPE;
+const nfmt = new Intl.NumberFormat('sv-SE', { maximumFractionDigits: 2 });
+const per100 = (perCan: number) => {
+  const v = (perCan / CAN_ML) * 100;
+  const decimals = v < 1 ? 2 : v < 10 ? 1 : 0;
+  return nfmt.format(Number(v.toFixed(decimals)));
+};
+const mg = (perCan: number, unit = 'mg') => ({ per100: `${per100(perCan)} ${unit}`, perServing: `${nfmt.format(perCan)} ${unit}` });
+/** Andel av referensintaget (RI) per burk. */
+const ri = (perCan: number, refIntake: number) => `${Math.round((perCan / refIntake) * 100)} %`;
+export const PWO_CAFFEINE_PER_100 = Math.round((R.caffeineMg / CAN_ML) * 100);
+export const PWO_CAFFEINE_WARNING = `Hög koffeinhalt. Rekommenderas inte för barn eller gravida eller ammande kvinnor (${PWO_CAFFEINE_PER_100} mg/100 ml).`;
+
+function pwoIngredients(f: Flavour): string {
+  return [
+    'Kolsyrat vatten',
+    'L-citrullin',
+    'beta-alanin',
+    'L-tyrosin',
+    `surhetsreglerande medel (${f.acid ?? 'citronsyra'}, natriumcitrat, kaliumcitrat)`,
+    'magnesiumcitrat',
+    f.aroma ?? 'arom',
+    'koffein',
+    'sötningsmedel (sukralos)',
+    'L-teanin',
+    'vitamin C (L-askorbinsyra)',
+    'vitamin B6 (pyridoxinhydroklorid)',
+    'vitamin B12 (cyanokobalamin)',
+  ].join(', ') + '.';
+}
 
 const PWO_PACKS = [6, 12, 24];
 const PWO_PRICES: Record<number, number> = { 6: 149, 12: 279, 24: 529 };
@@ -55,31 +104,45 @@ const pwo: Product = {
   brandSlug: 'selfit',
   category: 'traning',
   collections: ['pwo-plus', 'nyheter', 'bastsaljare'],
-  tagline: 'Kolsyrad pre-workout med beta-alanin, AAKG och koffein.',
+  tagline: `Lätt kolsyrad pre-workout med ${R.caffeineMg} mg koffein, citrullin och beta-alanin.`,
   description: [
     'PWO+ är vår första egna produkt: en lätt kolsyrad pre-workout-dryck som är färdig att dricka. Ingen shaker, inga pulverklumpar och en dos du vet exakt.',
-    'En burk på 330 ml innehåller 3 500 mg beta-alanin, 3 000 mg AAKG och 300 mg koffein.',
+    `Vi har valt ${R.caffeineMg} mg koffein per burk – lagom stark, i stället för de 300 mg som är vanligt. Varje burk innehåller också ${nfmt.format(R.citrullineMg)} mg L-citrullin, ${nfmt.format(R.betaAlanineMg)} mg beta-alanin, ${nfmt.format(R.tyrosineMg)} mg L-tyrosin och salter. Sockerfri.`,
+    'Vitamin B6, B12 och C bidrar till att minska trötthet och utmattning. Magnesium bidrar till normal muskelfunktion.',
+    'Beta-alanin kan ge en ofarlig, stickande känsla i huden som går över efter en stund.',
   ],
-  usage:
-    'Avsedd att drickas före träning. Burken innehåller 300 mg koffein. Läs alltid förpackningens bruksanvisning och varningstext före användning. Rekommenderas inte för barn, gravida eller ammande.',
-  ingredients:
-    'Se förpackningens fullständiga innehållsförteckning. Produktbilden visar endast utvalda ingredienser och aktiva ämnen.',
+  usage: `Drick 1 burk 20–45 minuter före träning. Drick högst 1 burk per dag och undvik annat koffein samtidigt. Skakas inte. Serveras kall. ${PWO_CAFFEINE_WARNING}`,
+  ingredients: pwoIngredients(pwoFlavours[0]),
+  ingredientsByFlavour: Object.fromEntries(pwoFlavours.map((f) => [f.slug, pwoIngredients(f)])),
   allergens: [],
   nutrition: {
     servingLabel: 'per burk (330 ml)',
     rows: [
       { label: 'Energi', per100: '4 kJ / 1 kcal', perServing: '13 kJ / 3 kcal' },
       { label: 'Fett', per100: '0 g', perServing: '0 g' },
-      { label: 'Beta-alanin', per100: '1 061 mg', perServing: '3 500 mg' },
-      { label: 'AAKG', per100: '909 mg', perServing: '3 000 mg' },
-      { label: 'Koffein', per100: '91 mg', perServing: '300 mg' },
+      { label: 'Kolhydrat', per100: '0 g', perServing: '0 g' },
+      { label: '– varav sockerarter', per100: '0 g', perServing: '0 g' },
+      { label: 'Protein', per100: '0 g', perServing: '0 g' },
+      { label: 'Salt', per100: `${per100(R.sodiumMg * 2.5 / 1000)} g`, perServing: `${nfmt.format(R.sodiumMg * 2.5 / 1000)} g` },
+      { label: 'Kalium', ...mg(R.potassiumMg) },
+      { label: `Magnesium (${ri(R.magnesiumMg, 375)} RI per burk)`, ...mg(R.magnesiumMg) },
+      { label: `Vitamin C (${ri(R.vitaminCMg, 80)} RI per burk)`, ...mg(R.vitaminCMg) },
+      { label: `Vitamin B6 (${ri(R.vitaminB6Mg, 1.4)} RI per burk)`, ...mg(R.vitaminB6Mg) },
+      { label: `Vitamin B12 (${ri(R.vitaminB12Ug, 2.5)} RI per burk)`, ...mg(R.vitaminB12Ug, 'µg') },
+      { label: 'L-citrullin', ...mg(R.citrullineMg) },
+      { label: 'Beta-alanin', ...mg(R.betaAlanineMg) },
+      { label: 'L-tyrosin', ...mg(R.tyrosineMg) },
+      { label: 'L-teanin', ...mg(R.theanineMg) },
+      { label: 'Koffein', ...mg(R.caffeineMg) },
     ],
   },
   facts: [
     { label: 'Volym per burk', value: '330 ml' },
+    { label: 'Koffein', value: `${R.caffeineMg} mg per burk (${PWO_CAFFEINE_PER_100} mg/100 ml)` },
+    { label: 'Socker', value: 'Sockerfri' },
+    { label: 'Kolsyra', value: 'Lätt kolsyrad' },
     { label: 'Pant', value: '1 kr per burk' },
-    { label: 'Hög koffeinhalt', value: 'cirka 91 mg/100 ml' },
-    { label: 'Tillverkad i', value: 'Sverige' },
+    { label: 'Recept', value: 'Preliminärt – slutlig deklaration från tillverkaren' },
   ],
   art: 'can',
   artTone: 'plum',
@@ -736,7 +799,7 @@ const META: Record<string, Pick<Product, 'kind' | 'subcategory' | 'warnings'>> =
   'pwo-plus': {
     kind: 'dryck',
     subcategory: 'pre-workout',
-    warnings: ['Hög koffeinhalt (300 mg per burk). Rekommenderas inte för barn eller gravida eller ammande kvinnor.'],
+    warnings: [PWO_CAFFEINE_WARNING],
   },
   'kreatin-monohydrat': { kind: 'kosttillskott', subcategory: 'kreatin-och-prestation' },
   'elektrolyt-brus': { kind: 'kosttillskott', subcategory: 'kreatin-och-prestation' },

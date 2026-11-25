@@ -2,12 +2,14 @@ import { Link } from 'wouter';
 import { ArrowRight, Truck, Clock, ShieldCheck, MessageCircle, PackageSearch, RotateCcw, HelpCircle } from 'lucide-react';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import { categories, subcategoriesOf } from '@/data/categories';
-import { products, pwoFlavours } from '@/data/products';
+import { products, pwoFlavours, PWO_RECIPE } from '@/data/products';
 import { comparison, kr } from '@/lib/format';
 import { lowestPrice30Days } from '@/lib/price-history';
 import { PwoCan } from '@/components/art/PwoCan';
 import { ProductCard } from '@/components/ProductCard';
 import { allItems, sortItems } from '@/lib/catalog';
+
+const nf = new Intl.NumberFormat('sv-SE');
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 /** Bildbredd i layouten: hela bredden på mobil, en kolumn på dator. Samma värde används i serverns förladdning. */
@@ -198,13 +200,14 @@ export default function Home() {
                 PWO+. Pre-workout du bara öppnar.
               </h2>
               <p className="lead">
-                Färdig att dricka, med 3 500 mg beta-alanin, 3 000 mg AAKG och 300 mg koffein i varje 330 ml-burk.
+                Färdig att dricka, lagom stark med {PWO_RECIPE.caffeineMg} mg koffein, citrullin och beta-alanin i varje 330 ml-burk.
+                Sockerfri och lätt kolsyrad.
                 Sex smaker, från 66 kr/l.
               </p>
               <ul className="pwo-facts" aria-label="Innehåll per burk">
-                <li>300 mg koffein</li>
-                <li>3 500 mg beta-alanin</li>
-                <li>3 000 mg AAKG</li>
+                <li>{PWO_RECIPE.caffeineMg} mg koffein</li>
+                <li>{nf.format(PWO_RECIPE.citrullineMg)} mg citrullin</li>
+                <li>{nf.format(PWO_RECIPE.betaAlanineMg)} mg beta-alanin</li>
                 <li>330 ml per burk</li>
               </ul>
               <Link href="/kollektion/pwo-plus" className="btn btn--on-dark" data-testid="link-pwo-collection">

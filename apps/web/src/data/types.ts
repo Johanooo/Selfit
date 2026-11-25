@@ -26,6 +26,10 @@ export interface Flavour {
   slug: string;
   name: string;
   note: string;
+  /** Aromer i ingrediensförteckningen för just den här smaken. */
+  aroma?: string;
+  /** Surhetsreglerande medel för smaken. */
+  acid?: string;
 }
 
 export type ArtKind = 'can' | 'jar' | 'tube' | 'bottle' | 'box' | 'shaker' | 'band';
@@ -80,6 +84,8 @@ export interface Product {
   description: string[];
   usage: string;
   ingredients: string;
+  /** Ingrediensförteckning per smak (slug → text) när smakerna skiljer sig. */
+  ingredientsByFlavour?: Record<string, string>;
   allergens: string[];
   allergenInfoKnown?: boolean;
   nutrition?: { referenceLabel?: string; servingLabel?: string; rows: NutritionRow[] };

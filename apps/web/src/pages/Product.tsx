@@ -438,7 +438,7 @@ function ProductView({ product }: { product: Product }) {
                 Ingredienser och näringsvärde <Plus size={20} aria-hidden="true" />
               </summary>
               <div className="details-body">
-                <p>{highlightAllergens(product.ingredients, product.allergens)}</p>
+                <p>{highlightAllergens((variant.flavour && product.ingredientsByFlavour?.[variant.flavour]) || product.ingredients, product.allergens)}</p>
                 <p className="small muted">
                   {product.allergens.length
                     ? 'Allergener är markerade med fetstil och understrykning.'
