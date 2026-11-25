@@ -338,7 +338,7 @@ export default function CheckoutPage() {
           </Link>
         </aside>
       </div>
-      <PolicyDialog slug={policy} onClose={() => setPolicy(null)} />
+      <PolicyDialog slug={policy} onClose={() => setPolicy(null)} onNavigate={setPolicy} />
     </div>
   );
 }

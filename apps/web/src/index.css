@@ -3423,3 +3423,14 @@ button.gallery-main:focus-visible .gallery-zoom-hint {
 .lightbox-thumbs .thumb {
   background: var(--c-product-photo);
 }
+
+/* Knapp som ser ut som en textlänk (t.ex. "Cookieinställningar" i löptext) */
+.link-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}

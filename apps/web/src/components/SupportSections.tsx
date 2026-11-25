@@ -1,4 +1,5 @@
 import type { SupportPage } from '@/data/support';
+import { RichText } from './RichText';
 
 /** Brödtexten i en supportsida (används både på supportsidan och i popupen i kassan). */
 export function SupportSections({ page, headingLevel = 2 }: { page: SupportPage; headingLevel?: 2 | 3 }) {
@@ -9,12 +10,16 @@ export function SupportSections({ page, headingLevel = 2 }: { page: SupportPage;
         <section key={s.heading} className="prose-block">
           <H className="h2">{s.heading}</H>
           {s.paragraphs.map((p) => (
-            <p key={p}>{p}</p>
+            <p key={p}>
+              <RichText text={p} />
+            </p>
           ))}
           {s.list && (
             <ul>
               {s.list.map((li) => (
-                <li key={li}>{li}</li>
+                <li key={li}>
+                  <RichText text={li} />
+                </li>
               ))}
             </ul>
           )}

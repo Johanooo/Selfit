@@ -5,6 +5,7 @@ import { usePageMeta } from '@/hooks/use-page-meta';
 import { getSupportPage, supportPages, type Faq } from '@/data/support';
 import NotFound from './not-found';
 import { SupportSections } from '@/components/SupportSections';
+import { RichText } from '@/components/RichText';
 
 function FaqList({ items }: { items: Faq[] }) {
   return (
@@ -15,7 +16,9 @@ function FaqList({ items }: { items: Faq[] }) {
             {f.q} <Plus size={20} aria-hidden="true" />
           </summary>
           <div className="details-body">
-            <p>{f.a}</p>
+            <p>
+              <RichText text={f.a} />
+            </p>
           </div>
         </details>
       ))}

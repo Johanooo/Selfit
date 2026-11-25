@@ -49,6 +49,22 @@ export interface SupportPage {
 
 const C = COMPANY;
 const kr = (n: number) => `${n} kr`;
+const filled = (v: string) => !v.startsWith('[FYLL');
+/** Klickbar e-post/telefon när uppgiften är ifylld. Länkar skrivs som [text](adress). */
+const mail = filled(C.email) ? `[${C.email}](mailto:${C.email})` : C.email;
+const tel = filled(C.phone) ? `[${C.phone}](tel:${C.phone.replace(/[^+\d]/g, '')})` : C.phone;
+const L = {
+  kopvillkor: '[köpvillkor](/support/kopvillkor)',
+  integritet: '[integritetspolicy](/support/integritet)',
+  retur: '[Retur och ångerrätt](/support/retur-och-angerratt)',
+  frakt: '[Frakt och leverans](/support/frakt-och-leverans)',
+  kontakt: '[kontakta oss](/support/kontakt)',
+  returForm: '[returformuläret](/retur)',
+  sparning: '[Spåra order](/ordersparning)',
+  cookies: '[Cookieinställningar](#cookieinstallningar)',
+  arn: '[Allmänna reklamationsnämnden (ARN)](https://www.arn.se)',
+  imy: '[Integritetsskyddsmyndigheten (IMY)](https://www.imy.se)',
+};
 
 export const supportPages: SupportPage[] = [
   {
@@ -59,7 +75,7 @@ export const supportPages: SupportPage[] = [
       {
         heading: 'Så når du oss',
         paragraphs: ['Du får svar från en människa som kan våra produkter. Ha gärna ditt ordernummer till hands.'],
-        list: [`E-post: ${C.email}`, `Telefon: ${C.phone} (${C.hours})`, `Postadress: ${C.legalName}, ${C.address}`],
+        list: [`E-post: ${mail}`, `Telefon: ${tel} (${C.hours})`, `Postadress: ${C.legalName}, ${C.address}`],
       },
       {
         heading: 'Företagsuppgifter',
@@ -132,7 +148,7 @@ export const supportPages: SupportPage[] = [
       {
         heading: 'Paket som inte hämtas ut',
         paragraphs: [
-          `Paket som inte hämtas ut skickas tillbaka till oss. Det räknas inte som att du ångrat köpet. Vi debiterar då våra faktiska kostnader för frakt, returfrakt och hantering, normalt ${kr(C.uncollectedFee)} (konsumentköplagen 41 §). Vill du ångra dig – anmäl det hellre via returformuläret, så blir det billigare för dig.`,
+          `Paket som inte hämtas ut skickas tillbaka till oss. Det räknas inte som att du ångrat köpet. Vi debiterar då våra faktiska kostnader för frakt, returfrakt och hantering, normalt ${kr(C.uncollectedFee)} (konsumentköplagen 41 §). Vill du ångra dig – anmäl det hellre via ${L.returForm}, så blir det billigare för dig.`,
           'Ombudet håller oftast paketet i 7–14 dagar. Paketboxar skickar tillbaka efter kortare tid.',
         ],
       },
@@ -171,8 +187,8 @@ export const supportPages: SupportPage[] = [
         heading: 'Så ångrar du ditt köp',
         paragraphs: ['Meddela oss innan de 14 dagarna har gått. Du kan göra det på flera sätt:'],
         list: [
-          'Fyll i vårt returformulär under Anmäl retur, eller',
-          `skicka ett mejl till ${C.email} med ordernummer och vilka varor du ångrar, eller`,
+          `fyll i ${L.returForm}, eller`,
+          `skicka ett mejl till ${mail} med ordernummer och vilka varor du ångrar, eller`,
           'använd ångerblanketten längre ner på sidan.',
         ],
       },
@@ -219,7 +235,7 @@ export const supportPages: SupportPage[] = [
     sections: [
       {
         heading: '1. Säljare',
-        paragraphs: [`Säljare är ${C.legalName}, org.nr ${C.orgNr}, ${C.address}. E-post ${C.email}, telefon ${C.phone}.`],
+        paragraphs: [`Säljare är ${C.legalName}, org.nr ${C.orgNr}, ${C.address}. E-post ${mail}, telefon ${tel}.`],
       },
       {
         heading: '2. Vem kan handla',
@@ -253,13 +269,13 @@ export const supportPages: SupportPage[] = [
       {
         heading: '6. Leverans',
         paragraphs: [
-          `Vi skickar inom ${C.dispatchDays}. Risken för varan går över till dig när du har tagit emot den. Läs mer under Frakt och leverans.`,
+          `Vi skickar inom ${C.dispatchDays}. Risken för varan går över till dig när du har tagit emot den. Läs mer under ${L.frakt}.`,
         ],
       },
       {
         heading: '7. Ångerrätt och öppet köp',
         paragraphs: [
-          `Du har 14 dagars ångerrätt enligt lagen om distansavtal och ${C.openPurchaseDays} dagars öppet köp på oöppnade varor. Ångerrätten gäller inte förseglade livsmedel och kosttillskott där förseglingen har brutits. Vid ånger drar vi ${kr(C.returnFee)} för returfrakt om du använder vår returetikett. Läs hela villkoren och hitta ångerblanketten under Retur och ångerrätt.`,
+          `Du har 14 dagars ångerrätt enligt lagen om distansavtal och ${C.openPurchaseDays} dagars öppet köp på oöppnade varor. Ångerrätten gäller inte förseglade livsmedel och kosttillskott där förseglingen har brutits. Vid ånger drar vi ${kr(C.returnFee)} för returfrakt om du använder vår returetikett. Läs hela villkoren och hitta ångerblanketten under ${L.retur}.`,
         ],
       },
       {
@@ -279,12 +295,12 @@ export const supportPages: SupportPage[] = [
       },
       {
         heading: '10. Personuppgifter',
-        paragraphs: ['Hur vi hanterar dina personuppgifter står i vår integritetspolicy.'],
+        paragraphs: [`Hur vi hanterar dina personuppgifter står i vår ${L.integritet}.`],
       },
       {
         heading: '11. Om vi inte kommer överens',
         paragraphs: [
-          'Kontakta oss först, så försöker vi lösa det. Om vi ändå inte blir överens kan du vända dig till Allmänna reklamationsnämnden (ARN), arn.se. Vi följer ARN:s rekommendationer. Tvist kan också prövas i svensk allmän domstol.',
+          `${L.kontakt.replace('kontakta', 'Kontakta')} först, så försöker vi lösa det. Om vi ändå inte blir överens kan du vända dig till ${L.arn}. Vi följer ARN:s rekommendationer. Tvist kan också prövas i svensk allmän domstol.`,
         ],
       },
       {
@@ -301,7 +317,7 @@ export const supportPages: SupportPage[] = [
       {
         heading: 'Vem ansvarar för dina uppgifter',
         paragraphs: [
-          `${C.legalName} (org.nr ${C.orgNr}) är personuppgiftsansvarig. Det betyder att vi bestämmer hur dina uppgifter används och ansvarar för att det sker enligt dataskyddsförordningen (GDPR). Frågor skickar du till ${C.email}.`,
+          `${C.legalName} (org.nr ${C.orgNr}) är personuppgiftsansvarig. Det betyder att vi bestämmer hur dina uppgifter används och ansvarar för att det sker enligt dataskyddsförordningen (GDPR). Frågor skickar du till ${mail}.`,
         ],
       },
       {
@@ -366,7 +382,7 @@ export const supportPages: SupportPage[] = [
       {
         heading: 'Klagomål',
         paragraphs: [
-          `Hör av dig till oss på ${C.email} först. Du har också rätt att klaga hos Integritetsskyddsmyndigheten (IMY), imy.se.`,
+          `Hör av dig till oss på ${mail} först. Du har också rätt att klaga hos ${L.imy}.`,
         ],
       },
     ],
@@ -401,7 +417,7 @@ export const supportPages: SupportPage[] = [
       {
         heading: 'Ändra dina val',
         paragraphs: [
-          'Klicka på Cookieinställningar längst ner på sidan. Du kan också rensa sparade data i din webbläsares inställningar.',
+          `Klicka på ${L.cookies} här, eller längst ner på varje sida. Du kan också rensa sparade data i din webbläsares inställningar.`,
         ],
       },
     ],
@@ -416,8 +432,8 @@ export const supportPages: SupportPage[] = [
       { q: 'Varför pirrar det i huden?', a: 'Beta-alanin kan ge en ofarlig, övergående stickande känsla. Den brukar gå över efter en stund.' },
       { q: 'Hur fungerar pant?', a: 'Varje burk har 1 kr pant som visas separat i varukorgen. Pantar du burken i en butik får du tillbaka beloppet.' },
       { q: 'Vad betyder jämförpris?', a: 'Jämförpriset visar vad produkten kostar per liter, kilo eller styck, så att du enkelt kan jämföra olika förpackningar.' },
-      { q: 'Hur spårar jag min order?', a: 'Använd sidan Spåra order med ditt ordernummer, eller länken i leveransbeskedet.' },
-      { q: 'Kan jag ångra ett köp?', a: `Ja, du har ${C.openPurchaseDays} dagars öppet köp om förpackningen är oöppnad. Läs mer under Retur och ångerrätt.` },
+      { q: 'Hur spårar jag min order?', a: `Använd sidan ${L.sparning} med ditt ordernummer, eller länken i leveransbeskedet.` },
+      { q: 'Kan jag ångra ett köp?', a: `Ja, du har ${C.openPurchaseDays} dagars öppet köp om förpackningen är oöppnad. Läs mer under ${L.retur}.` },
       { q: 'Varan är trasig. Vad gör jag?', a: 'Kontakta kundtjänst med ordernummer och en bild på varan och bäst före-datumet. Med bild kan vi oftast lösa det direkt, utan att du behöver skicka tillbaka något.' },
     ],
   },
