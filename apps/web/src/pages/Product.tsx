@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams, useSearch } from 'wouter';
-import { Clock, Info, Plus, Truck, RotateCcw, AlertTriangle, Check } from 'lucide-react';
+import { Clock, Info, Plus, Truck, RotateCcw, AlertTriangle, Check, Maximize2 } from 'lucide-react';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { ProductCard } from '@/components/ProductCard';
 import { QuantityStepper } from '@/components/QuantityStepper';
 import { ProductImage, galleryViews, type ImageView } from '@/components/art/ProductImage';
 import { PwoPack } from '@/components/art/PwoCan';
+import { ImageLightbox } from '@/components/ImageLightbox';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import { getCategory, getSubcategory } from '@/data/categories';
 import { getFlavour, getProduct, pwoFlavours, CAN_ML } from '@/data/products';
@@ -81,6 +82,7 @@ function ProductView({ product }: { product: Product }) {
   const variant = resolve(product, params.get('smak'), params.get('pack'));
   const [qty, setQty] = useState(1);
   const [view, setView] = useState<ImageView>('front');
+  const [zoomOpen, setZoomOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState(false);
   const { add } = useCart();
@@ -194,12 +196,28 @@ function ProductView({ product }: { product: Product }) {
 
       <div className="pdp">
         <section className="pdp-gallery" aria-label="Produktbilder">
-          <div
+          <button
+            type="button"
             className={`gallery-main tone-${category?.tone ?? 'lavender'} ${view === 'photo' ? 'gallery-main--photo' : ''}`}
+            onClick={() => setZoomOpen(true)}
+            aria-label="Förstora bilden"
             data-testid="img-product-main"
           >
             <ProductImage key={`${variant.id}-${view}`} product={product} variant={variant} view={view} />
-          </div>
+            <span className="gallery-zoom-hint" aria-hidden="true">
+              <Maximize2 size={16} /> Förstora
+            </span>
+          </button>
+          <ImageLightbox
+            open={zoomOpen}
+            onClose={() => setZoomOpen(false)}
+            product={product}
+            variant={variant}
+            views={views}
+            view={view}
+            onView={setView}
+            title={title}
+          />
           {product.primaryImage && <p className="image-placeholder-note">Tillfällig exempelbild – kan bytas ut senare.</p>}
           {views.length > 1 && (
             <ul className="thumbs" aria-label="Välj bild">
