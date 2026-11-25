@@ -8,7 +8,7 @@ import { CartStorageWarning } from './CartStorageWarning';
 import { CategoryMenu } from './CategoryMenu';
 
 /** Sidor som visar butiksmenyn i en vänsterkolumn (på stor skärm). */
-const SHOP_ROUTES = [/^\/$/, /^\/kategori\//, /^\/varumarke\//, /^\/kollektion\//, /^\/sok/];
+const SHOP_ROUTES = [/^\/$/, /^\/kategori\//, /^\/varumarke\//, /^\/kollektion\//, /^\/sok/, /^\/produkt\//];
 
 export function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
