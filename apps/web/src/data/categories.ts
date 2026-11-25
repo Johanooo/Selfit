@@ -1,10 +1,10 @@
 import type { Brand, Category, Collection, Subcategory } from './types';
 
 /**
- * Visa kategorier som ännu saknar produkter? true på testsidan så att hela strukturen syns.
- * Sätt till false före lansering – då visas bara kategorier som har produkter.
+ * Visa kategorier som ännu saknar produkter? false = bara kategorier med produkter syns.
+ * Nya kategorier dyker upp i menyn av sig själva när de får sin första produkt.
  */
-export const SHOW_EMPTY_CATEGORIES = true;
+export const SHOW_EMPTY_CATEGORIES = false;
 
 export const categories: Category[] = [
   {
