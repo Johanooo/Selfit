@@ -1,9 +1,11 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation } from 'wouter';
 import { AlertTriangle, CreditCard, ShoppingBag, Lock } from 'lucide-react';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { EmptyState } from '@/components/EmptyState';
 import { TextField } from '@/components/Field';
+import { PolicyDialog } from '@/components/PolicyDialog';
+import { readJSON, writeJSON } from '@/lib/storage';
 import { ProductImage } from '@/components/art/ProductImage';
 import { FreeShippingProgress, TotalsList } from '@/components/OrderSummary';
 import { usePageMeta } from '@/hooks/use-page-meta';
@@ -13,6 +15,11 @@ import { isBuyable, kr, stockText, variantLabel } from '@/lib/format';
 import { makeOrderNumber, saveOrder } from '@/lib/order';
 import { useCart } from '@/state/cart';
 
+/** Ifyllda uppgifter sparas bara i den här fliken (sessionStorage) och rensas när ordern är lagd. */
+const DRAFT_KEY = 'selfit-checkout-draft';
+const DRAFT_FIELDS = ['email', 'phone', 'firstName', 'lastName', 'address', 'zip', 'city'] as const;
+type Draft = Partial<Record<(typeof DRAFT_FIELDS)[number] | 'delivery', string>>;
+
 export default function CheckoutPage() {
   usePageMeta('Kassa (demo)', 'Slutför din beställning hos SELFIT. Detta är en demo, ingen riktig betalning sker.');
   const { lines, code, ready, clear } = useCart();
@@ -20,6 +27,37 @@ export default function CheckoutPage() {
   const [termsError, setTermsError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [, navigate] = useLocation();
+  const [policy, setPolicy] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Fyll i det kunden redan skrivit om hen lämnat kassan och kommit tillbaka.
+  useEffect(() => {
+    if (!ready) return;
+    const draft = readJSON<Draft>(DRAFT_KEY, {}, 'session');
+    const form = formRef.current;
+    if (form) {
+      for (const f of DRAFT_FIELDS) {
+        const el = form.elements.namedItem(f);
+        if (el instanceof HTMLInputElement && draft[f] && !el.value) el.value = draft[f]!;
+      }
+    }
+    if (draft.delivery === 'ombud' || draft.delivery === 'hem') setMethod(draft.delivery);
+  }, [ready]);
+
+  const saveDraft = () => {
+    const form = formRef.current;
+    if (!form) return;
+    const draft: Draft = { delivery: method };
+    for (const f of DRAFT_FIELDS) {
+      const el = form.elements.namedItem(f);
+      if (el instanceof HTMLInputElement) draft[f] = el.value;
+    }
+    writeJSON(DRAFT_KEY, draft, 'session');
+  };
+  useEffect(() => {
+    if (ready) saveDraft();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [method]);
   const totals = computeTotals(lines, code, method);
   const free = totals.remainingForFree <= 0;
   const unavailableLines = lines.filter((line) => !isBuyable(line.variant));
@@ -44,6 +82,11 @@ export default function CheckoutPage() {
       code,
     });
     window.setTimeout(() => {
+      try {
+        window.sessionStorage.removeItem(DRAFT_KEY);
+      } catch {
+        /* lagring kan vara avstängd */
+      }
       clear();
       navigate(`/orderbekraftelse?order=${number}`);
     }, 450);
@@ -87,8 +130,8 @@ export default function CheckoutPage() {
       <p className="demo-banner" role="note" data-testid="text-demo-banner">
         <AlertTriangle size={18} aria-hidden="true" />
         <span>
-          <strong>Demokassa.</strong> Det här är en prototyp. Ingen order skickas, ingen betalning genomförs och inga
-          uppgifter sparas.
+          <strong>Demokassa.</strong> Det här är en prototyp. Ingen order skickas och ingen betalning genomförs. Det
+          du fyller i sparas bara i den här fliken tills ordern är lagd.
         </span>
       </p>
       {unavailableLines.length > 0 && (
@@ -98,7 +141,7 @@ export default function CheckoutPage() {
         </p>
       )}
       <div className="two-col">
-        <form onSubmit={submit} aria-label="Beställningsformulär" data-testid="form-checkout">
+        <form ref={formRef} onSubmit={submit} onInput={saveDraft} aria-label="Beställningsformulär" data-testid="form-checkout">
           <fieldset className="form-section">
             <legend>1. Kontaktuppgifter</legend>
             <div className="form-grid">
@@ -218,9 +261,17 @@ export default function CheckoutPage() {
               />
               <span>
                 Jag har läst och godkänner{' '}
-                <Link href="/support/kopvillkor" className="text-link">
+                <button
+                  type="button"
+                  className="text-link link-button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPolicy('kopvillkor');
+                  }}
+                  data-testid="button-open-terms"
+                >
                   köpvillkoren
-                </Link>
+                </button>
               </span>
             </label>
             {termsError && (
@@ -228,6 +279,17 @@ export default function CheckoutPage() {
                 Du behöver godkänna köpvillkoren för att fortsätta.
               </p>
             )}
+            <p className="small muted checkout-policies">
+              Du har 14 dagars{' '}
+              <button type="button" className="text-link link-button" onClick={() => setPolicy('retur-och-angerratt')}>
+                ångerrätt
+              </button>
+              . Läs hur vi hanterar{' '}
+              <button type="button" className="text-link link-button" onClick={() => setPolicy('integritet')}>
+                dina personuppgifter
+              </button>
+              .
+            </p>
           </fieldset>
 
           <button
@@ -275,6 +337,7 @@ export default function CheckoutPage() {
           </Link>
         </aside>
       </div>
+      <PolicyDialog slug={policy} onClose={() => setPolicy(null)} />
     </div>
   );
 }

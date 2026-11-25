@@ -4,6 +4,7 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import { getSupportPage, supportPages, type Faq } from '@/data/support';
 import NotFound from './not-found';
+import { SupportSections } from '@/components/SupportSections';
 
 function FaqList({ items }: { items: Faq[] }) {
   return (
@@ -105,21 +106,7 @@ export function SupportArticlePage() {
             <h1 className="h1">{page.title}</h1>
             <p className="lead">{page.summary}</p>
           </header>
-          {page.sections.map((s) => (
-            <section key={s.heading} className="prose-block">
-              <h2 className="h2">{s.heading}</h2>
-              {s.paragraphs.map((p) => (
-                <p key={p}>{p}</p>
-              ))}
-              {s.list && (
-                <ul>
-                  {s.list.map((li) => (
-                    <li key={li}>{li}</li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          ))}
+          <SupportSections page={page} />
           {page.slug === 'retur-och-angerratt' && (
             <Link href="/retur" className="btn btn--primary">
               Anmäl retur

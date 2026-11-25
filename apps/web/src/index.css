@@ -3134,3 +3134,48 @@ a.chip:hover {
   width: calc(100% - 12px);
   height: calc(100% - 12px);
 }
+
+/* ========================================================================== Villkor i popup (kassan) */
+.link-button {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.policy-dialog {
+  margin: auto;
+  width: min(720px, calc(100% - 2 * var(--space-4)));
+  max-height: calc(100dvh - 2 * var(--space-6));
+  padding: 0;
+}
+.policy-dialog-inner {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 2 * var(--space-6));
+}
+.policy-dialog-head {
+  padding: var(--space-5) var(--space-5) var(--space-3);
+  margin: 0;
+  border-bottom: 1px solid var(--c-border);
+}
+.policy-dialog-body {
+  padding: var(--space-5);
+  overflow-y: auto;
+}
+.policy-dialog-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--c-border);
+}
+.policy-dialog-foot a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.checkout-policies {
+  margin-top: var(--space-3);
+}
