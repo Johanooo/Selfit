@@ -1,25 +1,36 @@
-import { type ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Layout } from '@/components/layout/Layout';
-import { AdminApp } from '@/admin/AdminApp';
 import { CartProvider } from '@/state/cart';
 import { CookieProvider } from '@/state/cookies';
 import Home from '@/pages/Home';
-import { BrandPage, CategoryPage, CollectionPage } from '@/pages/ListingPages';
-import SearchPage from '@/pages/Search';
-import ProductPage from '@/pages/Product';
-import CartPage from '@/pages/Cart';
-import CheckoutPage from '@/pages/Checkout';
-import OrderConfirmationPage from '@/pages/OrderConfirmation';
-import TrackingPage from '@/pages/Tracking';
-import ReturnPage from '@/pages/Return';
-import { SupportArticlePage, SupportIndexPage } from '@/pages/Support';
-import NotFound from '@/pages/not-found';
+
+// Övriga sidor och admin laddas först när de behövs, så att startsidan laddar snabbt.
+const AdminApp = lazy(() => import('@/admin/AdminApp').then((m) => ({ default: m.AdminApp })));
+const CategoryPage = lazy(() => import('@/pages/ListingPages').then((m) => ({ default: m.CategoryPage })));
+const BrandPage = lazy(() => import('@/pages/ListingPages').then((m) => ({ default: m.BrandPage })));
+const CollectionPage = lazy(() => import('@/pages/ListingPages').then((m) => ({ default: m.CollectionPage })));
+const SearchPage = lazy(() => import('@/pages/Search'));
+const ProductPage = lazy(() => import('@/pages/Product'));
+const CartPage = lazy(() => import('@/pages/Cart'));
+const CheckoutPage = lazy(() => import('@/pages/Checkout'));
+const OrderConfirmationPage = lazy(() => import('@/pages/OrderConfirmation'));
+const TrackingPage = lazy(() => import('@/pages/Tracking'));
+const ReturnPage = lazy(() => import('@/pages/Return'));
+const SupportArticlePage = lazy(() => import('@/pages/Support').then((m) => ({ default: m.SupportArticlePage })));
+const SupportIndexPage = lazy(() => import('@/pages/Support').then((m) => ({ default: m.SupportIndexPage })));
+const NotFound = lazy(() => import('@/pages/not-found'));
+
+/** Visas kort medan en sida laddas. Tom yta med rätt höjd, så att sidan inte hoppar. */
+function PageFallback() {
+  return <div className="page-fallback" aria-busy="true" />;
+}
 
 function Routes() {
   return (
     <RoutedErrorBoundary>
+      <Suspense fallback={<PageFallback />}>
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/kategori/:slug" component={CategoryPage} />
@@ -36,6 +47,7 @@ function Routes() {
         <Route path="/support/:slug" component={SupportArticlePage} />
         <Route component={NotFound} />
       </Switch>
+      </Suspense>
     </RoutedErrorBoundary>
   );
 }
@@ -58,7 +70,9 @@ function AppContent() {
   if (location === '/admin' || location.startsWith('/admin/')) {
     return (
       <RoutedErrorBoundary>
-        <AdminApp />
+        <Suspense fallback={<PageFallback />}>
+          <AdminApp />
+        </Suspense>
       </RoutedErrorBoundary>
     );
   }

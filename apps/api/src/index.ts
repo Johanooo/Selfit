@@ -14,6 +14,7 @@ import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { basicAuth } from 'hono/basic-auth';
+import { compress } from 'hono/compress';
 import { createApp } from './app.ts';
 import { createDb } from './db/client.ts';
 import { runMigrations } from './db/migrate.ts';
@@ -29,6 +30,9 @@ if (process.env.SEED_IF_EMPTY === 'true' && (await isEmpty(db))) {
 
 const root = new Hono();
 
+// Komprimera svar (gzip) – koden blir ungefär en tredjedel så stor att ladda ner.
+root.use('*', compress());
+
 const password = process.env.SITE_PASSWORD;
 if (password) {
   root.use('*', basicAuth({ username: process.env.SITE_USER ?? 'selfit', password, realm: 'SELFIT test' }));
@@ -41,9 +45,31 @@ const dir = here(import.meta.url);
 const webDir = findDir(`${dir}/../../web/dist/public`);
 if (webDir) {
   const indexHtml = readFileSync(`${webDir}/index.html`, 'utf8');
-  root.use('*', serveStatic({ root: relative(process.cwd(), webDir) }));
+  // Startsidans toppbild börjar laddas direkt, innan JavaScript har körts.
+  const homeHtml = indexHtml.replace(
+    '</head>',
+    '    <link rel="preload" as="image" href="/images/hero.webp" fetchpriority="high" />\n  </head>',
+  );
+
+  // Cache: filer i /assets har versionsnummer i namnet och kan sparas ett år.
+  // Bilder sparas en vecka. HTML kontrolleras alltid så att nya versioner syns direkt.
+  root.use('*', async (c, next) => {
+    await next();
+    if (c.res.status !== 200 || c.res.headers.has('Cache-Control')) return;
+    const path = c.req.path;
+    if (path.startsWith('/assets/')) c.header('Cache-Control', 'public, max-age=31536000, immutable');
+    else if (path.startsWith('/images/') || path === '/favicon.svg') c.header('Cache-Control', 'public, max-age=604800');
+    else if (!path.startsWith('/api/')) c.header('Cache-Control', 'no-cache');
+  });
+
+  const statics = serveStatic({ root: relative(process.cwd(), webDir) });
+  // "/" hanteras nedan (med förladdad toppbild), allt annat som filer om de finns.
+  root.use('*', (c, next) => (c.req.path === '/' || c.req.path === '/index.html' ? next() : statics(c, next)));
   // Alla andra adresser (t.ex. /produkt/pwo-plus) visar butikens startfil.
-  root.get('*', (c) => (c.req.path.startsWith('/api/') ? c.notFound() : c.html(indexHtml)));
+  root.get('*', (c) => {
+    if (c.req.path.startsWith('/api/')) return c.notFound();
+    return c.html(c.req.path === '/' ? homeHtml : indexHtml);
+  });
 }
 
 const port = Number(process.env.PORT ?? 3001);

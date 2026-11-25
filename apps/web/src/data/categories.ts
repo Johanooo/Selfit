@@ -8,7 +8,7 @@ export const categories: Category[] = [
     intro:
       'Allt du behöver före, under och efter passet. Vi har valt produkter med tydliga innehållsförteckningar och doseringar du förstår.',
     tone: 'lavender',
-    image: '/images/traning.jpg',
+    image: '/images/traning.webp',
     imageAlt: 'Ihoprullad lavendelfärgad yogamatta, gummiband och burkar mot ljus bakgrund',
   },
   {
@@ -18,7 +18,7 @@ export const categories: Category[] = [
     intro:
       'Kosttillskott för vardagen, från D-vitamin under vinterhalvåret till magnesium för kvällen. Rätt dos, tydligt förklarat.',
     tone: 'sage',
-    image: '/images/halsa.jpg',
+    image: '/images/halsa.webp',
     imageAlt: 'Burkar med kosttillskott och kapslar mot salviagrön bakgrund',
   },
   {
@@ -28,7 +28,7 @@ export const categories: Category[] = [
     intro:
       'Hudvård och kroppsvård utan krångel. Parfymfria alternativ, tydliga INCI-listor och storlekar som räcker.',
     tone: 'sand',
-    image: '/images/skonhet.jpg',
+    image: '/images/skonhet.webp',
     imageAlt: 'Tuber och en burk med hudvård på sandfärgad sten i mjukt ljus',
   },
 ];

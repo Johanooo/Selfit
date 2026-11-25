@@ -53,7 +53,7 @@ export default function Home() {
           </div>
           <div className="hero-media">
             <img
-              src={`${base}/images/hero.jpg`}
+              src={`${base}/images/hero.webp`}
               alt="En löpare i lavendelfärgade träningskläder vilar på en solig kaj i Stockholm med en burk PWO+ i handen"
               fetchPriority="high"
             />

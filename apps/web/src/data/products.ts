@@ -302,7 +302,7 @@ const others: Product[] = [
     price: 249,
     measure: { amount: 0.3, unit: 'kg' },
     eanBody: '735020000044',
-    primaryImage: '/images/kreatin-monohydrat-demo.jpeg',
+    primaryImage: '/images/kreatin-monohydrat-demo.webp',
     primaryImageAlt: 'Tillfällig exempelbild för Kreatin Monohydrat: burk med kreatingummies',
   }),
   simple({

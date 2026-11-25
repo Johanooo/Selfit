@@ -59,8 +59,8 @@
   --c-product-photo: #080a0f;
 
   /* Typography */
-  --font-display: 'Manrope', ui-sans-serif, system-ui, sans-serif;
-  --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Manrope Variable', 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-body: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
   /* En gemensam, tajt skala för hela butiken (12–40 px). */
   --fs-xs: 0.75rem; /* 12 px: etiketter, fotnoter */
   --fs-sm: 0.8125rem; /* 13 px: meny, filter, småtext */
@@ -3178,4 +3178,8 @@ a.chip:hover {
 }
 .checkout-policies {
   margin-top: var(--space-3);
+}
+
+.page-fallback {
+  min-height: 60vh;
 }

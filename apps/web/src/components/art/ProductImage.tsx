@@ -16,7 +16,7 @@ export function galleryViews(product: Product, variant: Variant): ImageView[] {
 
 export function photoFor(product: Product): { src: string; alt: string } {
   const c = getCategory(product.category);
-  return { src: c?.image ?? '/images/hero.jpg', alt: c?.imageAlt ?? product.name };
+  return { src: c?.image ?? '/images/hero.webp', alt: c?.imageAlt ?? product.name };
 }
 
 export function ProductImage({
