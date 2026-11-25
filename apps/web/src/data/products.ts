@@ -1,4 +1,4 @@
-import type { Flavour, Product, Variant } from './types';
+import type { Flavour, PricePoint, Product, Variant } from './types';
 
 /** Builds a valid EAN-13 from a 12-digit body. */
 function ean(body: string): string {
@@ -672,7 +672,74 @@ const others: Product[] = [
   }),
 ];
 
-export const products: Product[] = [pwo, proteinPancakes, ...others];
+// ---------- Exempel på prishistorik ----------
+// Påhittad historik för ett år bakåt, så att prisgrafen och lagkravet om
+// "lägsta pris senaste 30 dagarna" går att visa. Ersätts av riktiga priser från databasen.
+
+/** Pågående rea i exempeldatan: nytt pris och hur många dagar sedan sänkningen gjordes. */
+const DEMO_SALES: Record<string, { price: number; daysAgo: number }> = {
+  'pwo-plus-blueberry-12': { price: 249, daysAgo: 6 },
+  'omega-3-1': { price: 159, daysAgo: 3 },
+};
+
+const isoDaysAgo = (days: number) => {
+  const d = new Date();
+  d.setUTCHours(0, 0, 0, 0);
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().slice(0, 10);
+};
+
+/** Avrunda till ett pris som slutar på 9 (149, 179 …). */
+const nine = (x: number) => Math.max(9, Math.round(x / 10) * 10 - 1);
+
+function hash(text: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+
+function demoHistory(v: Variant): { price: number; history: PricePoint[] } {
+  const h = hash(v.id);
+  const sale = DEMO_SALES[v.id];
+  const base = v.price;
+
+  // Var tredje variant har fått en prishöjning någon gång under året.
+  const raisedDaysAgo = h % 3 === 0 ? 90 + (h % 120) : null;
+  const regular = (daysAgo: number) => (raisedDaysAgo !== null && daysAgo > raisedDaysAgo ? nine(base * 0.93) : base);
+
+  // En tidsbegränsad kampanj någon gång under året (20, 15 eller 10 % rabatt).
+  const campaignStart = 45 + ((h >>> 3) % 260);
+  const campaignEnd = campaignStart - (7 + ((h >>> 7) % 15));
+  const discount = 0.8 + ((h >>> 11) % 3) * 0.05;
+
+  const events: { daysAgo: number; price: number }[] = [
+    { daysAgo: 400, price: regular(400) },
+    { daysAgo: campaignStart, price: nine(regular(campaignStart) * discount) },
+    { daysAgo: campaignEnd, price: regular(campaignEnd) },
+  ];
+  const insideCampaign = (d: number) => d <= campaignStart && d > campaignEnd;
+  if (raisedDaysAgo !== null && !insideCampaign(raisedDaysAgo)) events.push({ daysAgo: raisedDaysAgo, price: base });
+  if (sale) events.push({ daysAgo: sale.daysAgo, price: sale.price });
+
+  events.sort((a, b) => b.daysAgo - a.daysAgo);
+  const history: PricePoint[] = [];
+  for (const e of events) {
+    if (history.at(-1)?.price === e.price) continue;
+    history.push({ from: isoDaysAgo(e.daysAgo), price: e.price });
+  }
+  return { price: sale ? sale.price : base, history };
+}
+
+const withHistory = (list: Product[]): Product[] =>
+  list.map((p) => ({
+    ...p,
+    variants: p.variants.map((v) => {
+      const { price, history } = demoHistory(v);
+      return { ...v, price, priceHistory: history };
+    }),
+  }));
+
+export const products: Product[] = withHistory([pwo, proteinPancakes, ...others]);
 
 export const getProduct = (slug?: string) => products.find((p) => p.slug === slug);
 

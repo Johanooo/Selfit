@@ -106,13 +106,17 @@ export async function seed(db: Db) {
           depositClassId: v.depositPerUnit > 0 ? 'pant-burk' : null,
           depositUnits: v.depositPerUnit > 0 ? (v.pack ?? 1) : 0,
         });
-        await tx.insert(s.prices).values({
-          id: `pr_${v.id}`,
-          variantId: v.id,
-          amountOre: Math.round(v.price * 100),
-          validFrom: PRICE_FROM,
-          createdBy: 'seed',
-        });
+        // Prishistorik från exempeldatan, annars ett startpris.
+        const history = v.priceHistory?.length ? v.priceHistory : [{ from: PRICE_FROM, price: v.price }];
+        await tx.insert(s.prices).values(
+          history.map((h, i) => ({
+            id: `pr_${v.id}_${i}`,
+            variantId: v.id,
+            amountOre: Math.round(h.price * 100),
+            validFrom: h.from,
+            createdBy: 'seed',
+          })),
+        );
         if (v.offered) {
           await tx.insert(s.stockLevels).values({ variantId: v.id, warehouseId: 'wh_own', onHand: v.stock, updatedAt: NOW });
           await tx.insert(s.stockLedger).values({

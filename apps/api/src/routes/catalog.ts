@@ -133,5 +133,23 @@ export function catalogRoutes(db: Db) {
     });
   });
 
+  /** Prishistorik för en variant, ett år bakåt (för prisgrafen). */
+  app.get('/variants/:id/price-history', async (c) => {
+    const id = c.req.param('id');
+    const from = new Date();
+    from.setUTCFullYear(from.getUTCFullYear() - 1);
+    const fromIso = from.toISOString().slice(0, 10);
+    const rows = await db
+      .select({ from: s.prices.validFrom, priceOre: s.prices.amountOre })
+      .from(s.prices)
+      .where(eq(s.prices.variantId, id))
+      .orderBy(asc(s.prices.validFrom));
+    if (!rows.length) return c.json({ error: 'Varianten finns inte.' }, 404);
+    // Ta med priset som gällde när perioden började.
+    const firstInside = rows.findIndex((r) => r.from >= fromIso);
+    const start = firstInside === -1 ? rows.length - 1 : Math.max(0, firstInside - 1);
+    return c.json(rows.slice(start).filter((r) => r.from <= today()));
+  });
+
   return app;
 }

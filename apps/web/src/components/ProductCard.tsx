@@ -5,6 +5,7 @@ import { ProductImage } from '@/components/art/ProductImage';
 import { getCategory } from '@/data/categories';
 import { clearVariant, displayVariant, productHref, type Filters, type ListingItem } from '@/lib/catalog';
 import { comparison, depositTotal, isBuyable, kr, packLabel, stockState } from '@/lib/format';
+import { lowestPrice30Days } from '@/lib/price-history';
 import { useCart } from '@/state/cart';
 
 export function ProductCard({ item, filters, index = 0 }: { item: ListingItem; filters?: Filters; index?: number }) {
@@ -20,6 +21,7 @@ export function ProductCard({ item, filters, index = 0 }: { item: ListingItem; f
   const low = !allOut && item.variants.some((x) => stockState(x) === 'low');
   const title = flavour ? `${product.name} ${flavour.name}` : product.name;
   const cmp = comparison(v);
+  const low30 = lowestPrice30Days(v.priceHistory);
   const testId = item.key;
 
   useEffect(() => {
@@ -69,10 +71,12 @@ export function ProductCard({ item, filters, index = 0 }: { item: ListingItem; f
         )}
         <div className="product-card-foot">
           <div>
-            <p className="price" data-testid={`text-price-${testId}`}>
+            <p className={`price${low30 !== null ? ' price--sale' : ''}`} data-testid={`text-price-${testId}`}>
               {priceVaries && <span className="price-from">från</span>}
               {kr(v.price)}
+              {low30 !== null && <span className="price-was">{kr(low30)}</span>}
             </p>
+            {low30 !== null && <p className="price-compare">Lägsta pris 30 dagar: {kr(low30)}</p>}
             {cmp && <p className="price-compare">Jämförpris {cmp}</p>}
             {depositTotal(v) > 0 && <p className="price-compare">+ pant {kr(depositTotal(v))}</p>}
           </div>

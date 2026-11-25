@@ -95,12 +95,25 @@ describe('varukorg räknas om på servern', () => {
   });
 });
 
+describe('prishistorik', () => {
+  it('returnerar ett års prisändringar för en variant', async () => {
+    const { status, body } = await get('/variants/pwo-plus-blueberry-12/price-history');
+    expect(status).toBe(200);
+    expect(body.length).toBeGreaterThan(1);
+    expect(body.at(-1).priceOre).toBe(24900); // pågående rea i exempeldatan
+  });
+});
+
 describe('lägsta pris senaste 30 dagarna', () => {
   it('visas efter en prissänkning och försvinner efter 30 dagar', async () => {
-    const id = 'pwo-plus-strawberry-12';
-    await db.insert(s.prices).values({ id: 'pr_test_drop', variantId: id, amountOre: 24900, validFrom: '2026-11-20' });
+    const id = 'test-variant';
+    await db.insert(s.variants).values({ id, familyId: 'pf_pwo-plus', sku: 'TEST-1', vatClassId: 'vat-food' });
+    await db.insert(s.prices).values([
+      { id: 'pr_t1', variantId: id, amountOre: 27900, validFrom: '2026-01-01' },
+      { id: 'pr_t2', variantId: id, amountOre: 24900, validFrom: '2026-11-20' },
+    ]);
     expect(await lowestPrice30Days(db, id, '2026-11-24')).toBe(27900);
     expect(await lowestPrice30Days(db, id, '2027-01-15')).toBeNull();
-    expect(await lowestPrice30Days(db, 'pwo-plus-blueberry-6', '2026-11-24')).toBeNull();
+    expect(await lowestPrice30Days(db, id, '2026-11-10')).toBeNull();
   });
 });

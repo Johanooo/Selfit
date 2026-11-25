@@ -25,6 +25,12 @@ export interface Measure {
   unit: 'l' | 'kg' | 'st';
 }
 
+/** En prisändring: priset gäller från och med datumet tills nästa ändring. */
+export interface PricePoint {
+  from: string; // ÅÅÅÅ-MM-DD
+  price: number;
+}
+
 export interface Variant {
   id: string;
   flavour?: string;
@@ -38,6 +44,8 @@ export interface Variant {
   /** Image key, e.g. "can:blueberry", "photo:/images/..." or "art". */
   image: string;
   measure?: Measure;
+  /** Prisändringar, äldst först. Sista posten är dagens pris. */
+  priceHistory?: PricePoint[];
 }
 
 export interface NutritionRow {

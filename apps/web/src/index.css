@@ -29,6 +29,7 @@
   --c-warning-soft: #f7ecd8;
   --c-danger: #a1243a;
   --c-danger-soft: #f8e4e8;
+  --c-sale: #a1243a; /* reapris */
   --c-overlay: rgb(28 22 34 / 0.48);
   --c-focus: #4b2a6b;
 
@@ -2706,4 +2707,131 @@ a.chip:hover {
     border-bottom: none;
     padding-bottom: 0;
   }
+}
+
+/* ========================================================================== Prishistorik */
+.price-history {
+  display: grid;
+  gap: var(--space-4);
+}
+.price-history-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+.price-history-stats div {
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--c-surface);
+}
+.price-history-stats dt {
+  font-size: var(--fs-xs);
+  color: var(--c-muted);
+}
+.price-history-stats dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-md);
+}
+.price-history-chart {
+  position: relative;
+  min-height: 220px;
+}
+.price-history-chart svg {
+  display: block;
+  touch-action: pan-y;
+  cursor: crosshair;
+  border-radius: var(--radius-sm);
+}
+.price-history-chart svg:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 2px;
+}
+.ph-grid {
+  stroke: var(--c-border);
+  stroke-width: 1;
+}
+.ph-axis {
+  fill: var(--c-muted);
+  font-size: 11px;
+}
+.ph-area {
+  fill: var(--c-primary);
+  opacity: 0.1;
+}
+.ph-line {
+  fill: none;
+  stroke: var(--c-primary);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.ph-cross {
+  stroke: var(--c-border-strong);
+  stroke-width: 1;
+}
+.ph-dot {
+  fill: var(--c-primary);
+  stroke: var(--c-white);
+  stroke-width: 2;
+}
+.ph-tip {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--c-white);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+  white-space: nowrap;
+  font-size: var(--fs-xs);
+  color: var(--c-muted);
+}
+.ph-tip strong {
+  font-size: var(--fs-sm);
+  color: var(--c-text);
+}
+.price-history-table summary {
+  cursor: pointer;
+  font-size: var(--fs-sm);
+  color: var(--c-primary);
+  font-weight: 600;
+}
+.price-history-table table {
+  width: 100%;
+  margin-top: var(--space-3);
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+.price-history-table th,
+.price-history-table td {
+  text-align: left;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--c-border);
+}
+.price-history-table td:last-child,
+.price-history-table th:last-child {
+  text-align: right;
+}
+
+/* Rea: lägsta pris senaste 30 dagarna */
+.price-was {
+  font-size: 0.6em;
+  font-weight: 500;
+  color: var(--c-muted);
+  text-decoration: line-through;
+  margin-left: var(--space-2);
+}
+.price-lowest {
+  font-size: var(--fs-xs);
+  color: var(--c-muted);
+}
+.price--sale {
+  color: var(--c-sale);
 }

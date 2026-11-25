@@ -11,6 +11,8 @@ import { getFlavour, getProduct, pwoFlavours, CAN_ML } from '@/data/products';
 import type { Product, Variant } from '@/data/types';
 import { itemsForSlugs } from '@/lib/catalog';
 import { comparison, depositTotal, isBuyable, kr, litres, packLabel, stockState, stockText } from '@/lib/format';
+import { lowestPrice30Days } from '@/lib/price-history';
+import { PriceHistory } from '@/components/PriceHistory';
 import { useCart } from '@/state/cart';
 import NotFound from './not-found';
 
@@ -87,6 +89,7 @@ function ProductView({ product }: { product: Product }) {
   const buyable = isBuyable(variant);
   const deposit = depositTotal(variant);
   const cmp = comparison(variant);
+  const low30 = lowestPrice30Days(variant.priceHistory);
   const views = galleryViews(product, variant);
   const title = flavour ? `${product.name} ${flavour.name}` : product.name;
 
@@ -291,10 +294,16 @@ function ProductView({ product }: { product: Product }) {
 
           <section className="buy-box" aria-label="Köp">
             <div className="stack-2">
-              <p className="buy-price" data-testid="text-product-price">
+              <p className={`buy-price${low30 !== null ? ' price--sale' : ''}`} data-testid="text-product-price">
                 {kr(variant.price)}
+                {low30 !== null && <span className="price-was">{kr(low30)}</span>}
               </p>
               <div className="buy-meta">
+                {low30 !== null && (
+                  <p className="price-lowest" data-testid="text-lowest-30">
+                    Lägsta pris senaste 30 dagarna: {kr(low30)}
+                  </p>
+                )}
                 {cmp && <p data-testid="text-comparison">Jämförpris {cmp}</p>}
                 {deposit > 0 && (
                   <p data-testid="text-deposit">
@@ -441,6 +450,16 @@ function ProductView({ product }: { product: Product }) {
                 </dl>
               </div>
             </details>
+            {variant.priceHistory && (
+              <details className="details-item" data-testid="details-price-history">
+                <summary>
+                  Prishistorik <Plus size={20} aria-hidden="true" />
+                </summary>
+                <div className="details-body">
+                  <PriceHistory key={variant.id} history={variant.priceHistory} />
+                </div>
+              </details>
+            )}
           </div>
         </div>
       </div>
