@@ -5,6 +5,7 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { ProductCard } from '@/components/ProductCard';
 import { QuantityStepper } from '@/components/QuantityStepper';
 import { ProductImage, galleryViews, type ImageView } from '@/components/art/ProductImage';
+import { PwoPack } from '@/components/art/PwoCan';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import { getCategory, getSubcategory } from '@/data/categories';
 import { getFlavour, getProduct, pwoFlavours, CAN_ML } from '@/data/products';
@@ -165,6 +166,13 @@ function ProductView({ product }: { product: Product }) {
     return { v, state: 'ok' as const, text: comparison(v) ?? '' };
   };
 
+  /** Burkprodukter får förpackningskort med bild, som hos Apotea. */
+  const canPacks = variant.image.startsWith('can:');
+  const basePerUnit = (() => {
+    const smallest = product.variants.find((x) => x.pack === packs[0] && x.flavour === variant.flavour);
+    return smallest && packs[0] ? smallest.price / packs[0] : null;
+  })();
+
   const st = stockState(variant);
   const sub = getSubcategory(product.subcategory);
   const warningTexts = [
@@ -269,9 +277,36 @@ function ProductView({ product }: { product: Product }) {
               <legend>
                 Förpackning: <span>{packLabel(variant.pack)}</span>
               </legend>
-              <div className="options">
+              <div className={canPacks ? 'pack-tiles' : 'options'}>
                 {packs.map((p) => {
                   const s = packStatus(p);
+                  const perUnit = s.v ? s.v.price / p : null;
+                  const save = perUnit !== null && basePerUnit ? Math.floor((1 - perUnit / basePerUnit) * 100) : 0;
+                  if (canPacks) {
+                    return (
+                      <button
+                        key={p}
+                        type="button"
+                        className="option option-tile"
+                        aria-pressed={variant.pack === p}
+                        aria-disabled={s.state !== 'ok'}
+                        data-state={s.state}
+                        aria-describedby={`pack-${p}-meta`}
+                        onClick={() => selectPack(p)}
+                        data-testid={`button-pack-${p}`}
+                      >
+                        {s.state === 'ok' && save >= 1 && <span className="option-save">Spara {save} %</span>}
+                        <span className="option-tile-media" aria-hidden="true">
+                          <PwoPack flavour={variant.image.slice(4)} pack={p} />
+                        </span>
+                        <span className="option-name">{packLabel(p)}</span>
+                        {s.state === 'ok' && s.v && <span className="option-tile-price">{kr(s.v.price)}</span>}
+                        <span className="option-meta" id={`pack-${p}-meta`}>
+                          {s.state === 'ok' && perUnit !== null ? `${kr(perUnit)}/burk` : s.text}
+                        </span>
+                      </button>
+                    );
+                  }
                   return (
                     <button
                       key={p}

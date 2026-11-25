@@ -1092,6 +1092,8 @@ a.help-card:hover {
 .product-card-media:has(.pwo-real-can),
 .gallery-main:has(.pwo-real-can),
 .thumb:has(.pwo-real-can),
+.gallery-main:has(.pwo-pack-art),
+.thumb:has(.pwo-pack-art),
 .pwo-pack-art {
   background: var(--c-product-photo);
 }
@@ -1293,33 +1295,64 @@ a.chip:hover {
 }
 .pwo-pack-art img {
   position: absolute;
-  height: 78%;
   width: auto;
-  max-width: 40%;
-  object-fit: contain;
-}
-.pwo-pack-art img:nth-child(1) {
-  transform: translateX(-48%) scale(0.82);
-}
-.pwo-pack-art img:nth-child(2) {
-  transform: translateX(48%) scale(0.82);
-}
-.pwo-pack-art img:nth-child(3) {
-  transform: translateY(-4%);
-}
-.pwo-pack-count {
-  position: absolute;
-  top: var(--space-2);
-  right: var(--space-2);
-  display: grid;
-  place-items: center;
-  width: var(--space-8);
   aspect-ratio: 1;
-  border-radius: var(--radius-pill);
-  color: var(--c-on-primary);
-  background: var(--c-primary);
+  max-width: none;
+  object-fit: contain;
+  transform: translateX(-50%);
+}
+/* Bakre rader lite mörkare för djupkänsla */
+.pwo-pack-art img[data-row='0'] {
+  filter: brightness(0.86);
+}
+
+/* Förpackningsval som kort med bild, pris och styckpris (som Apotea) */
+.pack-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: var(--space-2);
+}
+.option.option-tile {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  padding: var(--space-2);
+  min-height: 0;
+}
+.option-tile-media {
+  display: block;
+  aspect-ratio: 1;
+  margin-bottom: var(--space-1);
+  border-radius: var(--radius-sm);
+  background: var(--c-product-photo);
+  overflow: hidden;
+}
+.option-tile-media .pwo-pack-art {
+  background: transparent;
+}
+.option-tile .option-name {
+  font-size: var(--fs-sm);
+}
+.option-tile-price {
   font-family: var(--font-display);
   font-weight: 800;
+  font-size: var(--fs-md);
+}
+.option-save {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  z-index: 1;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--c-sale);
+  color: var(--c-white);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 1.4;
+}
+.option-tile[aria-disabled='true'] .option-tile-media {
+  opacity: 0.45;
 }
 
 /* ========================================================================== Breadcrumbs + listing */
