@@ -224,7 +224,8 @@ export const supportPages: SupportPage[] = [
       {
         heading: '2. Vem kan handla',
         paragraphs: [
-          `Du måste vara minst ${C.ageLimit} år för att handla. Vi säljer till privatpersoner med leveransadress i Sverige. Flera av våra produkter innehåller koffein och rekommenderas inte för barn eller gravida och ammande.`,
+          `Du ska vara minst ${C.ageLimit} år för att handla, eller ha målsmans godkännande. Genom att lägga en order intygar du detta. Vi säljer till privatpersoner med leveransadress i Sverige.`,
+          'Flera av våra produkter innehåller koffein. De rekommenderas inte för barn och ungdomar under 16 år, gravida eller ammande. Vi säljer inte koffeinprodukter till personer under 15 år. Vid misstanke om att köparen är för ung kan vi stoppa ordern och betala tillbaka pengarna.',
         ],
       },
       {
