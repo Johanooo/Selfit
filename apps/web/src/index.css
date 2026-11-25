@@ -561,49 +561,6 @@ textarea {
     transform: scale(1);
   }
 }
-.cat-nav {
-  display: none;
-  border-top: 1px solid var(--c-border);
-}
-@media (min-width: 1024px) {
-  .cat-nav {
-    display: block;
-  }
-}
-.cat-nav ul {
-  display: flex;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.cat-nav a {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-3);
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: var(--fs-sm);
-  text-decoration: none;
-  position: relative;
-}
-.cat-nav a::after {
-  content: '';
-  position: absolute;
-  left: var(--space-3);
-  right: var(--space-3);
-  bottom: 0;
-  height: 2px;
-  background: var(--c-primary);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform var(--dur-base) var(--ease);
-}
-.cat-nav a:hover::after,
-.cat-nav a[aria-current='page']::after {
-  transform: scaleX(1);
-}
 .dot {
   width: 10px;
   height: 10px;
@@ -1413,6 +1370,13 @@ a.chip:hover {
     top: calc(var(--header-h) + var(--space-8));
   }
 }
+.filters-panel {
+  display: grid;
+  gap: var(--space-5);
+}
+.filters-panel[data-open='false'] {
+  display: none;
+}
 .filters-toggle {
   display: inline-flex;
 }
@@ -1424,13 +1388,7 @@ a.chip:hover {
     display: grid;
   }
 }
-.filters-panel[data-open='false'] {
-  display: none;
-}
-.filters-panel {
-  display: grid;
-  gap: var(--space-5);
-}
+
 .filter-group {
   border: none;
   margin: 0;
@@ -2569,5 +2527,183 @@ a.chip:hover {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ========================================================================== Butiksmeny (vänsterkolumn) */
+/* Under 1024 px: ingen kolumn, menyn nås via menyknappen. */
+.container.shop-layout {
+  max-width: none;
+  padding-inline: 0;
+}
+.shop-sidebar {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .container.shop-layout {
+    max-width: var(--container);
+    padding-inline: var(--gutter);
+    display: grid;
+    grid-template-columns: 232px minmax(0, 1fr);
+    gap: var(--space-7);
+    align-items: start;
+    padding-top: var(--space-6);
+  }
+  .shop-sidebar {
+    display: block;
+    position: sticky;
+    top: calc(var(--header-h) + var(--space-5));
+    max-height: calc(100dvh - var(--header-h) - var(--space-7));
+    overflow-y: auto;
+    padding-bottom: var(--space-6);
+  }
+  /* Innehållet i högerkolumnen ska inte centreras en gång till. */
+  .shop-main .container {
+    max-width: none;
+    padding-inline: 0;
+  }
+  .shop-main .page {
+    padding-top: 0;
+  }
+}
+
+.cat-menu-heading {
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  margin: var(--space-5) 0 var(--space-2);
+  padding-inline: var(--space-3);
+}
+.cat-menu-heading:first-child {
+  margin-top: 0;
+}
+.cat-menu-list,
+.cat-menu-sub {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.cat-menu-list a {
+  display: block;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--c-text);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+  transition: background-color var(--dur-fast) var(--ease);
+}
+.cat-menu-list a:hover {
+  background: var(--c-surface);
+}
+.cat-menu-list a[aria-current='page'] {
+  background: var(--c-lavender);
+  color: var(--c-primary);
+  font-weight: 600;
+}
+.cat-menu-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.cat-menu-row a {
+  flex: 1;
+}
+.cat-menu-toggle {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border: none;
+  background: none;
+  border-radius: var(--radius-sm);
+  color: var(--c-muted);
+  cursor: pointer;
+}
+.cat-menu-toggle:hover {
+  background: var(--c-surface);
+  color: var(--c-text);
+}
+.cat-menu-toggle svg {
+  transition: transform var(--dur-fast) var(--ease);
+}
+.cat-menu-item[data-open='true'] .cat-menu-toggle svg {
+  transform: rotate(180deg);
+}
+.cat-menu-sub {
+  margin: var(--space-1) 0 var(--space-2) var(--space-4);
+  padding-left: var(--space-2);
+  border-left: 2px solid var(--c-border);
+}
+.cat-menu-sub a {
+  padding-block: 6px;
+  color: var(--c-muted);
+}
+.cat-menu-sub a:hover {
+  color: var(--c-text);
+}
+.cat-menu-sub .cat-menu-all {
+  color: var(--c-primary);
+  font-weight: 600;
+}
+.cat-menu-list--muted a {
+  color: var(--c-muted);
+}
+
+/* Kundservice i sidhuvudet */
+.header-link {
+  display: none;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+.header-link:hover {
+  background: var(--c-surface);
+}
+@media (min-width: 1024px) {
+  .header-actions {
+    align-items: center;
+  }
+  .header-link {
+    display: inline-flex;
+  }
+  /* Sidor utan vänstermeny visar menyknappen även på stor skärm. */
+  .header-row--menu {
+    grid-template-columns: auto auto minmax(280px, 560px) auto;
+    grid-template-areas: 'menu logo search actions';
+  }
+  .header-row--menu .header-menu {
+    display: block;
+  }
+  .header-row--menu .header-search {
+    justify-self: center;
+    width: 100%;
+  }
+}
+
+/* Filter på listsidor när vänstermenyn visas: i en ram ovanför produkterna. */
+@media (min-width: 1024px) {
+  .shop-main .listing-layout {
+    grid-template-columns: 1fr;
+    gap: var(--space-5);
+  }
+  .shop-main .filters {
+    position: static;
+  }
+  .shop-main .filters-panel {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--space-5);
+    align-items: start;
+    padding: var(--space-4) var(--space-5);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius-md);
+  }
+  .shop-main .filter-group {
+    border-bottom: none;
+    padding-bottom: 0;
   }
 }

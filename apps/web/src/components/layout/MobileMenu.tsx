@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { Link, useLocation } from 'wouter';
-import { ChevronRight, X } from 'lucide-react';
+import { useLocation } from 'wouter';
+import { X } from 'lucide-react';
 import { Logo } from '@/components/Logo';
-import { NAV } from './Header';
+import { CategoryMenu } from './CategoryMenu';
 
 export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -39,27 +39,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
             <X size={22} aria-hidden="true" />
           </button>
         </div>
-        <nav aria-label="Huvudmeny">
-          <ul className="drawer-nav">
-            {NAV.map((n) => (
-              <li key={n.href}>
-                <Link href={n.href} aria-current={location === n.href ? 'page' : undefined}>
-                  <span className={`dot tone-${n.tone}`} aria-hidden="true" />
-                  <span>{n.label}</span>
-                  <span>
-                    <ChevronRight size={18} aria-hidden="true" />
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <div className="drawer-sub">
-            <Link href="/ordersparning">Spåra order</Link>
-            <Link href="/retur">Returnera</Link>
-            <Link href="/support">Kundservice</Link>
-            <Link href="/support/kontakt">Kontakt</Link>
-          </div>
-        </nav>
+        <CategoryMenu idPrefix="drawer" />
       </div>
     </dialog>
   );

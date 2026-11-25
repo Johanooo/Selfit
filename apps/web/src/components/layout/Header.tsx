@@ -1,18 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useLocation, useSearch } from 'wouter';
-import { Menu, Search, ShoppingBag, Truck, ShieldCheck, Clock } from 'lucide-react';
+import { Menu, Search, ShoppingBag, Truck, ShieldCheck, Clock, LifeBuoy } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { MobileMenu } from './MobileMenu';
-import { categories } from '@/data/categories';
 import { useCart } from '@/state/cart';
 
-export const NAV = [
-  ...categories.map((c) => ({ href: `/kategori/${c.slug}`, label: c.name, tone: c.tone })),
-  { href: '/kollektion/pwo-plus', label: 'PWO+', tone: 'plum' as const },
-  { href: '/kollektion/nyheter', label: 'Nyheter', tone: 'surface' as const },
-];
-
-export function Header() {
+export function Header({ desktopMenuButton = false }: { desktopMenuButton?: boolean }) {
   const [location, navigate] = useLocation();
   const search = useSearch();
   const { count, ready } = useCart();
@@ -47,7 +40,7 @@ export function Header() {
         </ul>
       </div>
       <header className="site-header">
-        <div className="container header-row">
+        <div className={`container header-row${desktopMenuButton ? ' header-row--menu' : ''}`}>
           <div className="header-menu">
             <button
               type="button"
@@ -84,6 +77,10 @@ export function Header() {
             </button>
           </form>
           <div className="header-actions">
+            <Link href="/support" className="header-link" data-testid="link-header-support">
+              <LifeBuoy size={20} aria-hidden="true" />
+              <span>Kundservice</span>
+            </Link>
             <Link
               href="/varukorg"
               className="icon-btn"
@@ -99,27 +96,6 @@ export function Header() {
             </Link>
           </div>
         </div>
-        <nav className="cat-nav" aria-label="Kategorier">
-          <ul className="container">
-            {NAV.map((n) => (
-              <li key={n.href}>
-                <Link
-                  href={n.href}
-                  aria-current={location === n.href ? 'page' : undefined}
-                  data-testid={`link-nav-${n.href.split('/').pop()}`}
-                >
-                  <span className={`dot tone-${n.tone}`} aria-hidden="true" />
-                  {n.label}
-                </Link>
-              </li>
-            ))}
-            <li>
-              <Link href="/support" aria-current={location.startsWith('/support') ? 'page' : undefined}>
-                Kundservice
-              </Link>
-            </li>
-          </ul>
-        </nav>
       </header>
       <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
     </>
