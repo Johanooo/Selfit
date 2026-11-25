@@ -48,7 +48,7 @@ if (webDir) {
   // Startsidans toppbild börjar laddas direkt, innan JavaScript har körts.
   const homeHtml = indexHtml.replace(
     '</head>',
-    '    <link rel="preload" as="image" href="/images/hero.webp" fetchpriority="high" />\n  </head>',
+    '    <link rel="preload" as="image" href="/images/hero.webp" imagesrcset="/images/hero-480.webp 480w, /images/hero-720.webp 720w, /images/hero.webp 900w" imagesizes="(min-width: 1024px) 440px, (min-width: 900px) 45vw, 92vw" fetchpriority="high" />\n  </head>',
   );
 
   // Cache: filer i /assets har versionsnummer i namnet och kan sparas ett år.

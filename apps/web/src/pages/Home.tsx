@@ -10,6 +10,8 @@ import { ProductCard } from '@/components/ProductCard';
 import { allItems, sortItems } from '@/lib/catalog';
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+/** Bildbredd i layouten: hela bredden på mobil, en kolumn på dator. Samma värde används i serverns förladdning. */
+const HERO_SIZES = '(min-width: 1024px) 440px, (min-width: 900px) 45vw, 92vw';
 const EMPTY = { packs: [], flavours: [], prices: [] };
 
 export default function Home() {
@@ -54,6 +56,10 @@ export default function Home() {
           <div className="hero-media">
             <img
               src={`${base}/images/hero.webp`}
+              srcSet={`${base}/images/hero-480.webp 480w, ${base}/images/hero-720.webp 720w, ${base}/images/hero.webp 900w`}
+              sizes={HERO_SIZES}
+              width={900}
+              height={900}
               alt="En löpare i lavendelfärgade träningskläder vilar på en solig kaj i Stockholm med en burk PWO+ i handen"
               fetchPriority="high"
             />
