@@ -7,6 +7,7 @@ import * as s from './db/schema.ts';
 const STARTED_AT = new Date().toISOString();
 import { cartRoutes } from './routes/cart.ts';
 import { catalogRoutes } from './routes/catalog.ts';
+import { adminProductRoutes } from './routes/adminProducts.ts';
 import { auditRoutes } from './routes/audit.ts';
 import { pageRoutes } from './routes/pages.ts';
 import { settingsRoutes } from './routes/settings.ts';
@@ -24,6 +25,7 @@ export function createApp(db: Db) {
   app.route('/', settingsRoutes(db));
   app.route('/', pageRoutes(db));
   app.route('/', auditRoutes(db));
+  app.route('/', adminProductRoutes(db));
   app.onError((err, c) => {
     console.error(err);
     return c.json({ error: 'Något gick fel på servern.' }, 500);

@@ -8,6 +8,7 @@ import { createDb, type Db } from '../src/db/client.ts';
 import { runMigrations } from '../src/db/migrate.ts';
 import { seed } from '../src/db/seed.ts';
 import { markDatabaseCreated } from '../src/db/meta.ts';
+import { syncReferenceData } from '../src/routes/adminProducts.ts';
 import * as s from '../src/db/schema.ts';
 import { lowestPrice30Days } from '../src/lib/pricing.ts';
 import { quoteCart } from '../src/routes/cart.ts';
@@ -21,6 +22,7 @@ beforeAll(async () => {
   await runMigrations(db);
   await markDatabaseCreated(db);
   await seed(db);
+  await syncReferenceData(db);
   app = createApp(db);
 });
 
@@ -213,5 +215,87 @@ describe('butikens produktlista', () => {
     const { body } = await get('/storefront/products');
     expect(body.some((p: any) => p.slug === 'handkram')).toBe(false);
     await db.update(s.productFamilies).set({ status: 'published' }).where(eq(s.productFamilies.slug, 'handkram'));
+  });
+});
+
+describe('Admin: produkter', () => {
+  const send = (method: string, path: string, body?: unknown) =>
+    app.request(`/api${path}`, { method, headers: { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+  const tshirt = {
+    name: 'Träningströja',
+    brand: 'SELFIT',
+    productType: 'klader',
+    subcategory: 't-shirts-och-linnen',
+    tagline: 'Mjuk och sval',
+    description: 'Första stycket.\n\nAndra stycket.',
+    vat: 'vat-standard',
+    images: [{ src: '/uploads/test.webp', alt: 'Svart tröja' }],
+    optionNames: ['Storlek', 'Färg'],
+    variants: [
+      { options: { Storlek: 'M', Färg: 'Svart' }, price: 299, stock: 5 },
+      { options: { Storlek: 'L', Färg: 'Svart' }, price: 299, stock: 0 },
+    ],
+  };
+  let id = '';
+
+  it('skapar ett utkast som inte syns i butiken', async () => {
+    const res = await send('POST', '/admin/products', tshirt);
+    expect(res.status).toBe(200);
+    const p = (await res.json()) as any;
+    id = p.id;
+    expect(p.status).toBe('draft');
+    expect(p.slug).toBe('traningstroja');
+    expect(p.variants).toHaveLength(2);
+    const shop = (await get('/storefront/products')).body;
+    expect(shop.some((x: any) => x.slug === 'traningstroja')).toBe(false);
+  });
+
+  it('publicerar och visar produkten i butiken med alternativ och bild', async () => {
+    const res = await send('POST', `/admin/products/${id}/status`, { status: 'published' });
+    expect(res.status).toBe(200);
+    const shop = (await get('/storefront/products')).body;
+    const p = shop.find((x: any) => x.slug === 'traningstroja');
+    expect(p.optionNames).toEqual(['Storlek', 'Färg']);
+    expect(p.variants[0].options).toEqual({ Storlek: 'M', Färg: 'Svart' });
+    expect(p.primaryImage).toBe('/uploads/test.webp');
+    expect(p.description).toEqual(['Första stycket.', 'Andra stycket.']);
+    expect(p.category).toBe('traningsklader');
+  });
+
+  it('sparar prisändring i prishistoriken och lagerändring i lagerhistoriken', async () => {
+    const p = (await (await send('GET', `/admin/products/${id}`)).json()) as any;
+    p.variants[0].price = 249;
+    p.variants[0].stock = 8;
+    const res = await send('PUT', `/admin/products/${id}`, p);
+    expect(res.status).toBe(200);
+    const after = (await res.json()) as any;
+    expect(after.variants[0].price).toBe(249);
+    expect(after.variants[0].stock).toBe(8);
+    const ledger = await db.select().from(s.stockLedger).where(eq(s.stockLedger.variantId, after.variants[0].id));
+    expect(ledger.map((l) => l.change)).toEqual([5, 3]);
+  });
+
+  it('nekar publicering när kategori saknas', async () => {
+    const res = await send('POST', '/admin/products', { ...tshirt, name: 'Utan kategori', subcategory: '', status: 'published' });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as any).error).toMatch(/kategori/);
+  });
+
+  it('kopierar en produkt som utkast', async () => {
+    const res = await send('POST', `/admin/products/${id}/duplicate`);
+    const copy = (await res.json()) as any;
+    expect(copy.name).toBe('Träningströja (kopia)');
+    expect(copy.status).toBe('draft');
+    expect(copy.slug).toBe('traningstroja-kopia');
+    expect((await send('DELETE', `/admin/products/${copy.id}`)).status).toBe(200);
+  });
+
+  it('tar inte bort publicerade produkter, men arkiverade', async () => {
+    expect((await send('DELETE', `/admin/products/${id}`)).status).toBe(409);
+    await send('POST', `/admin/products/${id}/status`, { status: 'archived' });
+    expect((await send('DELETE', `/admin/products/${id}`)).status).toBe(200);
+    expect((await send('GET', `/admin/products/${id}`)).status).toBe(404);
+    const log = (await get('/admin/audit')).body;
+    expect(log.some((r: any) => r.action === 'Produkt borttagen')).toBe(true);
   });
 });

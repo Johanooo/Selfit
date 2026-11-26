@@ -19,6 +19,8 @@ import { createApp } from './app.ts';
 import { createDb, defaultDatabaseUrl } from './db/client.ts';
 import { buildStorefrontProducts } from './lib/storefront.ts';
 import { markDatabaseCreated } from './db/meta.ts';
+import { syncReferenceData } from './routes/adminProducts.ts';
+import { uploadsDir } from './lib/paths-data.ts';
 import { runMigrations } from './db/migrate.ts';
 import { isEmpty, seed } from './db/seed.ts';
 import { findDir, here } from './lib/paths.ts';
@@ -26,6 +28,7 @@ import { findDir, here } from './lib/paths.ts';
 const db = createDb();
 await runMigrations(db);
 await markDatabaseCreated(db);
+await syncReferenceData(db);
 console.log(`Databas: ${defaultDatabaseUrl().replace(/^file:/, '')}`);
 if (process.env.SEED_IF_EMPTY === 'true' && (await isEmpty(db))) {
   await seed(db);
@@ -43,6 +46,13 @@ if (password) {
 }
 
 root.route('/', createApp(db));
+
+// Bilder som laddats upp i Admin (ligger bredvid databasen, finns kvar vid uppdateringar).
+const uploads = serveStatic({ root: relative(process.cwd(), uploadsDir()), rewriteRequestPath: (p) => p.replace(/^\/uploads/, '') });
+root.use('/uploads/*', async (c, next) => {
+  await uploads(c, next);
+  if (c.res.status === 200) c.header('Cache-Control', 'public, max-age=31536000, immutable');
+});
 
 // Butikens byggda sidor (apps/web/dist/public), om de finns.
 const dir = here(import.meta.url);
