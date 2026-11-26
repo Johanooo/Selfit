@@ -165,3 +165,21 @@ describe('sidor', () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe('ändringslogg', () => {
+  it('loggar ändringar automatiskt och går inte att ändra eller radera', async () => {
+    const log = (await get('/admin/audit')).body;
+    expect(log.length).toBeGreaterThan(0);
+    const company = log.find((r: any) => r.object === 'Företagsuppgifter');
+    expect(company.details.some((d: any) => d.field === 'legalName' && d.to === 'SELFIT AB')).toBe(true);
+    expect(log.some((r: any) => r.action === 'Sida ändrad')).toBe(true);
+    for (const method of ['PUT', 'DELETE', 'POST']) {
+      const res = await app.request('/api/admin/audit', { method });
+      expect(res.status).toBe(404);
+    }
+    // Även direkt i databasen stoppas ändringar och radering.
+    await expect(db.update(s.auditLog).set({ actor: 'Någon annan' })).rejects.toThrow();
+    await expect(db.delete(s.auditLog)).rejects.toThrow();
+    expect((await get('/admin/audit')).body.length).toBe(log.length);
+  });
+});

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { defaultSettings, type SiteSettings } from '../../../web/src/data/siteDefaults.ts';
 import type { Db } from '../db/client.ts';
 import * as s from '../db/schema.ts';
+import { diff, logChange } from '../lib/audit.ts';
 
 const text = (max = 200) => z.string().trim().max(max);
 
@@ -57,11 +58,16 @@ export function settingsRoutes(db: Db) {
       const fields = Object.fromEntries(parsed.error.issues.map((i) => [String(i.path[0] ?? ''), i.message]));
       return c.json({ error: 'Kontrollera fälten.', fields }, 400);
     }
+    const before = (await readSettings(db))[key] as unknown as Record<string, unknown>;
     const now = new Date().toISOString();
     await db
       .insert(s.siteSettings)
       .values({ key, value: parsed.data, updatedAt: now })
       .onConflictDoUpdate({ target: s.siteSettings.key, set: { value: parsed.data, updatedAt: now } });
+    const changes = diff(before, parsed.data as Record<string, unknown>);
+    if (changes.length) {
+      await logChange(db, { action: 'Inställning ändrad', object: key === 'company' ? 'Företagsuppgifter' : 'Villkor och avgifter', details: changes });
+    }
     const [row] = await db.select().from(s.siteSettings).where(eq(s.siteSettings.key, key));
     return c.json({ key, value: row.value, updatedAt: row.updatedAt });
   });

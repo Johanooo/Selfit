@@ -316,3 +316,7 @@
 .admin-root .admin-page-preview-body { display: grid; gap: var(--space-4); }
 .admin-root .admin-page-preview-body .h1 { font-size: 1.75rem; }
 .admin-root .admin-muted { color: var(--c-muted); }
+
+/* Ändringslogg */
+.admin-root .admin-log-search { max-width: 280px; }
+.admin-root .admin-log-changes { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }

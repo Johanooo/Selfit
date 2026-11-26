@@ -369,3 +369,20 @@ export const pages = sqliteTable('pages', {
   faq: json<{ q: string; a: string }[]>('faq'),
   updatedAt: text('updated_at').notNull(),
 });
+
+/**
+ * Ändringslogg: vem ändrade vad och när. Raderna skrivs automatiskt när något sparas i Admin.
+ * Loggen kan bara läggas till – servern har inga funktioner för att ändra eller ta bort rader.
+ */
+export const auditLog = sqliteTable(
+  'audit_log',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    at: text('at').notNull(),
+    actor: text('actor').notNull(),
+    action: text('action').notNull(),
+    object: text('object').notNull(),
+    details: json<{ field: string; from: unknown; to: unknown }[]>('details'),
+  },
+  (t) => [index('audit_log_at_idx').on(t.at)],
+);

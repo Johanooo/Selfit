@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { getDefaultPage, type PageContent } from '../../../web/src/data/pageTemplates.ts';
 import type { Db } from '../db/client.ts';
 import * as s from '../db/schema.ts';
+import { logChange } from '../lib/audit.ts';
 
 export const pageSchema = z.object({
   title: z.string().trim().min(1, 'Sidan behöver en rubrik.').max(120),
@@ -41,19 +42,32 @@ export function pageRoutes(db: Db) {
     if (!parsed.success) {
       return c.json({ error: parsed.error.issues[0]?.message ?? 'Kontrollera fälten.' }, 400);
     }
+    const [prev] = await db.select().from(s.pages).where(eq(s.pages.slug, slug));
+    const old = prev ?? original;
+    const changed = (['title', 'summary', 'sections'] as const).filter((k) => JSON.stringify(old[k]) !== JSON.stringify(parsed.data[k]));
     const now = new Date().toISOString();
     const v = { ...parsed.data, faq: parsed.data.faq ?? original.faq ?? null, updatedAt: now };
     await db
       .insert(s.pages)
       .values({ slug, ...v })
       .onConflictDoUpdate({ target: s.pages.slug, set: v });
+    if (changed.length) {
+      const names = { title: 'Rubrik', summary: 'Ingress', sections: 'Text' } as const;
+      await logChange(db, {
+        action: 'Sida ändrad',
+        object: `Sida: ${original.title}`,
+        details: changed.map((k) => ({ field: names[k], from: k === 'sections' ? `${old.sections.length} avsnitt` : old[k], to: k === 'sections' ? `${parsed.data.sections.length} avsnitt` : parsed.data[k] })),
+      });
+    }
     const [row] = await db.select().from(s.pages).where(eq(s.pages.slug, slug));
     return c.json(toContent(row));
   });
 
   /** Återställ originaltexten. */
   app.delete('/admin/pages/:slug', async (c) => {
-    await db.delete(s.pages).where(eq(s.pages.slug, c.req.param('slug')));
+    const slug = c.req.param('slug');
+    const deleted = await db.delete(s.pages).where(eq(s.pages.slug, slug)).returning();
+    if (deleted.length) await logChange(db, { action: 'Originaltext återställd', object: `Sida: ${getDefaultPage(slug)?.title ?? slug}` });
     return c.json({ ok: true });
   });
 
