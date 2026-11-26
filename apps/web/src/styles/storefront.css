@@ -163,7 +163,9 @@
 }
 .app-shell .usp-bar ul {
   gap: clamp(1rem, 4vw, 3.5rem);
-  padding: 0.45rem 0;
+  margin-inline: auto;
+  padding: 0.45rem var(--gutter);
+  justify-content: center;
 }
 .app-shell .usp-bar svg {
   stroke-width: 2.5;
@@ -347,6 +349,10 @@
 .app-shell .has-menu:focus-within .mega {
   opacity: 1;
   visibility: visible;
+}
+.app-shell .has-menu.is-closed .mega {
+  opacity: 0;
+  visibility: hidden;
 }
 .app-shell .mega-inner {
   background: #fff;

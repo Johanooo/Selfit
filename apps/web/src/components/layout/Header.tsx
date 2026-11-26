@@ -19,6 +19,8 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [suggestOpen, setSuggestOpen] = useState(false);
+  // Kategorin vars meny ska hållas stängd efter ett klick, tills musen lämnar den.
+  const [closedMenu, setClosedMenu] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   // Stäng förslagen vid sidbyte och vid klick utanför.
@@ -45,6 +47,12 @@ export function Header() {
     const term = searchInput.current?.value.trim() ?? '';
     setSuggestOpen(false);
     navigate(term ? `/sok?q=${encodeURIComponent(term)}` : '/sok');
+  };
+
+  // Efter ett klick i menyn: stäng den och ta bort fokus, så att den inte hänger kvar på nästa sida.
+  const closeMenu = (slug: string) => {
+    setClosedMenu(slug);
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   };
 
   const isActive = (href: string) => location === href || location.startsWith(`${href}/`);
@@ -170,7 +178,14 @@ export function Header() {
               const subs = visibleSubcategoriesOf(c.slug);
               const href = `/kategori/${c.slug}`;
               return (
-                <li key={c.slug} className={subs.length ? 'has-menu' : undefined}>
+                <li
+                  key={c.slug}
+                  className={subs.length ? `has-menu${closedMenu === c.slug ? ' is-closed' : ''}` : undefined}
+                  onMouseLeave={() => setClosedMenu((cur) => (cur === c.slug ? null : cur))}
+                  onClick={(e) => {
+                    if ((e.target as HTMLElement).closest('a')) closeMenu(c.slug);
+                  }}
+                >
                   <Link href={href} className="main-nav-link" aria-current={isActive(href) ? 'page' : undefined} data-testid={`nav-link-${c.slug}`}>
                     {c.name}
                     {subs.length > 0 && <ChevronDown size={14} aria-hidden="true" />}
