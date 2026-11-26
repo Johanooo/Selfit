@@ -43,6 +43,13 @@
       "when": 1795690875709,
       "tag": "0005_media",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1795692600000,
+      "tag": "0006_discounts",
+      "breakpoints": true
     }
   ]
 }

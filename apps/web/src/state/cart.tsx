@@ -1,10 +1,29 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { DISCOUNT_CODES, resolveLines, type CartLine, type ResolvedLine } from '@/lib/cart-math';
+import { resolveLines, type CartLine, type DiscountInput, type ResolvedLine } from '@/lib/cart-math';
+import type { DiscountRule } from '@/lib/discounts';
 import { findVariant } from '@/data/products';
 import { isBuyable } from '@/lib/format';
 import { readJSON, writeJSON } from '@/lib/storage';
 
 const KEY = 'selfit-cart-v1';
+const API = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/api`;
+
+export type CodeCheck = { ok: true; rule: DiscountRule } | { ok: false; error: string };
+
+/** Frågar servern om koden får användas. Med e-post kontrolleras även vilka kunder den gäller. */
+export async function checkDiscountCode(code: string, email?: string): Promise<CodeCheck> {
+  try {
+    const res = await fetch(`${API}/discounts/check`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code, email: email || undefined }),
+    });
+    const body = (await res.json()) as { ok: boolean; error?: string; discount?: DiscountRule };
+    return body.ok && body.discount ? { ok: true, rule: body.discount } : { ok: false, error: body.error ?? 'Koden kunde inte användas.' };
+  } catch {
+    return { ok: false, error: 'Kunde inte kontrollera koden just nu. Försök igen om en stund.' };
+  }
+}
 const MAX_QTY = 20;
 
 interface CartState {
@@ -22,6 +41,8 @@ interface CartCtx {
   lines: ResolvedLine[];
   count: number;
   code: string | null;
+  /** Reglerna för koden och de automatiska rabatterna, till computeTotals. */
+  discounts: DiscountInput;
   ready: boolean;
   storageAvailable: boolean | null;
   lastAdded: AddedNotice | null;
@@ -29,7 +50,9 @@ interface CartCtx {
   setQty: (variantId: string, qty: number) => void;
   remove: (variantId: string) => void;
   clear: () => void;
-  applyCode: (code: string) => boolean;
+  applyCode: (code: string) => Promise<CodeCheck>;
+  /** Sätter en redan kontrollerad regel (t.ex. efter kontroll med e-post i kassan). */
+  setCodeRule: (rule: DiscountRule) => void;
   removeCode: () => void;
   dismissNotice: () => void;
 }
@@ -41,15 +64,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [storageAvailable, setStorageAvailable] = useState<boolean | null>(null);
   const [lastAdded, setLastAdded] = useState<AddedNotice | null>(null);
+  const [codeRule, setCodeRuleState] = useState<DiscountRule | null>(null);
+  const [automatic, setAutomatic] = useState<DiscountRule[]>([]);
   const noticeId = useRef(0);
 
   useEffect(() => {
     const saved = readJSON<CartState>(KEY, { lines: [], code: null });
     setState({
       lines: Array.isArray(saved.lines) ? saved.lines.filter((l) => findVariant(l.variantId) && l.qty > 0) : [],
-      code: saved.code && DISCOUNT_CODES[saved.code] ? saved.code : null,
+      code: typeof saved.code === 'string' ? saved.code : null,
     });
     setReady(true);
+    // Sparad kod kontrolleras igen: den kan ha gått ut sedan sist.
+    if (typeof saved.code === 'string') {
+      checkDiscountCode(saved.code).then((r) => {
+        if (r.ok) setCodeRuleState(r.rule);
+        else setState((s) => ({ ...s, code: null }));
+      });
+    }
+    fetch(`${API}/discounts/automatic`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list: DiscountRule[]) => setAutomatic(Array.isArray(list) ? list : []))
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -82,16 +118,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, lines: s.lines.filter((l) => l.variantId !== variantId) }));
   }, []);
 
-  const clear = useCallback(() => setState({ lines: [], code: null }), []);
-
-  const applyCode = useCallback((raw: string) => {
-    const code = raw.trim().toUpperCase();
-    if (!DISCOUNT_CODES[code]) return false;
-    setState((s) => ({ ...s, code }));
-    return true;
+  const clear = useCallback(() => {
+    setState({ lines: [], code: null });
+    setCodeRuleState(null);
   }, []);
 
-  const removeCode = useCallback(() => setState((s) => ({ ...s, code: null })), []);
+  const applyCode = useCallback(async (raw: string) => {
+    const code = raw.trim().toUpperCase();
+    const r = await checkDiscountCode(code);
+    if (r.ok) {
+      setCodeRuleState(r.rule);
+      setState((s) => ({ ...s, code }));
+    }
+    return r;
+  }, []);
+
+  const setCodeRule = useCallback((rule: DiscountRule) => setCodeRuleState(rule), []);
+
+  const removeCode = useCallback(() => {
+    setState((s) => ({ ...s, code: null }));
+    setCodeRuleState(null);
+  }, []);
   const dismissNotice = useCallback(() => setLastAdded(null), []);
 
   const value = useMemo<CartCtx>(() => {
@@ -100,6 +147,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       lines,
       count: lines.reduce((s, l) => s + l.qty, 0),
       code: state.code,
+      discounts: { code: state.code ? codeRule : null, automatic },
       ready,
       storageAvailable,
       lastAdded,
@@ -108,10 +156,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       remove,
       clear,
       applyCode,
+      setCodeRule,
       removeCode,
       dismissNotice,
     };
-  }, [state, ready, storageAvailable, lastAdded, add, setQty, remove, clear, applyCode, removeCode, dismissNotice]);
+  }, [state, codeRule, automatic, ready, storageAvailable, lastAdded, add, setQty, remove, clear, applyCode, setCodeRule, removeCode, dismissNotice]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

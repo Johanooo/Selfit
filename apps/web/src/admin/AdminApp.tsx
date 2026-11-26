@@ -29,7 +29,7 @@ import {
   ReportsView,
 } from './businessAdminViews';
 import { AdminNavigationContext, announcePrototypeAction, NavigableRows, readRowDetail, recordRowProps, RowDetailView, useAdminListState } from './adminInteractions';
-import { DiscountsView } from './discountsView';
+import { DiscountsView } from './discountViews';
 import { MediaLibraryView } from './mediaLibraryView';
 import { OperationsProvider, useOperations, balance, batchStatus, money } from './operationsModel';
 import { OperationalOrders, OperationalOrderDetail, OperationalReturns, ManualOrderForm, PickPackView } from './operationsOrders';
@@ -632,7 +632,7 @@ function AdminWorkspace() {
         </div>}
       </form>
       <div className="admin-topbar-right"><label className="ops-role">Visningsroll (demo)<select className="admin-control" aria-label="Visningsroll (demo)" value={operations.role} onChange={(e) => commit((d) => { d.role = e.target.value; })}>{['Admin', 'Ekonomi', 'Katalog', 'Kundservice'].map((role) => <option key={role}>{role}</option>)}</select></label><span className="admin-user-chip" aria-label="Användare Ella Svensson" data-testid="text-admin-user">ES</span></div>
-    </header><main className="admin-content">{detailParent && !route.startsWith('/admin/produkter/') && <div className="admin-detail-navigation"><button type="button" className="admin-btn" onClick={back} data-testid="button-detail-back">← Tillbaka</button><nav aria-label="Brödsmulor"><a href={backPath} onClick={(event) => { event.preventDefault(); back(); }}>{parentLabel}</a><span aria-hidden="true"> / </span><span aria-current="page">{detailLabel}</span></nav></div>}{notice && <div className="admin-inline-message" role="status" data-testid="status-global-notice">{notice}</div>}{page}</main></div>
+    </header><main className="admin-content">{detailParent && !route.startsWith('/admin/produkter/') && !route.startsWith('/admin/rabatter/') && <div className="admin-detail-navigation"><button type="button" className="admin-btn" onClick={back} data-testid="button-detail-back">← Tillbaka</button><nav aria-label="Brödsmulor"><a href={backPath} onClick={(event) => { event.preventDefault(); back(); }}>{parentLabel}</a><span aria-hidden="true"> / </span><span aria-current="page">{detailLabel}</span></nav></div>}{notice && <div className="admin-inline-message" role="status" data-testid="status-global-notice">{notice}</div>}{page}</main></div>
   </div></div></AdminNavigationContext.Provider>;
 }
 

@@ -404,3 +404,33 @@ export const media = sqliteTable('media', {
   bytes: integer('bytes').notNull().default(0),
   createdAt: createdAt(),
 });
+
+// ---------- Rabatter ----------
+
+export type DiscountAppliesTo = { type: 'all' | 'categories' | 'products'; categories: string[]; products: string[] };
+export type DiscountEligibility = { type: 'all' | 'new' | 'returning' | 'specific'; customerIds: string[] };
+
+/**
+ * Rabattkoder och automatiska rabatter.
+ * value: procent (1–100) eller fast belopp i öre. minValue: öre eller antal artiklar.
+ */
+export const discounts = sqliteTable('discounts', {
+  id: text('id').primaryKey(),
+  method: text('method', { enum: ['code', 'automatic'] }).notNull(),
+  code: text('code').unique(),
+  title: text('title').notNull(),
+  kind: text('kind', { enum: ['products', 'order', 'shipping'] }).notNull(),
+  valueType: text('value_type', { enum: ['percent', 'fixed'] }).notNull().default('percent'),
+  value: integer('value').notNull().default(0),
+  appliesTo: json<DiscountAppliesTo>('applies_to').notNull(),
+  eligibility: json<DiscountEligibility>('eligibility').notNull(),
+  minType: text('min_type', { enum: ['none', 'amount', 'quantity'] }).notNull().default('none'),
+  minValue: integer('min_value').notNull().default(0),
+  usageLimit: integer('usage_limit'),
+  oncePerCustomer: integer('once_per_customer', { mode: 'boolean' }).notNull().default(false),
+  startsAt: text('starts_at').notNull(),
+  endsAt: text('ends_at'),
+  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+  updatedAt: text('updated_at'),
+  createdAt: createdAt(),
+});

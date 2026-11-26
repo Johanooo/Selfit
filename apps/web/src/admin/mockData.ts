@@ -22,7 +22,7 @@ export const orderRows: OrderRow[] = [
 export const navGroups = [
   { label: 'Översikt', links: [{ path: '/admin', label: 'Dagens läge', icon: '◫' }] },
   { label: 'Försäljning', links: [{ path: '/admin/order', label: 'Ordrar', icon: '▣' }, { path: '/admin/returer', label: 'Returer och byten', icon: '↶' }, { path: '/admin/kunder', label: 'Kunder', icon: '♙' }] },
-  { label: 'Marknadsföring', links: [{ path: '/admin/kampanjer', label: 'Kampanjer', icon: '★' }, { path: '/admin/rabatter', label: 'Rabattkoder', icon: '%' }] },
+  { label: 'Marknadsföring', links: [{ path: '/admin/kampanjer', label: 'Kampanjer', icon: '★' }, { path: '/admin/rabatter', label: 'Rabatter', icon: '%' }] },
   { label: 'Katalog', links: [{ path: '/admin/produkter', label: 'Produkter', icon: '▤' }, { path: '/admin/kategorier', label: 'Kategorier', icon: '⌘' }, { path: '/admin/varumarken', label: 'Varumärken', icon: '◈' }, { path: '/admin/produkttyper', label: 'Produkttyper och fält', icon: '≡' }, { path: '/admin/media', label: 'Mediebibliotek', icon: '▧' }] },
   { label: 'Innehåll', links: [{ path: '/admin/innehall/sidor', label: 'Sidor', icon: '▭' }, { path: '/admin/innehall/fragor', label: 'Vanliga frågor', icon: '?' }, { path: '/admin/innehall/startsida', label: 'Startsida', icon: '⌂' }, { path: '/admin/innehall/topprad', label: 'Topprad och meny', icon: '☰' }] },
   { label: 'Lager', links: [{ path: '/admin/saldo', label: 'Saldo', icon: '▦' }, { path: '/admin/inkop', label: 'Inköp och inleveranser', icon: '▤' }, { path: '/admin/partier', label: 'Partier och bäst före', icon: '◷' }, { path: '/admin/lager', label: 'Lager och synk', icon: '⇧' }] },

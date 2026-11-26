@@ -353,3 +353,77 @@ describe('Admin: varumärken', () => {
     expect(list.find((b: any) => b.id === 'br_nike').products).toBe(1);
   });
 });
+
+describe('rabatter', () => {
+  const send = (method: string, path: string, body?: unknown) =>
+    app.request(`/api${path}`, { method, headers: { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+  const past = '2026-01-01T00:00:00.000Z';
+  const base = { method: 'code', kind: 'order', valueType: 'percent', value: 10, startsAt: past };
+  const check = async (code: string, email?: string) => (await (await send('POST', '/discounts/check', { code, email })).json()) as any;
+
+  it('skapar en kod och butiken godkänner den', async () => {
+    const res = await send('POST', '/admin/discounts', { ...base, code: 'valkommen10' });
+    expect(res.status).toBe(200);
+    const d = (await res.json()) as any;
+    expect(d.code).toBe('VALKOMMEN10');
+    expect(d.label).toBe('10 % på hela ordern');
+    expect(d.state).toBe('active');
+    const ok = await check('Valkommen10');
+    expect(ok.ok).toBe(true);
+    expect(ok.discount.value).toBe(10);
+    expect((await send('POST', '/admin/discounts', { ...base, code: 'VALKOMMEN10' })).status).toBe(409);
+  });
+
+  it('validerar fälten', async () => {
+    const bad = async (body: unknown) => ((await (await send('POST', '/admin/discounts', body)).json()) as any).error;
+    expect(await bad({ ...base, code: 'X' })).toMatch(/3–32/);
+    expect(await bad({ ...base, code: 'PROC', value: 150 })).toMatch(/högst 100/);
+    expect(await bad({ ...base, code: 'KAT', kind: 'products', appliesTo: { type: 'categories', categories: [] } })).toMatch(/kategori/);
+    expect(await bad({ ...base, code: 'PERS', eligibility: { type: 'specific', customerIds: [] } })).toMatch(/kund/);
+    expect(await bad({ ...base, method: 'automatic', title: 'Rea', eligibility: { type: 'new' } })).toMatch(/alla kunder/);
+  });
+
+  it('nekar utgångna och schemalagda koder och fast belopp sparas i kronor', async () => {
+    await send('POST', '/admin/discounts', { ...base, code: 'GAMMAL', endsAt: '2026-02-01T00:00:00.000Z' });
+    expect((await check('GAMMAL')).error).toMatch(/gått ut/);
+    await send('POST', '/admin/discounts', { ...base, code: 'SNART', startsAt: '2099-01-01T00:00:00.000Z' });
+    expect((await check('SNART')).error).toMatch(/gäller från/);
+    expect((await check('FINNSINTE')).error).toMatch(/finns inte/);
+    const fixed = (await (await send('POST', '/admin/discounts', { ...base, code: 'MINUS50', valueType: 'fixed', value: 50 })).json()) as any;
+    expect(fixed.value).toBe(50);
+    expect(fixed.label).toBe('50 kr på hela ordern');
+  });
+
+  it('nya kunder, personliga koder och en gång per kund', async () => {
+    await db.insert(s.customers).values([
+      { id: 'cu_anna', email: 'anna@example.se', name: 'Anna' },
+      { id: 'cu_bo', email: 'bo@example.se', name: 'Bo' },
+    ]);
+    await db.insert(s.orders).values({ id: 'or_1', number: 'T-1', customerId: 'cu_anna', email: 'anna@example.se', subtotalOre: 10000, vatOre: 2000, totalOre: 10000, discountCode: 'ANNA20' });
+    await send('POST', '/admin/discounts', { ...base, code: 'FORSTA', eligibility: { type: 'new' } });
+    expect((await check('FORSTA')).discount.needsEmail).toBe(true);
+    expect((await check('FORSTA', 'anna@example.se')).error).toMatch(/första gången/);
+    expect((await check('FORSTA', 'ny@example.se')).ok).toBe(true);
+
+    await send('POST', '/admin/discounts', { ...base, code: 'ANNA20', eligibility: { type: 'specific', customerIds: ['cu_anna'] }, oncePerCustomer: true });
+    expect((await check('ANNA20', 'bo@example.se')).error).toMatch(/personlig/);
+    expect((await check('ANNA20', 'anna@example.se')).error).toMatch(/redan använt/);
+
+    const list = (await get('/admin/discounts')).body;
+    const anna = list.find((d: any) => d.code === 'ANNA20');
+    expect(anna.used).toBe(1);
+    expect(anna.customers[0].email).toBe('anna@example.se');
+    expect((await send('DELETE', `/admin/discounts/${anna.id}`)).status).toBe(409);
+    const customers = (await get('/admin/discount-customers?q=ann')).body;
+    expect(customers).toEqual([{ id: 'cu_anna', name: 'Anna', email: 'anna@example.se', orders: 1 }]);
+  });
+
+  it('automatiska rabatter syns i butiken och max antal användningar räknas', async () => {
+    await send('POST', '/admin/discounts', { method: 'automatic', title: 'Fri frakt i november', kind: 'shipping', startsAt: past });
+    const auto = (await get('/discounts/automatic')).body;
+    expect(auto.map((a: any) => a.title)).toContain('Fri frakt i november');
+    await send('POST', '/admin/discounts', { ...base, code: 'ENGANG', usageLimit: 1 });
+    await db.insert(s.orders).values({ id: 'or_2', number: 'T-2', email: 'x@example.se', subtotalOre: 100, vatOre: 20, totalOre: 100, discountCode: 'engang' });
+    expect((await check('ENGANG')).error).toMatch(/förbrukad/);
+  });
+});

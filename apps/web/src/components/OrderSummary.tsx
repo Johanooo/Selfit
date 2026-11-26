@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { kr } from '@/lib/format';
-import { DISCOUNT_CODES, FREE_SHIPPING_THRESHOLD, type Totals } from '@/lib/cart-math';
+import { FREE_SHIPPING_THRESHOLD, type Totals } from '@/lib/cart-math';
 
 export function FreeShippingProgress({ totals }: { totals: Totals }) {
   const done = totals.remainingForFree <= 0;
@@ -24,10 +24,16 @@ export function TotalsList({ totals, code, shippingLabel }: { totals: Totals; co
         <dt>Varor ({totals.itemCount} st)</dt>
         <dd data-testid="text-subtotal">{kr(totals.subtotal)}</dd>
       </div>
-      {totals.discount > 0 && code && (
+      {totals.discount > 0 && (
         <div className="summary-row summary-row--discount">
-          <dt>Rabatt {code} ({DISCOUNT_CODES[code]?.label})</dt>
+          <dt>Rabatt {totals.discountLabel ?? code ?? ''}</dt>
           <dd data-testid="text-discount">−{kr(totals.discount)}</dd>
+        </div>
+      )}
+      {totals.discount === 0 && totals.discountLabel && (
+        <div className="summary-row summary-row--discount">
+          <dt>Rabatt {totals.discountLabel}</dt>
+          <dd data-testid="text-discount">Fri frakt</dd>
         </div>
       )}
       {totals.deposit > 0 && (

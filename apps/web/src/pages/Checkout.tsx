@@ -13,7 +13,7 @@ import { getCategory } from '@/data/categories';
 import { computeTotals, SHIPPING, type DeliveryMethod } from '@/lib/cart-math';
 import { isBuyable, kr, stockText, variantLabel } from '@/lib/format';
 import { makeOrderNumber, saveOrder } from '@/lib/order';
-import { useCart } from '@/state/cart';
+import { checkDiscountCode, useCart } from '@/state/cart';
 
 /** Ifyllda uppgifter sparas bara i den här fliken (sessionStorage) och rensas när ordern är lagd. */
 const DRAFT_KEY = 'selfit-checkout-draft';
@@ -22,7 +22,8 @@ type Draft = Partial<Record<(typeof DRAFT_FIELDS)[number] | 'delivery', string>>
 
 export default function CheckoutPage() {
   usePageMeta('Kassa (demo)', 'Slutför din beställning hos SELFIT. Detta är en demo, ingen riktig betalning sker.');
-  const { lines, code, ready, clear } = useCart();
+  const { lines, code, discounts, ready, clear, removeCode, setCodeRule } = useCart();
+  const [discountError, setDiscountError] = useState('');
   const [method, setMethod] = useState<DeliveryMethod>('ombud');
   const [termsError, setTermsError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -58,11 +59,11 @@ export default function CheckoutPage() {
     if (ready) saveDraft();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [method]);
-  const totals = computeTotals(lines, code, method);
+  const totals = computeTotals(lines, discounts, method);
   const free = totals.remainingForFree <= 0;
   const unavailableLines = lines.filter((line) => !isBuyable(line.variant));
 
-  const submit = (e: FormEvent<HTMLFormElement>) => {
+  const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (unavailableLines.length > 0) return;
     const form = e.currentTarget;
@@ -71,6 +72,18 @@ export default function CheckoutPage() {
       return;
     }
     setSubmitting(true);
+    // Koden kontrolleras igen med kundens e-post (nya kunder, personliga koder, en gång per kund).
+    if (code) {
+      const email = (form.elements.namedItem('email') as HTMLInputElement | null)?.value ?? '';
+      const r = await checkDiscountCode(code, email);
+      if (!r.ok) {
+        setDiscountError(r.error);
+        setSubmitting(false);
+        return;
+      }
+      setCodeRule(r.rule);
+      setDiscountError('');
+    }
     // Simulated order. Nothing is sent anywhere and no personal data is stored.
     const number = makeOrderNumber();
     saveOrder({
@@ -332,6 +345,22 @@ export default function CheckoutPage() {
             ))}
           </ul>
           <FreeShippingProgress totals={totals} />
+          {discountError && (
+            <div className="notice notice--danger" role="alert" data-testid="error-discount">
+              <span style={{ flex: 1 }}>{discountError}</span>
+              <button
+                type="button"
+                className="btn btn--secondary btn--sm"
+                onClick={() => {
+                  removeCode();
+                  setDiscountError('');
+                }}
+                data-testid="button-checkout-remove-code"
+              >
+                Ta bort koden
+              </button>
+            </div>
+          )}
           <TotalsList totals={totals} code={code} shippingLabel={method === 'ombud' ? 'Frakt (ombud)' : 'Frakt (hemleverans)'} />
           <Link href="/varukorg" className="text-link small">
             Ändra varukorg

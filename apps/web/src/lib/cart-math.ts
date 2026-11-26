@@ -1,15 +1,12 @@
 import { findVariant } from '@/data/products';
 import type { Product, Variant } from '@/data/types';
 import { depositTotal } from './format';
+import { pickDiscount, type DiscountRule } from './discounts';
 
 export const FREE_SHIPPING_THRESHOLD = 499;
 export const SHIPPING = { ombud: 49, hem: 79 } as const;
 export type DeliveryMethod = keyof typeof SHIPPING;
 
-/** Mock discount codes – demo only, nothing is validated server-side. */
-export const DISCOUNT_CODES: Record<string, { rate: number; label: string }> = {
-  SELFIT10: { rate: 0.1, label: '10 % rabatt på produkter' },
-};
 
 export interface CartLine {
   variantId: string;
@@ -42,6 +39,10 @@ export function resolveLines(lines: CartLine[]): ResolvedLine[] {
 export interface Totals {
   subtotal: number;
   discount: number;
+  /** T.ex. "VALKOMMEN10 · 10 % på hela ordern". Null om ingen rabatt gäller. */
+  discountLabel: string | null;
+  /** Varför koden inte ger rabatt än (köpkrav), annars null. */
+  discountNote: string | null;
   deposit: number;
   shipping: number;
   total: number;
@@ -50,27 +51,31 @@ export interface Totals {
   itemCount: number;
 }
 
-export function computeTotals(
-  lines: ResolvedLine[],
-  code: string | null,
-  method: DeliveryMethod = 'ombud',
-): Totals {
+export interface DiscountInput {
+  code: DiscountRule | null;
+  automatic: DiscountRule[];
+}
+
+export function computeTotals(lines: ResolvedLine[], discounts: DiscountInput | null, method: DeliveryMethod = 'ombud'): Totals {
   const subtotal = lines.reduce((s, l) => s + l.lineTotal, 0);
-  const rate = code ? (DISCOUNT_CODES[code]?.rate ?? 0) : 0;
-  const discount = Math.round(subtotal * rate * 100) / 100;
   const deposit = lines.reduce((s, l) => s + l.deposit, 0);
+  const picked = discounts ? pickDiscount(lines, discounts.code, discounts.automatic, SHIPPING[method]) : null;
+  const discount = picked?.amount ?? 0;
   const afterDiscount = subtotal - discount;
   const free = afterDiscount >= FREE_SHIPPING_THRESHOLD;
-  const shipping = lines.length === 0 ? 0 : method === 'ombud' ? (free ? 0 : SHIPPING.ombud) : free ? 39 : SHIPPING.hem;
-  const vatGoods = lines.reduce((s, l) => {
-    const share = subtotal ? l.lineTotal / subtotal : 0;
-    const net = l.lineTotal - discount * share;
+  let shipping = lines.length === 0 ? 0 : method === 'ombud' ? (free ? 0 : SHIPPING.ombud) : free ? 39 : SHIPPING.hem;
+  if (picked?.freeShipping) shipping = 0;
+  const vatGoods = lines.reduce((s, l, i) => {
+    const net = l.lineTotal - (picked?.perLine[i] ?? 0);
     return s + (net * l.product.vatRate) / (1 + l.product.vatRate);
   }, 0);
   const vat = vatGoods + ((shipping + deposit) * 0.25) / 1.25;
+  const active = picked && !picked.unmet;
   return {
     subtotal,
     discount,
+    discountLabel: active ? `${picked.rule.title} · ${picked.rule.label}` : null,
+    discountNote: picked?.unmet ?? null,
     deposit,
     shipping,
     total: afterDiscount + deposit + shipping,

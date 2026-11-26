@@ -15,22 +15,27 @@ import { useCart, CART_MAX_QTY } from '@/state/cart';
 
 export default function CartPage() {
   usePageMeta('Varukorg', 'Din varukorg hos SELFIT.');
-  const { lines, code, ready, setQty, remove, applyCode, removeCode } = useCart();
+  const { lines, code, discounts, ready, setQty, remove, applyCode, removeCode } = useCart();
   const [codeInput, setCodeInput] = useState('');
   const [codeError, setCodeError] = useState('');
-  const totals = computeTotals(lines, code);
+  const [checking, setChecking] = useState(false);
+  const totals = computeTotals(lines, discounts);
+  const rule = discounts.code;
   const hasUnavailableLines = lines.some((line) => !isBuyable(line.variant));
 
-  const submitCode = (e: FormEvent) => {
+  const submitCode = async (e: FormEvent) => {
     e.preventDefault();
     if (!codeInput.trim()) {
       setCodeError('Skriv in en rabattkod.');
       return;
     }
-    if (applyCode(codeInput)) {
+    setChecking(true);
+    const r = await applyCode(codeInput);
+    setChecking(false);
+    if (r.ok) {
       setCodeError('');
       setCodeInput('');
-    } else setCodeError(`Koden ”${codeInput.trim()}” är inte giltig. Prova demokoden SELFIT10.`);
+    } else setCodeError(r.error);
   };
 
   return (
@@ -125,9 +130,23 @@ export default function CartPage() {
             <FreeShippingProgress totals={totals} />
             <div className="stack-2">
               {code ? (
-                <p className="notice notice--success">
+                <p className={totals.discountNote ? 'notice' : 'notice notice--success'} data-testid="notice-discount">
                   <Tag size={16} aria-hidden="true" />
-                  <span style={{ flex: 1 }}>Rabattkod {code} är aktiv.</span>
+                  <span style={{ flex: 1 }}>
+                    <strong>{code}</strong> {rule ? `· ${rule.label}` : ''}
+                    {totals.discountNote && (
+                      <>
+                        <br />
+                        {totals.discountNote}
+                      </>
+                    )}
+                    {rule?.needsEmail && !totals.discountNote && (
+                      <>
+                        <br />
+                        <span className="small">Koden gäller vissa kunder. Vi kontrollerar din e-post i kassan.</span>
+                      </>
+                    )}
+                  </span>
                   <button type="button" className="icon-btn" onClick={removeCode} aria-label="Ta bort rabattkod" data-testid="button-remove-code">
                     <X size={16} aria-hidden="true" />
                   </button>
@@ -148,12 +167,12 @@ export default function CartPage() {
                       autoComplete="off"
                       data-testid="input-discount"
                     />
-                    <button type="submit" className="btn btn--secondary" data-testid="button-apply-code">
-                      Använd
+                    <button type="submit" className="btn btn--secondary" disabled={checking} data-testid="button-apply-code">
+                      {checking ? 'Kontrollerar …' : 'Använd'}
                     </button>
                   </div>
                   <p id="discount-hint" className={codeError ? 'field-error' : 'field-hint'} role={codeError ? 'alert' : undefined}>
-                    {codeError || 'Demo: koden SELFIT10 ger 10 % rabatt på produkter (inte pant eller frakt).'}
+                    {codeError || 'Rabatten dras från varorna, inte från pant.'}
                   </p>
                 </form>
               )}
