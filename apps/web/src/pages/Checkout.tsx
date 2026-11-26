@@ -135,11 +135,8 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="container page">
-      <Breadcrumbs items={[{ label: 'Varukorg', href: '/varukorg' }, { label: 'Kassa' }]} />
-      <h1 className="h1" style={{ marginBottom: 'var(--space-5)' }}>
-        Kassa
-      </h1>
+    <div className="container page checkout-page">
+      <h1 className="h1 checkout-title">Kassa</h1>
       <p className="demo-banner" role="note" data-testid="text-demo-banner">
         <AlertTriangle size={18} aria-hidden="true" />
         <span>
@@ -307,7 +304,7 @@ export default function CheckoutPage() {
 
           <button
             type="submit"
-            className="btn btn--primary btn--block"
+            className="btn btn--checkout btn--block"
             disabled={submitting || unavailableLines.length > 0}
             data-testid="button-place-order"
           >
@@ -323,7 +320,7 @@ export default function CheckoutPage() {
           </p>
         </form>
 
-        <aside className="summary" aria-label="Din order">
+        <aside className="summary checkout-summary" aria-label="Din order">
           <h2 className="h2">Din order</h2>
           <ul className="mini-lines">
             {lines.map((l) => (

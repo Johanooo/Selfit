@@ -6,7 +6,12 @@ import { ErrorBoundary } from '@/components/error-boundary';
 // Typsnitten ligger på vår egen server istället för hos Google (snabbare och utan tredjepartsanrop).
 import '@fontsource-variable/inter';
 import '@fontsource-variable/manrope';
+import '@fontsource/poppins/500.css';
+import '@fontsource/poppins/600.css';
+import '@fontsource/poppins/700.css';
+import '@fontsource/poppins/800.css';
 import './index.css';
+import './styles/storefront.css';
 
 import { replaceProducts } from '@/data/products';
 import type { Product } from '@/data/types';

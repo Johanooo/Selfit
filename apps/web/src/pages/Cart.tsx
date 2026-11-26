@@ -183,7 +183,7 @@ export default function CartPage() {
                 Ta bort slutsålda varor för att gå vidare
               </button>
             ) : (
-              <Link href="/kassa" className="btn btn--primary btn--block" data-testid="link-checkout">
+              <Link href="/kassa" className="btn btn--checkout btn--block" data-testid="link-checkout">
                 Till kassan <ArrowRight size={18} aria-hidden="true" />
               </Link>
             )}

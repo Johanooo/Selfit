@@ -3,44 +3,33 @@ import { useLocation } from 'wouter';
 import { Header } from './Header';
 import { Footer } from './Footer';
 import { CookieConsent } from './CookieConsent';
-import { CartToast } from './CartToast';
 import { CartStorageWarning } from './CartStorageWarning';
-import { CategoryMenu } from './CategoryMenu';
-
-/** Sidor som visar butiksmenyn i en vänsterkolumn (på stor skärm). */
-const SHOP_ROUTES = [/^\/$/, /^\/kategori\//, /^\/varumarke\//, /^\/kollektion\//, /^\/sok/, /^\/produkt\//];
+import { CartDrawer } from './CartDrawer';
+import { CheckoutHeader } from './CheckoutHeader';
+import { CartDrawerProvider } from '@/state/cartDrawer';
 
 export function Layout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
-  const withMenu = SHOP_ROUTES.some((r) => r.test(location));
+  const isCheckout = location === '/kassa';
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [location]);
 
   return (
-    <div className="app-shell">
-      <a href="#main" className="skip-link">
-        Hoppa till innehåll
-      </a>
-      <Header desktopMenuButton={!withMenu} />
-      <CartStorageWarning />
-      {withMenu ? (
-        <div className="container shop-layout">
-          <aside className="shop-sidebar">
-            <CategoryMenu idPrefix="side" />
-          </aside>
-          <main id="main" tabIndex={-1} className="shop-main">
-            {children}
-          </main>
-        </div>
-      ) : (
+    <CartDrawerProvider>
+      <div className={`app-shell${isCheckout ? ' app-shell--checkout' : ''}`}>
+        <a href="#main" className="skip-link">
+          Hoppa till innehåll
+        </a>
+        {isCheckout ? <CheckoutHeader /> : <Header />}
+        <CartStorageWarning />
         <main id="main" tabIndex={-1}>
           {children}
         </main>
-      )}
-      <Footer />
-      <CartToast />
-      <CookieConsent />
-    </div>
+        {!isCheckout && <Footer />}
+        {!isCheckout && <CartDrawer />}
+        <CookieConsent />
+      </div>
+    </CartDrawerProvider>
   );
 }

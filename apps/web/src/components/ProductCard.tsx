@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import { ArrowRight, Check, Plus } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { ProductImage } from '@/components/art/ProductImage';
 import { getCategory } from '@/data/categories';
 import { clearVariant, displayVariant, productHref, type Filters, type ListingItem } from '@/lib/catalog';
@@ -37,7 +37,6 @@ export function ProductCard({ item, filters, index = 0 }: { item: ListingItem; f
       <div className={`product-card-media tone-${tone}`}>
         <ProductImage product={product} variant={v} />
         <div className="product-card-badge">
-          {product.primaryImage && <span className="badge badge--new">Exempelbild</span>}
           {allOut ? (
             <span className="badge badge--out">Slutsåld</span>
           ) : low30 !== null || otherSale ? (
@@ -47,8 +46,42 @@ export function ProductCard({ item, filters, index = 0 }: { item: ListingItem; f
           ) : low ? (
             <span className="badge badge--low">Få kvar</span>
           ) : null}
+          {product.primaryImage && <span className="badge badge--muted">Exempelbild</span>}
         </div>
+        {item.variants.length > 1 && (
+          <span className="product-card-count">
+            {flavour || !item.variants.some((x) => x.pack) ? `${item.variants.length} varianter` : `${item.variants.length} storlekar`}
+          </span>
+        )}
       </div>
+      {clear && isBuyable(clear) ? (
+        <button
+          type="button"
+          className={`card-buy${added ? ' card-buy--done' : ''}`}
+          aria-label={added ? `${title} tillagd i varukorgen` : `Lägg ${title} ${packLabel(clear.pack)} i varukorgen`}
+          onClick={() => {
+            if (add(clear.id)) setAdded(true);
+          }}
+          data-testid={`button-quickbuy-${testId}`}
+        >
+          {added ? (
+            <>
+              <Check size={16} aria-hidden="true" /> Tillagd
+            </>
+          ) : (
+            'Köp'
+          )}
+        </button>
+      ) : (
+        <Link
+          href={href}
+          className={`card-buy${allOut ? ' card-buy--off' : ''}`}
+          aria-label={allOut ? `${title} är slutsåld, visa produkt` : `Välj förpackning för ${title}`}
+          data-testid={`link-choose-${testId}`}
+        >
+          {allOut ? 'Slutsåld' : 'Välj'}
+        </Link>
+      )}
       <div className="product-card-body">
         <span className="product-card-brand">{product.brand}</span>
         <h3 className="product-card-title">
@@ -74,43 +107,19 @@ export function ProductCard({ item, filters, index = 0 }: { item: ListingItem; f
           </ul>
         )}
         <div className="product-card-foot">
-          <div>
-            <p className={`price${low30 !== null ? ' price--sale' : ''}`} data-testid={`text-price-${testId}`}>
-              {priceVaries && <span className="price-from">från</span>}
-              {kr(v.price)}
-              {low30 !== null && <span className="price-was">{kr(low30)}</span>}
+          <p className={`price${low30 !== null ? ' price--sale' : ''}`} data-testid={`text-price-${testId}`}>
+            {priceVaries && <span className="price-from">från</span>}
+            {kr(v.price)}
+            {low30 !== null && <span className="price-was">{kr(low30)}</span>}
+          </p>
+          {low30 !== null && <p className="price-compare">Lägsta pris 30 dagar: {kr(low30)}</p>}
+          {otherSale && (
+            <p className="price-compare price-compare--sale">
+              Kampanj: {otherSale.pack ? packLabel(otherSale.pack) : 'utvald variant'} {kr(otherSale.price)}
             </p>
-            {low30 !== null && <p className="price-compare">Lägsta pris 30 dagar: {kr(low30)}</p>}
-            {otherSale && (
-              <p className="price-compare price-compare--sale">
-                Kampanj: {otherSale.pack ? packLabel(otherSale.pack) : 'utvald variant'} {kr(otherSale.price)}
-              </p>
-            )}
-            {cmp && <p className="price-compare">Jämförpris {cmp}</p>}
-            {depositTotal(v) > 0 && <p className="price-compare">+ pant {kr(depositTotal(v))}</p>}
-          </div>
-          {clear && isBuyable(clear) ? (
-            <button
-              type="button"
-              className={`quick-buy ${added ? 'quick-buy--done' : ''}`}
-              aria-label={added ? `${title} tillagd i varukorgen` : `Lägg ${title} ${packLabel(clear.pack)} i varukorgen`}
-              onClick={() => {
-                if (add(clear.id)) setAdded(true);
-              }}
-              data-testid={`button-quickbuy-${testId}`}
-            >
-              {added ? <Check size={20} aria-hidden="true" /> : <Plus size={20} aria-hidden="true" />}
-            </button>
-          ) : (
-            <Link
-              href={href}
-              className="quick-buy quick-buy--outline"
-              aria-label={allOut ? `${title} är slutsåld, visa produkt` : `Välj förpackning för ${title}`}
-              data-testid={`link-choose-${testId}`}
-            >
-              <ArrowRight size={20} aria-hidden="true" />
-            </Link>
           )}
+          {cmp && <p className="price-compare">Jämförpris {cmp}</p>}
+          {depositTotal(v) > 0 && <p className="price-compare">+ pant {kr(depositTotal(v))}</p>}
         </div>
       </div>
     </article>
