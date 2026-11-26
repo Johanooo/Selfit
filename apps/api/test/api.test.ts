@@ -6,6 +6,7 @@ import { createApp } from '../src/app.ts';
 import { createDb, type Db } from '../src/db/client.ts';
 import { runMigrations } from '../src/db/migrate.ts';
 import { seed } from '../src/db/seed.ts';
+import { markDatabaseCreated } from '../src/db/meta.ts';
 import * as s from '../src/db/schema.ts';
 import { lowestPrice30Days } from '../src/lib/pricing.ts';
 import { quoteCart } from '../src/routes/cart.ts';
@@ -17,6 +18,7 @@ beforeAll(async () => {
   const dir = mkdtempSync(join(tmpdir(), 'selfit-'));
   db = createDb(`file:${join(dir, 'test.db')}`);
   await runMigrations(db);
+  await markDatabaseCreated(db);
   await seed(db);
   app = createApp(db);
 });
@@ -181,5 +183,13 @@ describe('ändringslogg', () => {
     await expect(db.update(s.auditLog).set({ actor: 'Någon annan' })).rejects.toThrow();
     await expect(db.delete(s.auditLog)).rejects.toThrow();
     expect((await get('/admin/audit')).body.length).toBe(log.length);
+  });
+});
+
+describe('hälsokontroll', () => {
+  it('visar när databasen skapades', async () => {
+    const { body } = await get('/health');
+    expect(body.status).toBe('ok');
+    expect(body.databaseCreated).toMatch(/^\d{4}-/);
   });
 });

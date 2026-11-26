@@ -4,7 +4,7 @@
  *
  * Miljövariabler:
  *   PORT           port att lyssna på (standard 3001)
- *   DATABASE_URL   databas (standard file:./data/selfit.db)
+ *   DATABASE_URL   databas (standard: ~/selfit-data/selfit.db i produktion, ./data/selfit.db lokalt)
  *   SEED_IF_EMPTY  "true" fyller en tom databas med exempeldata
  *   SITE_PASSWORD  om satt krävs lösenord för hela sajten (användarnamn: SITE_USER, standard "selfit")
  */
@@ -16,13 +16,16 @@ import { Hono } from 'hono';
 import { basicAuth } from 'hono/basic-auth';
 import { compress } from 'hono/compress';
 import { createApp } from './app.ts';
-import { createDb } from './db/client.ts';
+import { createDb, defaultDatabaseUrl } from './db/client.ts';
+import { markDatabaseCreated } from './db/meta.ts';
 import { runMigrations } from './db/migrate.ts';
 import { isEmpty, seed } from './db/seed.ts';
 import { findDir, here } from './lib/paths.ts';
 
 const db = createDb();
 await runMigrations(db);
+await markDatabaseCreated(db);
+console.log(`Databas: ${defaultDatabaseUrl().replace(/^file:/, '')}`);
 if (process.env.SEED_IF_EMPTY === 'true' && (await isEmpty(db))) {
   await seed(db);
   console.log('Tom databas fylld med exempeldata.');
