@@ -1,11 +1,12 @@
 import { Link } from 'wouter';
-import { COMPANY } from '@/data/support';
+import { useSettings } from '@/state/settings';
 import { Logo } from '@/components/Logo';
 import { visibleCategories } from '@/data/taxonomy';
 import { useCookies } from '@/state/cookies';
 
 export function Footer() {
   const { openDialog } = useCookies();
+  const { company } = useSettings();
   return (
     <footer className="site-footer">
       <div className="container">
@@ -19,7 +20,9 @@ export function Footer() {
             <p className="small">
               <strong>Kundtjänst</strong>
               <br />
-              <span className="muted">Vardagar 08–17 · 010-123 45 67</span>
+              <span className="muted">
+                {company.hours} · {company.phone}
+              </span>
             </p>
           </div>
           <nav aria-labelledby="f-shop">
@@ -88,7 +91,7 @@ export function Footer() {
           </nav>
         </div>
         <div className="footer-bottom">
-          <span>© {new Date().getFullYear()} {COMPANY.legalName} · Org.nr {COMPANY.orgNr}</span>
+          <span>© {new Date().getFullYear()} {company.legalName} · Org.nr {company.orgNr}</span>
           <span>Designprototyp – inga riktiga köp genomförs.</span>
         </div>
       </div>

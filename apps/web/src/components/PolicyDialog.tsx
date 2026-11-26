@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { ExternalLink, X } from 'lucide-react';
-import { getSupportPage } from '@/data/support';
+import { useSupportPage } from '@/state/settings';
 import { SupportSections } from './SupportSections';
 import { SupportLinkContext } from './RichText';
 
@@ -19,7 +19,7 @@ export function PolicyDialog({
   onNavigate?: (slug: string) => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
-  const page = getSupportPage(slug ?? undefined);
+  const page = useSupportPage(slug ?? undefined);
 
   useEffect(() => {
     const d = ref.current;

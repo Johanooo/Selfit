@@ -7,8 +7,10 @@ import { usePageMeta } from '@/hooks/use-page-meta';
 import { findVariant } from '@/data/products';
 import { kr, variantLabel } from '@/lib/format';
 import { loadOrder, type DemoOrder } from '@/lib/order';
+import { useSettings } from '@/state/settings';
 
 export default function OrderConfirmationPage() {
+  const { policies } = useSettings();
   usePageMeta('Orderbekräftelse (demo)', 'Tack för din demobeställning hos SELFIT.');
   const [order, setOrder] = useState<DemoOrder | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -94,7 +96,7 @@ export default function OrderConfirmationPage() {
             <span>
               <strong>Vi plockar din order</strong>
               <br />
-              <span className="muted">Skickas inom 1–2 vardagar.</span>
+              <span className="muted">Skickas inom {policies.dispatchDays}.</span>
             </span>
           </li>
           <li>

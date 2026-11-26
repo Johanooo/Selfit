@@ -17,6 +17,7 @@ import { lowestPrice30Days } from '@/lib/price-history';
 import { PriceHistory } from '@/components/PriceHistory';
 import { useCart } from '@/state/cart';
 import NotFound from './not-found';
+import { useSettings } from '@/state/settings';
 
 /** Obligatorisk text för kosttillskott (LIVSFS 2003:9). */
 const SUPPLEMENT_WARNING =
@@ -77,6 +78,7 @@ function highlightAllergens(text: string, allergens: string[]) {
 }
 
 function ProductView({ product }: { product: Product }) {
+  const { policies } = useSettings();
   const [, navigate] = useLocation();
   const params = new URLSearchParams(useSearch());
   const variant = resolve(product, params.get('smak'), params.get('pack'));
@@ -102,7 +104,7 @@ function ProductView({ product }: { product: Product }) {
 
   usePageMeta(
     `${title}${variant.pack && showPacks ? ` ${packLabel(variant.pack)}` : ''} – ${kr(variant.price)}`,
-    `${product.tagline} ${kr(variant.price)}${cmp ? `, jämförpris ${cmp}` : ''}. Skickas inom 1–2 vardagar.`,
+    `${product.tagline} ${kr(variant.price)}${cmp ? `, jämförpris ${cmp}` : ''}. Skickas inom ${policies.dispatchDays}.`,
   );
 
   // Keep canonical URL in sync with the resolved variant
@@ -410,13 +412,13 @@ function ProductView({ product }: { product: Product }) {
             </div>
             <ul className="delivery-list">
               <li>
-                <Clock size={16} aria-hidden="true" /> Skickas inom 1–2 vardagar
+                <Clock size={16} aria-hidden="true" /> Skickas inom {policies.dispatchDays}
               </li>
               <li>
                 <Truck size={16} aria-hidden="true" /> Fri frakt till ombud över 499 kr
               </li>
               <li>
-                <RotateCcw size={16} aria-hidden="true" /> 30 dagars öppet köp på oöppnade varor
+                <RotateCcw size={16} aria-hidden="true" /> {policies.openPurchaseDays} dagars öppet köp på oöppnade varor
               </li>
             </ul>
           </section>

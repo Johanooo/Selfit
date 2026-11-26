@@ -282,3 +282,16 @@
   .admin-root *,
   .admin-login * { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+/* Inställningar som sparas på riktigt */
+.admin-root .admin-field-hint { font-size: 0.8125rem; color: var(--c-muted); }
+.admin-root .admin-input-suffix { display: flex; align-items: center; gap: var(--space-2); }
+.admin-root .admin-input-suffix .admin-control { max-width: 140px; }
+.admin-root .admin-input-suffix span { color: var(--c-muted); }
+.admin-root .admin-field label .admin-status { margin-left: var(--space-2); }
+.admin-root .admin-savebar { position: sticky; bottom: 0; z-index: 5; margin-top: var(--space-5); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); border: 1px solid var(--c-border); border-radius: var(--radius-sm); background: var(--c-white, #fff); box-shadow: 0 -4px 16px rgb(0 0 0 / 0.06); }
+.admin-root .admin-savebar-msg { margin: 0; font-size: 0.875rem; color: var(--c-muted); }
+.admin-root .admin-savebar-msg.saved { color: #1f7a4d; font-weight: 600; }
+.admin-root .admin-savebar-msg.error { color: #b42318; font-weight: 600; }
+.admin-root .admin-plain-list { margin: 0; padding-left: 1.2em; display: grid; gap: var(--space-2); }
+.admin-root .admin-field > label { min-height: 26px; display: flex; align-items: center; }

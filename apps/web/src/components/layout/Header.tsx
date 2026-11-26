@@ -5,8 +5,10 @@ import { Logo } from '@/components/Logo';
 import { MobileMenu } from './MobileMenu';
 import { SearchSuggest } from './SearchSuggest';
 import { useCart } from '@/state/cart';
+import { useSettings } from '@/state/settings';
 
 export function Header({ desktopMenuButton = false }: { desktopMenuButton?: boolean }) {
+  const { policies } = useSettings();
   const [location, navigate] = useLocation();
   const search = useSearch();
   const { count, ready } = useCart();
@@ -50,10 +52,10 @@ export function Header({ desktopMenuButton = false }: { desktopMenuButton?: bool
             <Truck size={14} aria-hidden="true" /> Fri frakt över 499 kr
           </li>
           <li>
-            <Clock size={14} aria-hidden="true" /> Skickas inom 1–2 vardagar
+            <Clock size={14} aria-hidden="true" /> Skickas inom {policies.dispatchDays}
           </li>
           <li>
-            <ShieldCheck size={14} aria-hidden="true" /> 30 dagars öppet köp
+            <ShieldCheck size={14} aria-hidden="true" /> {policies.openPurchaseDays} dagars öppet köp
           </li>
         </ul>
       </div>

@@ -1,34 +1,14 @@
 /**
- * Support- och villkorstexter. Ren data så att texten kan ändras utan att röra komponenterna.
+ * Support- och villkorstexter.
  *
- * Allt som inte är beslutat står som [FYLL I] i COMPANY nedan. Fyll i det där en gång,
- * så uppdateras alla sidor (kontakt, köpvillkor, integritet, sidfot).
+ * Företagsuppgifter och avgifter (bolagsnamn, e-post, öppet köp, returavgift …) ändras i
+ * Admin → Inställningar och fylls i automatiskt i texterna här.
  *
  * OBS: Utkast. Låt en jurist eller Konsumentverkets checklista granska innan skarp lansering.
  */
 import { FREE_SHIPPING_THRESHOLD, SHIPPING } from '@/lib/cart-math';
 
-export const COMPANY = {
-  brand: 'SELFIT',
-  legalName: '[FYLL I: bolagsnamn, t.ex. SELFIT AB]',
-  orgNr: '[FYLL I: org.nr]',
-  vatNr: '[FYLL I: momsreg.nr, SE…01]',
-  address: '[FYLL I: gatuadress, postnummer och ort]',
-  email: '[FYLL I: e-post till kundtjänst]',
-  phone: '[FYLL I: telefon]',
-  hours: '[FYLL I: öppettider, t.ex. vardagar 09–16]',
-  emailProvider: '[FYLL I: e-posttjänst för orderbekräftelser]',
-  ageLimit: 18,
-  dispatchDays: '1–2 vardagar',
-  /** Frivilligt öppet köp (utöver lagens 14 dagars ångerrätt). */
-  openPurchaseDays: 30,
-  /** Avdrag för returfrakt när kunden ångrar sig (ska motsvara verklig kostnad). */
-  returnFee: 39,
-  /** Normal kostnad för outhämtat paket (frakt + returfrakt). */
-  uncollectedFee: 149,
-  /** Senast uppdaterad – ändra när villkoren ändras. */
-  termsUpdated: '2026-11-25',
-} as const;
+import { defaultSettings, isPlaceholder, type SiteSettings } from './siteDefaults';
 
 export interface SupportSection {
   heading: string;
@@ -47,12 +27,7 @@ export interface SupportPage {
   faq?: Faq[];
 }
 
-const C = COMPANY;
 const kr = (n: number) => `${n} kr`;
-const filled = (v: string) => !v.startsWith('[FYLL');
-/** Klickbar e-post/telefon när uppgiften är ifylld. Länkar skrivs som [text](adress). */
-const mail = filled(C.email) ? `[${C.email}](mailto:${C.email})` : C.email;
-const tel = filled(C.phone) ? `[${C.phone}](tel:${C.phone.replace(/[^+\d]/g, '')})` : C.phone;
 const L = {
   kopvillkor: '[köpvillkor](/support/kopvillkor)',
   integritet: '[integritetspolicy](/support/integritet)',
@@ -66,7 +41,13 @@ const L = {
   imy: '[Integritetsskyddsmyndigheten (IMY)](https://www.imy.se)',
 };
 
-export const supportPages: SupportPage[] = [
+/** Bygger alla sidor med butikens aktuella företagsuppgifter och villkor. */
+export function buildSupportPages(settings: SiteSettings): SupportPage[] {
+  const C = { ...settings.company, ...settings.policies };
+  /** Klickbar e-post/telefon när uppgiften är ifylld. Länkar skrivs som [text](adress). */
+  const mail = isPlaceholder(C.email) ? C.email : `[${C.email}](mailto:${C.email})`;
+  const tel = isPlaceholder(C.phone) ? C.phone : `[${C.phone}](tel:${C.phone.replace(/[^+\d]/g, '')})`;
+  return [
   {
     slug: 'kontakt',
     title: 'Kontakt',
@@ -438,5 +419,8 @@ export const supportPages: SupportPage[] = [
     ],
   },
 ];
+}
 
+/** Sidorna med standardvärden – för listor och sidtitlar som inte beror på företagsuppgifterna. */
+export const supportPages = buildSupportPages(defaultSettings);
 export const getSupportPage = (slug?: string) => supportPages.find((p) => p.slug === slug);

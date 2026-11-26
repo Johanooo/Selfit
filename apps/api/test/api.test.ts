@@ -117,3 +117,32 @@ describe('lägsta pris senaste 30 dagarna', () => {
     expect(await lowestPrice30Days(db, id, '2026-11-10')).toBeNull();
   });
 });
+
+describe('inställningar', () => {
+  it('ger standardvärden och sparar ändringar från Admin', async () => {
+    const before = await get('/settings');
+    expect(before.body.policies.openPurchaseDays).toBe(30);
+    const company = { ...before.body.company, legalName: 'SELFIT AB', email: 'hej@selfit.se' };
+    const res = await app.request('/api/admin/settings/company', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(company),
+    });
+    expect(res.status).toBe(200);
+    const after = await get('/settings');
+    expect(after.body.company.legalName).toBe('SELFIT AB');
+    expect(after.body.company.email).toBe('hej@selfit.se');
+  });
+
+  it('nekar öppet köp kortare än 14 dagar', async () => {
+    const { body } = await get('/settings');
+    const res = await app.request('/api/admin/settings/policies', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ...body.policies, openPurchaseDays: 7 }),
+    });
+    expect(res.status).toBe(400);
+    const err = (await res.json()) as any;
+    expect(err.fields.openPurchaseDays).toMatch(/14 dagar/);
+  });
+});

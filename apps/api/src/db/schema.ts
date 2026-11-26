@@ -344,3 +344,15 @@ export const orderEvents = sqliteTable('order_events', {
   actor: text('actor').notNull(),
   createdAt: createdAt(),
 });
+
+// ---------- Butiksinställningar ----------
+
+/**
+ * Inställningar som ändras i Admin, t.ex. företagsuppgifter ("company") och villkor ("policies").
+ * Ett värde per nyckel, sparat som JSON. Saknas en nyckel används standardvärdena i siteDefaults.ts.
+ */
+export const siteSettings = sqliteTable('site_settings', {
+  key: text('key').primaryKey(),
+  value: json<Record<string, unknown>>('value').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});

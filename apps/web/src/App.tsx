@@ -4,6 +4,7 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { Layout } from '@/components/layout/Layout';
 import { CartProvider } from '@/state/cart';
 import { CookieProvider } from '@/state/cookies';
+import { SettingsProvider } from '@/state/settings';
 import Home from '@/pages/Home';
 
 // Övriga sidor och admin laddas först när de behövs, så att startsidan laddar snabbt.
@@ -77,6 +78,7 @@ function AppContent() {
     );
   }
   return (
+    <SettingsProvider>
     <CookieProvider>
       <CartProvider>
         <Layout>
@@ -84,6 +86,7 @@ function AppContent() {
         </Layout>
       </CartProvider>
     </CookieProvider>
+    </SettingsProvider>
   );
 }
 

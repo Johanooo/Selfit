@@ -5,6 +5,7 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { TextField, swedishMessage } from '@/components/Field';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import { ORDER_PATTERN } from '@/lib/order';
+import { useSettings } from '@/state/settings';
 
 const REASONS = ['Ångrat köpet (oöppnad vara)', 'Fel vara levererad', 'Skadad eller trasig vara', 'Fel på varan (smak, konsistens m.m.)', 'Annat'];
 /** Anledningar där en bild gör att vi kan hjälpa snabbare. */
@@ -12,7 +13,8 @@ const DEFECT = new Set(REASONS.slice(1, 4));
 const MAX_FILES = 4;
 
 export default function ReturnPage() {
-  usePageMeta('Anmäl retur', 'Returnera en vara från SELFIT. 30 dagars öppet köp på oöppnade varor.');
+  const { policies } = useSettings();
+  usePageMeta('Anmäl retur', `Returnera en vara från SELFIT. ${policies.openPurchaseDays} dagars öppet köp på oöppnade varor.`);
   const [done, setDone] = useState<string | null>(null);
   const [reasonError, setReasonError] = useState('');
   const [reason, setReason] = useState('');
@@ -40,7 +42,7 @@ export default function ReturnPage() {
             <p className="eyebrow">Retur</p>
             <h1 className="h1">Returnera en vara</h1>
             <p className="lead">
-              Du har 14 dagars ångerrätt och 30 dagars öppet köp på oöppnade varor. Anmäl returen här så får du en
+              Du har 14 dagars ångerrätt och {policies.openPurchaseDays} dagars öppet köp på oöppnade varor. Anmäl returen här så får du en
               returetikett.
             </p>
           </div>

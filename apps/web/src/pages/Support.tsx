@@ -2,7 +2,8 @@ import { Link, useParams } from 'wouter';
 import { ArrowRight, Plus } from 'lucide-react';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { usePageMeta } from '@/hooks/use-page-meta';
-import { getSupportPage, supportPages, type Faq } from '@/data/support';
+import { supportPages, type Faq } from '@/data/support';
+import { useSupportPage } from '@/state/settings';
 import NotFound from './not-found';
 import { SupportSections } from '@/components/SupportSections';
 import { RichText } from '@/components/RichText';
@@ -55,7 +56,7 @@ function SideNav({ current }: { current?: string }) {
 
 export function SupportIndexPage() {
   usePageMeta('Kundservice', 'Svar om frakt, retur, pant, köpvillkor och PWO+. Kontakta SELFIT kundtjänst.');
-  const faq = getSupportPage('vanliga-fragor')?.faq ?? [];
+  const faq = useSupportPage('vanliga-fragor')?.faq ?? [];
   return (
     <div className="container page">
       <Breadcrumbs items={[{ label: 'Kundservice' }]} />
@@ -96,7 +97,7 @@ export function SupportIndexPage() {
 
 export function SupportArticlePage() {
   const { slug } = useParams<{ slug: string }>();
-  const page = getSupportPage(slug);
+  const page = useSupportPage(slug);
   usePageMeta(page?.title ?? 'Sidan finns inte', page?.summary ?? 'Sidan kunde inte hittas.');
   if (!page) return <NotFound />;
   return (

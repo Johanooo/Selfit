@@ -34,6 +34,7 @@ import { MediaLibraryView } from './mediaLibraryView';
 import { OperationsProvider, useOperations, balance, batchStatus, money } from './operationsModel';
 import { OperationalOrders, OperationalOrderDetail, OperationalReturns, ManualOrderForm, PickPackView } from './operationsOrders';
 import { StockView, PurchasingView, BatchView, TransfersView, CountsView } from './warehouseViews';
+import { CompanySettingsView, ComingSoonView, PoliciesSettingsView } from './storeSettingsViews';
 import './admin.css';
 
 type ButtonProps = { children: ReactNode; onClick?: () => void; kind?: 'primary' | 'quiet' | 'danger'; small?: boolean; testId: string; ariaLabel?: string; ariaExpanded?: boolean; ariaControls?: string; className?: string; disabled?: boolean };
@@ -588,6 +589,14 @@ function AdminWorkspace() {
   else if (route === '/admin/rabatter' || detailDiscount) page = <DiscountsView id={detailDiscount?.[1]} go={go} notify={notify} onTitleChange={(value) => setDetailTitles((titles) => titles[route] === value ? titles : { ...titles, [route]: value })} />;
   else if (route === '/admin/mejlmallar' || detailEmail) page = <EmailTemplatesView id={detailEmail?.[1]} go={go} />;
   else if (route === '/admin/omdirigeringar' || detailRedirect) page = <RedirectsView id={detailRedirect?.[1]} go={go} rows={redirectRows} onRowsChange={setRedirectRows} />;
+  else if (route === '/admin/installningar/foretag') page = <CompanySettingsView />;
+  else if (route === '/admin/installningar/villkor') page = <PoliciesSettingsView />;
+  else if (route === '/admin/kampanjer') page = <ComingSoonView group="Marknadsföring" title="Kampanjer" items={['Sätta kampanjpris på produkter, kategorier eller varumärken', 'Start- och slutdatum som slår på och av automatiskt', 'Lägsta pris senaste 30 dagarna räknas ut och visas automatiskt']} />;
+  else if (route === '/admin/varumarken') page = <ComingSoonView group="Katalog" title="Varumärken" items={['Lägga till varumärken du säljer', 'Logotyp, kort beskrivning och egen sida i butiken']} />;
+  else if (route === '/admin/innehall/sidor') page = <ComingSoonView group="Innehåll" title="Sidor" items={['Köpvillkor, integritetspolicy, retur, frakt, Om SELFIT och kontakt', 'Textredigerare med rubriker, listor och länkar', 'Förhandsvisa innan du publicerar']} />;
+  else if (route === '/admin/innehall/fragor') page = <ComingSoonView group="Innehåll" title="Vanliga frågor" items={['Lägga till, ändra och ta bort frågor och svar', 'Sortera i den ordning de ska visas']} />;
+  else if (route === '/admin/innehall/startsida') page = <ComingSoonView group="Innehåll" title="Startsida" items={['Rubrik, text och bild högst upp', 'Välja vilka produkter, kampanjer och kategorier som visas']} />;
+  else if (route === '/admin/innehall/topprad') page = <ComingSoonView group="Innehåll" title="Topprad och meny" items={['Texterna i den lila raden högst upp', 'Snabblänkarna överst i menyn (Populärt)']} />;
   else if (route === '/admin/installningar' || settingsSection) page = <Settings section={settingsSection?.[1]} notify={notify} go={go} />;
   else page = <Dashboard go={go} notice={notice} setNotice={notify} />;
   const detailLabel = ({ '/admin/order/ny': 'Ny manuell order', '/admin/inkop/ny': 'Ny inköpsorder', '/admin/flyttar/ny': 'Ny lagerflytt', '/admin/inventering/ny': 'Starta inventering' } as Record<string, string>)[route] ?? detailTitles[route]

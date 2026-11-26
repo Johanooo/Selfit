@@ -9,6 +9,7 @@ import { lowestPrice30Days } from '@/lib/price-history';
 import { PwoCan } from '@/components/art/PwoCan';
 import { ProductCard } from '@/components/ProductCard';
 import { allItems, sortItems } from '@/lib/catalog';
+import { useSettings } from '@/state/settings';
 
 const nf = new Intl.NumberFormat('sv-SE');
 
@@ -18,9 +19,10 @@ const HERO_SIZES = '(min-width: 1024px) 440px, (min-width: 900px) 45vw, 92vw';
 const EMPTY = { packs: [], flavours: [], prices: [] };
 
 export default function Home() {
+  const { policies } = useSettings();
   usePageMeta(
     'SELFIT – Träning, hälsa och kroppsvård',
-    'Handla träning, hälsa och kroppsvård hos SELFIT. Tydliga priser, fri frakt över 499 kr och leverans inom 1–2 vardagar. Prova PWO+, vår egen pre-workout.',
+    `Handla träning, hälsa och kroppsvård hos SELFIT. Tydliga priser, fri frakt över 499 kr och leverans inom ${policies.dispatchDays}. Prova PWO+, vår egen pre-workout.`,
   );
 
   const items = sortItems(allItems(), 'popularitet', EMPTY);
@@ -97,7 +99,7 @@ export default function Home() {
               <Clock size={18} />
             </span>
             <span>
-              <strong>Skickas inom 1–2 vardagar</strong>
+              <strong>Skickas inom {policies.dispatchDays}</strong>
               <span className="muted">Beställ före 14 för snabbast leverans</span>
             </span>
           </li>
@@ -106,7 +108,7 @@ export default function Home() {
               <ShieldCheck size={18} />
             </span>
             <span>
-              <strong>30 dagars öppet köp</strong>
+              <strong>{policies.openPurchaseDays} dagars öppet köp</strong>
               <span className="muted">På oöppnade varor</span>
             </span>
           </li>

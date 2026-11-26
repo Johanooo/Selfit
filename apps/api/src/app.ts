@@ -3,6 +3,7 @@ import { logger } from 'hono/logger';
 import type { Db } from './db/client.ts';
 import { cartRoutes } from './routes/cart.ts';
 import { catalogRoutes } from './routes/catalog.ts';
+import { settingsRoutes } from './routes/settings.ts';
 
 export function createApp(db: Db) {
   const app = new Hono().basePath('/api');
@@ -10,6 +11,7 @@ export function createApp(db: Db) {
   app.get('/health', (c) => c.json({ status: 'ok' }));
   app.route('/', catalogRoutes(db));
   app.route('/', cartRoutes(db));
+  app.route('/', settingsRoutes(db));
   app.onError((err, c) => {
     console.error(err);
     return c.json({ error: 'Något gick fel på servern.' }, 500);
