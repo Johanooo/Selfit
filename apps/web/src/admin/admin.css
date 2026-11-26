@@ -295,3 +295,24 @@
 .admin-root .admin-savebar-msg.error { color: #b42318; font-weight: 600; }
 .admin-root .admin-plain-list { margin: 0; padding-left: 1.2em; display: grid; gap: var(--space-2); }
 .admin-root .admin-field > label { min-height: 26px; display: flex; align-items: center; }
+
+/* Innehåll → Sidor */
+.admin-root .admin-help { margin-bottom: var(--space-4); padding: var(--space-3) var(--space-4); border: 1px solid var(--c-border); border-radius: var(--radius-sm); background: var(--c-surface, #faf9fb); font-size: 0.875rem; }
+.admin-root .admin-help summary { cursor: pointer; font-weight: 600; }
+.admin-root .admin-help ul { margin: var(--space-2) 0 0; padding-left: 1.2em; display: grid; gap: var(--space-1); }
+.admin-root .admin-help code, .admin-root .admin-editor-text { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.admin-root .admin-page-editor { display: grid; gap: var(--space-5); align-items: start; }
+@media (min-width: 1200px) { .admin-root .admin-page-editor { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.admin-root .admin-page-editor-form { display: grid; gap: var(--space-4); align-content: start; }
+.admin-root .admin-section-card .admin-panel-head { align-items: end; gap: var(--space-3); }
+.admin-root .admin-section-heading { flex: 1; min-width: 0; }
+.admin-root .admin-editor { display: grid; gap: var(--space-2); }
+.admin-root .admin-editor-toolbar { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.admin-root .admin-editor-field { width: auto; min-height: 32px; padding-block: 4px; }
+.admin-root .admin-editor-text { min-height: 120px; font-size: 0.875rem; line-height: 1.55; resize: vertical; }
+.admin-root .admin-editor-link { display: grid; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--c-border); border-radius: var(--radius-xs); background: var(--c-surface, #faf9fb); }
+.admin-root .admin-editor-link label { display: grid; gap: 4px; font-size: 0.8125rem; font-weight: 600; }
+.admin-root .admin-page-preview { position: sticky; top: var(--space-4); max-height: calc(100vh - 2 * var(--space-4)); overflow: auto; padding: var(--space-5); border: 1px solid var(--c-border); border-radius: var(--radius-sm); background: #fff; }
+.admin-root .admin-page-preview-body { display: grid; gap: var(--space-4); }
+.admin-root .admin-page-preview-body .h1 { font-size: 1.75rem; }
+.admin-root .admin-muted { color: var(--c-muted); }

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { defaultSettings, type SiteSettings } from '@/data/siteDefaults';
-import { buildSupportPages, type SupportPage } from '@/data/support';
+import { buildSupportPages, type PageContent, type SupportPage } from '@/data/support';
 
 interface SettingsCtx {
   settings: SiteSettings;
@@ -15,13 +15,21 @@ const Ctx = createContext<SettingsCtx>({ settings: defaultSettings, pages: build
  */
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
+  const [savedPages, setSavedPages] = useState<PageContent[]>([]);
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`${import.meta.env.BASE_URL.replace(/\/$/, '')}/api/settings`)
+    const base = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/api`;
+    fetch(`${base}/settings`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data: SiteSettings | null) => {
         if (!cancelled && data?.company && data?.policies) setSettings(data);
+      })
+      .catch(() => undefined);
+    fetch(`${base}/pages`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: PageContent[] | null) => {
+        if (!cancelled && Array.isArray(data)) setSavedPages(data);
       })
       .catch(() => undefined);
     return () => {
@@ -29,7 +37,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const value = useMemo(() => ({ settings, pages: buildSupportPages(settings) }), [settings]);
+  const value = useMemo(() => ({ settings, pages: buildSupportPages(settings, savedPages) }), [settings, savedPages]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

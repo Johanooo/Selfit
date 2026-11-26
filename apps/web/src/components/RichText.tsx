@@ -1,6 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import { Link } from 'wouter';
-import { useCookies } from '@/state/cookies';
+import { useCookiesOptional } from '@/state/cookies';
 
 /**
  * I popupen i kassan ska länkar till andra villkorssidor öppnas i samma popup,
@@ -17,7 +17,7 @@ const LINK = /\[([^\]]+)\]\(([^)\s]+)\)/g;
  */
 export function RichText({ text }: { text: string }) {
   const openSupport = useContext(SupportLinkContext);
-  const { openDialog } = useCookies();
+  const openDialog = useCookiesOptional()?.openDialog ?? (() => undefined);
   const base = import.meta.env.BASE_URL.replace(/\/$/, '');
   const out: ReactNode[] = [];
   let last = 0;

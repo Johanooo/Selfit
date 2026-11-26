@@ -146,3 +146,22 @@ describe('inställningar', () => {
     expect(err.fields.openPurchaseDays).toMatch(/14 dagar/);
   });
 });
+
+describe('sidor', () => {
+  it('sparar en omskriven sida och kan återställa den', async () => {
+    expect((await get('/pages')).body).toEqual([]);
+    const page = { title: 'Om oss', summary: 'Kort', sections: [{ heading: 'Hej', body: 'Text med {e-post}.' }] };
+    const put = await app.request('/api/admin/pages/om-selfit', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(page) });
+    expect(put.status).toBe(200);
+    const list = (await get('/pages')).body;
+    expect(list[0].slug).toBe('om-selfit');
+    expect(list[0].sections[0].body).toBe('Text med {e-post}.');
+    await app.request('/api/admin/pages/om-selfit', { method: 'DELETE' });
+    expect((await get('/pages')).body).toEqual([]);
+  });
+
+  it('nekar okända sidor', async () => {
+    const res = await app.request('/api/admin/pages/finns-inte', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title: 'x', summary: '', sections: [] }) });
+    expect(res.status).toBe(404);
+  });
+});

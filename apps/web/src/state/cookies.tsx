@@ -58,6 +58,11 @@ export function CookieProvider({ children }: { children: ReactNode }) {
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
+/** Som useCookies, men ger null utanför butiken (t.ex. i Admin). */
+export function useCookiesOptional() {
+  return useContext(Ctx);
+}
+
 export function useCookies() {
   const ctx = useContext(Ctx);
   if (!ctx) throw new Error('useCookies måste användas inom CookieProvider');

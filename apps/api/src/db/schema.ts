@@ -356,3 +356,16 @@ export const siteSettings = sqliteTable('site_settings', {
   value: json<Record<string, unknown>>('value').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
+
+/**
+ * Sidor som har skrivits om i Admin (köpvillkor, integritet …). Sidor som inte finns här
+ * visas med standardtexten i pageTemplates.ts.
+ */
+export const pages = sqliteTable('pages', {
+  slug: text('slug').primaryKey(),
+  title: text('title').notNull(),
+  summary: text('summary').notNull(),
+  sections: json<{ heading: string; body: string }[]>('sections').notNull(),
+  faq: json<{ q: string; a: string }[]>('faq'),
+  updatedAt: text('updated_at').notNull(),
+});

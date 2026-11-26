@@ -2491,6 +2491,10 @@ a.chip:hover {
 }
 .prose-block ul {
   padding-left: var(--space-5);
+  list-style: disc;
+}
+.prose-block li + li {
+  margin-top: var(--space-1);
 }
 
 /* Toast + cookie banner */
