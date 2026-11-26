@@ -18,6 +18,8 @@ import { PriceHistory } from '@/components/PriceHistory';
 import { useCart } from '@/state/cart';
 import NotFound from './not-found';
 import { useSettings } from '@/state/settings';
+import { parseBody } from '@/data/support';
+import { RichText } from '@/components/RichText';
 
 /** Obligatorisk text för kosttillskott (LIVSFS 2003:9). */
 const SUPPLEMENT_WARNING =
@@ -512,9 +514,21 @@ function ProductView({ product }: { product: Product }) {
                 Beskrivning <Plus size={20} aria-hidden="true" />
               </summary>
               <div className="details-body">
-                {product.description.map((p) => (
-                  <p key={p}>{p}</p>
-                ))}
+                {parseBody(product.description.join('\n\n')).map((b, i) =>
+                  b.type === 'p' ? (
+                    <p key={i}>
+                      <RichText text={b.text} />
+                    </p>
+                  ) : (
+                    <ul key={i} className="description-list">
+                      {b.items.map((li, j) => (
+                        <li key={j}>
+                          <RichText text={li} />
+                        </li>
+                      ))}
+                    </ul>
+                  ),
+                )}
               </div>
             </details>
             <details className="details-item">

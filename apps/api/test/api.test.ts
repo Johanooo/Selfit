@@ -223,7 +223,7 @@ describe('Admin: produkter', () => {
     app.request(`/api${path}`, { method, headers: { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
   const tshirt = {
     name: 'Träningströja',
-    brand: 'SELFIT',
+    brandId: 'br_selfit',
     productType: 'klader',
     subcategory: 't-shirts-och-linnen',
     tagline: 'Mjuk och sval',
@@ -322,11 +322,34 @@ describe('mediebibliotek', () => {
     const res = await app.request('/api/admin/products', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ name: 'Med bild', brand: 'SELFIT', productType: 'redskap', subcategory: 'shakers-och-flaskor', vat: 'vat-standard', images: [{ src: img.src }], variants: [{ price: 99, stock: 1 }] }),
+      body: JSON.stringify({ name: 'Med bild', brandId: 'br_selfit', productType: 'redskap', subcategory: 'shakers-och-flaskor', vat: 'vat-standard', images: [{ src: img.src }], variants: [{ price: 99, stock: 1 }] }),
     });
     expect(res.status).toBe(200);
     const del = await app.request(`/api/admin/media/${img.id}`, { method: 'DELETE' });
     expect(del.status).toBe(409);
     expect(((await del.json()) as any).error).toMatch(/Med bild/);
+  });
+});
+
+describe('Admin: varumärken', () => {
+  const send = (method: string, path: string, body?: unknown) =>
+    app.request(`/api${path}`, { method, headers: { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+
+  it('kräver att varumärket finns innan det används på en produkt', async () => {
+    const res = await send('POST', '/admin/products', { name: 'Skor', brandId: 'br_nike', productType: 'klader', subcategory: 'skor', vat: 'vat-standard', variants: [{ price: 999, stock: 1 }] });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as any).error).toMatch(/Varumärken/);
+  });
+
+  it('skapar, nekar dubbletter och tar bara bort oanvända varumärken', async () => {
+    const created = await send('POST', '/admin/brands', { name: 'Nike', intro: 'Sportkläder' });
+    expect(created.status).toBe(200);
+    expect(((await created.json()) as any).id).toBe('br_nike');
+    expect((await send('POST', '/admin/brands', { name: 'nike' })).status).toBe(409);
+    const prod = await send('POST', '/admin/products', { name: 'Skor', brandId: 'br_nike', productType: 'klader', subcategory: 'skor', vat: 'vat-standard', variants: [{ price: 999, stock: 1 }] });
+    expect(prod.status).toBe(200);
+    expect((await send('DELETE', '/admin/brands/br_nike')).status).toBe(409);
+    const list = (await get('/admin/brands')).body;
+    expect(list.find((b: any) => b.id === 'br_nike').products).toBe(1);
   });
 });

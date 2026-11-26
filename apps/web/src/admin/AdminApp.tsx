@@ -39,7 +39,9 @@ import { PageEditorView, PagesListView } from './pagesViews';
 import { AuditLogView } from './auditLogView';
 import { ProductFormView, ProductsListView } from './productAdminViews';
 import { MediaLibraryPage } from './mediaViews';
+import { BrandsView } from './brandViews';
 import './admin.css';
+import './productForm.css';
 
 type ButtonProps = { children: ReactNode; onClick?: () => void; kind?: 'primary' | 'quiet' | 'danger'; small?: boolean; testId: string; ariaLabel?: string; ariaExpanded?: boolean; ariaControls?: string; className?: string; disabled?: boolean };
 
@@ -597,7 +599,7 @@ function AdminWorkspace() {
   else if (route === '/admin/installningar/foretag') page = <CompanySettingsView />;
   else if (route === '/admin/installningar/villkor') page = <PoliciesSettingsView />;
   else if (route === '/admin/kampanjer') page = <ComingSoonView group="Marknadsföring" title="Kampanjer" items={['Sätta kampanjpris på produkter, kategorier eller varumärken', 'Start- och slutdatum som slår på och av automatiskt', 'Lägsta pris senaste 30 dagarna räknas ut och visas automatiskt']} />;
-  else if (route === '/admin/varumarken') page = <ComingSoonView group="Katalog" title="Varumärken" items={['Lägga till varumärken du säljer', 'Logotyp, kort beskrivning och egen sida i butiken']} />;
+  else if (route === '/admin/varumarken') page = <BrandsView />;
   else if (route === '/admin/innehall/sidor') page = <PagesListView go={go} />;
   else if (route.startsWith('/admin/innehall/sidor/')) page = <PageEditorView key={route} slug={route.split('/').pop() ?? ''} go={go} onTitleChange={(value) => setDetailTitles((titles) => titles[route] === value ? titles : { ...titles, [route]: value })} />;
   else if (route === '/admin/innehall/fragor') page = <ComingSoonView group="Innehåll" title="Vanliga frågor" items={['Lägga till, ändra och ta bort frågor och svar', 'Sortera i den ordning de ska visas']} />;
@@ -630,7 +632,7 @@ function AdminWorkspace() {
         </div>}
       </form>
       <div className="admin-topbar-right"><label className="ops-role">Visningsroll (demo)<select className="admin-control" aria-label="Visningsroll (demo)" value={operations.role} onChange={(e) => commit((d) => { d.role = e.target.value; })}>{['Admin', 'Ekonomi', 'Katalog', 'Kundservice'].map((role) => <option key={role}>{role}</option>)}</select></label><span className="admin-user-chip" aria-label="Användare Ella Svensson" data-testid="text-admin-user">ES</span></div>
-    </header><main className="admin-content">{detailParent && <div className="admin-detail-navigation"><button type="button" className="admin-btn" onClick={back} data-testid="button-detail-back">← Tillbaka</button><nav aria-label="Brödsmulor"><a href={backPath} onClick={(event) => { event.preventDefault(); back(); }}>{parentLabel}</a><span aria-hidden="true"> / </span><span aria-current="page">{detailLabel}</span></nav></div>}{notice && <div className="admin-inline-message" role="status" data-testid="status-global-notice">{notice}</div>}{page}</main></div>
+    </header><main className="admin-content">{detailParent && !route.startsWith('/admin/produkter/') && <div className="admin-detail-navigation"><button type="button" className="admin-btn" onClick={back} data-testid="button-detail-back">← Tillbaka</button><nav aria-label="Brödsmulor"><a href={backPath} onClick={(event) => { event.preventDefault(); back(); }}>{parentLabel}</a><span aria-hidden="true"> / </span><span aria-current="page">{detailLabel}</span></nav></div>}{notice && <div className="admin-inline-message" role="status" data-testid="status-global-notice">{notice}</div>}{page}</main></div>
   </div></div></AdminNavigationContext.Provider>;
 }
 

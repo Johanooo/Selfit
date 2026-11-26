@@ -106,7 +106,7 @@ function insertAt(el: HTMLTextAreaElement, make: (selected: string) => string, s
   });
 }
 
-function BodyEditor({ id, value, onChange }: { id: string; value: string; onChange: (v: string) => void }) {
+export function BodyEditor({ id, value, onChange, fields = true, rows }: { id: string; value: string; onChange: (v: string) => void; fields?: boolean; rows?: number }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const [linkOpen, setLinkOpen] = useState(false);
   const [target, setTarget] = useState(LINK_TARGETS[0].href);
@@ -141,6 +141,7 @@ function BodyEditor({ id, value, onChange }: { id: string; value: string; onChan
         <button type="button" className="admin-btn small" onClick={addList} data-testid={`${id}-list`}>
           • Punktlista
         </button>
+        {fields && (
         <select
           className="admin-control admin-editor-field"
           aria-label="Infoga fält"
@@ -162,6 +163,7 @@ function BodyEditor({ id, value, onChange }: { id: string; value: string; onChan
             </optgroup>
           ))}
         </select>
+        )}
       </div>
       {linkOpen && (
         <div className="admin-editor-link">
@@ -202,7 +204,7 @@ function BodyEditor({ id, value, onChange }: { id: string; value: string; onChan
         className="admin-control admin-editor-text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        rows={Math.min(18, Math.max(4, value.split('\n').length + 1))}
+        rows={rows ?? Math.min(18, Math.max(4, value.split('\n').length + 1))}
         data-testid={`${id}-text`}
       />
     </div>

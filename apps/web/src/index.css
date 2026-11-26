@@ -3438,3 +3438,8 @@ button.gallery-main:focus-visible .gallery-zoom-hint {
   text-decoration: underline;
   cursor: pointer;
 }
+
+.description-list {
+  padding-left: var(--space-5);
+  list-style: disc;
+}

@@ -34,7 +34,7 @@ const variantInput = z.object({
 export const productInput = z.object({
   name: z.string().trim().min(1, 'Produkten behöver ett namn.').max(120),
   slug: z.string().trim().max(120).optional().default(''),
-  brand: z.string().trim().min(1, 'Ange varumärke.').max(60),
+  brandId: z.string().trim().min(1, 'Välj varumärke.'),
   productType: z.enum(PRODUCT_TYPES),
   subcategory: z.string().trim().default(''),
   tagline: z.string().trim().max(200).default(''),
@@ -94,13 +94,10 @@ export async function syncReferenceData(db: Db) {
   for (const b of codeBrands) await db.insert(s.brands).values({ id: `br_${b.slug}`, ...b }).onConflictDoNothing();
 }
 
-async function ensureBrand(db: Db, name: string) {
-  const slug = slugify(name);
-  const [found] = await db.select().from(s.brands).where(eq(s.brands.slug, slug));
-  if (found) return found.id;
-  const id = `br_${slug}`;
-  await db.insert(s.brands).values({ id, slug, name: name.trim() }).onConflictDoNothing();
-  return id;
+/** Varumärket måste finnas (skapas under Katalog → Varumärken). */
+async function brandExists(db: Db, id: string) {
+  const [found] = await db.select({ id: s.brands.id }).from(s.brands).where(eq(s.brands.id, id));
+  return Boolean(found);
 }
 
 async function uniqueSlug(db: Db, wanted: string, ownId?: string) {
@@ -119,7 +116,7 @@ const hasOrders = async (db: Db, variantIds: string[]) =>
 /** Läser en produkt i formulärets format. */
 async function readProduct(db: Db, id: string) {
   const [row] = await db
-    .select({ f: s.productFamilies, brand: s.brands.name })
+    .select({ f: s.productFamilies, brand: s.brands.name, brandId: s.brands.id })
     .from(s.productFamilies)
     .innerJoin(s.brands, eq(s.brands.id, s.productFamilies.brandId))
     .where(eq(s.productFamilies.id, id));
@@ -139,6 +136,7 @@ async function readProduct(db: Db, id: string) {
     status: f.status,
     name: f.name,
     brand: row.brand,
+    brandId: row.brandId,
     productType: f.productType as ProductInput['productType'],
     subcategory,
     tagline: f.tagline ?? '',
@@ -177,7 +175,7 @@ async function readProduct(db: Db, id: string) {
 async function writeProduct(db: Db, input: ProductInput, existingId?: string) {
   const date = today();
   const now = new Date().toISOString();
-  const brandId = await ensureBrand(db, input.brand);
+  const brandId = input.brandId;
   const sub = getSubcategory(input.subcategory);
   const id = existingId ?? newId('pf');
   const slug = await uniqueSlug(db, input.slug || input.name, existingId);
@@ -365,6 +363,7 @@ export function adminProductRoutes(db: Db) {
     const parsed = productInput.safeParse(raw);
     if (!parsed.success) return { status: 400 as const, body: { error: parsed.error.issues[0]?.message ?? 'Kontrollera fälten.' } };
     const input = parsed.data;
+    if (!(await brandExists(db, input.brandId))) return { status: 400 as const, body: { error: 'Varumärket finns inte. Skapa det under Katalog → Varumärken först.' } };
     const eans = input.variants.map((v) => v.ean).filter(Boolean);
     if (new Set(eans).size !== eans.length) return { status: 400 as const, body: { error: 'Två varianter har samma streckkod (EAN).' } };
     if (eans.length) {

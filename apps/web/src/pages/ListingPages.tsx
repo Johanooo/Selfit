@@ -104,7 +104,9 @@ export function CategoryPage() {
 
 export function BrandPage() {
   const { slug } = useParams<{ slug: string }>();
-  const b = getBrand(slug);
+  // Varumärken som skapats i Admin finns inte i koden – då hämtas namnet från produkterna.
+  const fromProducts = products.find((p) => p.brandSlug === slug);
+  const b = getBrand(slug) ?? (fromProducts ? { slug, name: fromProducts.brand, intro: `Alla produkter från ${fromProducts.brand}.` } : undefined);
   usePageMeta(b ? `${b.name} – alla produkter` : 'Sidan finns inte', b?.intro ?? 'Sidan kunde inte hittas.');
   if (!b) return <NotFound />;
   return (
