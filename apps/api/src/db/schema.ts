@@ -100,6 +100,9 @@ export const productFamilies = sqliteTable('product_families', {
   seoTitle: text('seo_title'),
   seoDescription: text('seo_description'),
   popularity: integer('popularity').notNull().default(0),
+  /** Namnen på variantalternativen, t.ex. ["Smak", "Förpackning"] eller ["Storlek", "Färg"]. */
+  optionNames: json<string[]>('option_names'),
+  updatedAt: text('updated_at'),
   createdAt: createdAt(),
 });
 
@@ -157,6 +160,9 @@ export const variants = sqliteTable(
     depositClassId: text('deposit_class_id').references(() => depositClasses.id),
     depositUnits: integer('deposit_units').notNull().default(0),
     trackBatches: integer('track_batches', { mode: 'boolean' }).notNull().default(true),
+    /** Variantens värden för produktens alternativ, t.ex. { Smak: "Blåbär", Förpackning: "12-pack" }. */
+    options: json<Record<string, string>>('options'),
+    sortOrder: integer('sort_order').notNull().default(0),
     createdAt: createdAt(),
   },
   (t) => [index('variants_family_idx').on(t.familyId), uniqueIndex('variants_gtin_idx').on(t.gtin)],

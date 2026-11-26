@@ -17,6 +17,7 @@ import { basicAuth } from 'hono/basic-auth';
 import { compress } from 'hono/compress';
 import { createApp } from './app.ts';
 import { createDb, defaultDatabaseUrl } from './db/client.ts';
+import { buildStorefrontProducts } from './lib/storefront.ts';
 import { markDatabaseCreated } from './db/meta.ts';
 import { runMigrations } from './db/migrate.ts';
 import { isEmpty, seed } from './db/seed.ts';
@@ -69,9 +70,13 @@ if (webDir) {
   // "/" hanteras nedan (med förladdad toppbild), allt annat som filer om de finns.
   root.use('*', (c, next) => (c.req.path === '/' || c.req.path === '/index.html' ? next() : statics(c, next)));
   // Alla andra adresser (t.ex. /produkt/pwo-plus) visar butikens startfil.
-  root.get('*', (c) => {
+  // Produktlistan bäddas in i sidan, så att butiken kan visas direkt utan ett extra anrop.
+  root.get('*', async (c) => {
     if (c.req.path.startsWith('/api/')) return c.notFound();
-    return c.html(c.req.path === '/' ? homeHtml : indexHtml);
+    const html = c.req.path === '/' ? homeHtml : indexHtml;
+    if (c.req.path.startsWith('/admin')) return c.html(html);
+    const json = JSON.stringify(await buildStorefrontProducts(db)).replace(/</g, '\\u003c');
+    return c.html(html.replace('</head>', `<script id="catalog-data" type="application/json">${json}</script>\n  </head>`));
   });
 }
 

@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -191,5 +192,26 @@ describe('hälsokontroll', () => {
     const { body } = await get('/health');
     expect(body.status).toBe('ok');
     expect(body.databaseCreated).toMatch(/^\d{4}-/);
+  });
+});
+
+describe('butikens produktlista', () => {
+  it('bygger produkter i butikens format från databasen', async () => {
+    const { status, body } = await get('/storefront/products');
+    expect(status).toBe(200);
+    const pwo = body.find((p: any) => p.slug === 'pwo-plus');
+    expect(pwo.subcategory).toBe('energidryck');
+    expect(pwo.variants.length).toBeGreaterThanOrEqual(18);
+    const v = pwo.variants.find((x: any) => x.id === 'pwo-plus-blueberry-12');
+    expect(v.price).toBeGreaterThan(0);
+    expect(v.depositPerUnit).toBe(1);
+    expect(v.priceHistory.length).toBeGreaterThan(0);
+  });
+
+  it('visar inte arkiverade produkter', async () => {
+    await db.update(s.productFamilies).set({ status: 'archived' }).where(eq(s.productFamilies.slug, 'handkram'));
+    const { body } = await get('/storefront/products');
+    expect(body.some((p: any) => p.slug === 'handkram')).toBe(false);
+    await db.update(s.productFamilies).set({ status: 'published' }).where(eq(s.productFamilies.slug, 'handkram'));
   });
 });

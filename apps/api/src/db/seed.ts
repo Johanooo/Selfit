@@ -73,6 +73,11 @@ export async function seed(db: Db) {
         nutrition: p.nutrition,
         facts: p.facts,
         display: {
+          category: p.category,
+          subcategory: p.subcategory,
+          alsoIn: p.alsoIn,
+          warnings: p.warnings,
+          ingredientsByFlavour: p.ingredientsByFlavour,
           art: p.art,
           artTone: p.artTone,
           unitLabel: p.unitLabel,

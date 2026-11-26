@@ -840,6 +840,15 @@ const withHistory = (list: Product[]): Product[] =>
 
 export const products: Product[] = withHistory([pwo, proteinPancakes, ...others]);
 
+/**
+ * Byter ut produktlistan mot den från databasen (anropas innan butiken visas).
+ * Listan ovan används bara om servern inte svarar, t.ex. när man kör butiken utan server.
+ */
+export function replaceProducts(list: Product[]) {
+  if (!Array.isArray(list) || list.length === 0) return;
+  products.splice(0, products.length, ...list);
+}
+
 export const getProduct = (slug?: string) => products.find((p) => p.slug === slug);
 
 export function findVariant(id: string): { product: Product; variant: Variant } | undefined {

@@ -8,6 +8,39 @@ import '@fontsource-variable/inter';
 import '@fontsource-variable/manrope';
 import './index.css';
 
+import { replaceProducts } from '@/data/products';
+import type { Product } from '@/data/types';
+
+/**
+ * Produkterna kommer från databasen. Servern bäddar in dem i sidan (#catalog-data).
+ * Under utveckling (Vite) hämtas de i stället från /api/storefront/products.
+ * Svarar inte servern visas produkterna från kodfilerna.
+ */
+async function loadCatalog() {
+  const inline = document.getElementById('catalog-data');
+  if (inline?.textContent) {
+    try {
+      replaceProducts(JSON.parse(inline.textContent) as Product[]);
+      return;
+    } catch {
+      /* faller tillbaka till hämtning */
+    }
+  }
+  if (location.pathname.startsWith(`${import.meta.env.BASE_URL.replace(/\/$/, '')}/admin`)) return;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2500);
+    const res = await fetch(`${import.meta.env.BASE_URL.replace(/\/$/, '')}/api/storefront/products`, { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (res.ok) replaceProducts((await res.json()) as Product[]);
+  } catch {
+    /* servern svarar inte – använd produkterna från kodfilerna */
+  }
+}
+
+void loadCatalog().then(render);
+
+function render() {
 createRoot(document.getElementById('root')!, {
   // Keeps caught errors off reportError(), which would raise the dev overlay.
   onCaughtError: (error, errorInfo) => {
@@ -18,3 +51,4 @@ createRoot(document.getElementById('root')!, {
     <App />
   </ErrorBoundary>,
 );
+}

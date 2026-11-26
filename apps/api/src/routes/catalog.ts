@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import type { Db } from '../db/client.ts';
 import * as s from '../db/schema.ts';
 import { availableStock, currentPrices, lowestPrice30Days, today, vatRatesOn } from '../lib/pricing.ts';
+import { buildStorefrontProducts } from '../lib/storefront.ts';
 
 /** Jämförpris i öre per enhet (kr/l, kr/kg, kr/st). */
 const comparePrice = (priceOre: number, netMilli: number | null) =>
@@ -16,6 +17,9 @@ export function catalogRoutes(db: Db) {
   app.get('/collections', async (c) => c.json(await db.select().from(s.collections)));
 
   /** Produktlista. Filter: ?category=traning&brand=selfit&collection=nyheter&q=blåbär */
+  /** Hela produktlistan i butikens format (bara publicerade produkter). */
+  app.get('/storefront/products', async (c) => c.json(await buildStorefrontProducts(db)));
+
   app.get('/products', async (c) => {
     const { category, brand, collection, q } = c.req.query();
     const conditions = [eq(s.productFamilies.status, 'published')];

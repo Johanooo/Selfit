@@ -60,6 +60,8 @@ export interface Variant {
   /** Image key, e.g. "can:blueberry", "photo:/images/..." or "art". */
   image: string;
   measure?: Measure;
+  /** Värden för produktens alternativ, t.ex. { Storlek: "M", Färg: "Svart" }. */
+  options?: Record<string, string>;
   /** Prisändringar, äldst först. Sista posten är dagens pris. */
   priceHistory?: PricePoint[];
 }
@@ -96,6 +98,10 @@ export interface Product {
   /** Optional local primary product image; set alt text to describe placeholders honestly. */
   primaryImage?: string;
   primaryImageAlt?: string;
+  /** Uppladdade bilder (Admin). Den första är huvudbild. */
+  images?: { src: string; alt?: string }[];
+  /** Namn på variantalternativ, t.ex. ["Storlek", "Färg"]. Saknas för PWO+ som använder smak/förpackning. */
+  optionNames?: string[];
   art: ArtKind;
   artTone: ArtTone;
   unitLabel: string;
