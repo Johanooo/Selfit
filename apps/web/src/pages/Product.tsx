@@ -63,6 +63,11 @@ function resolve(product: Product, smak: string | null, pack: string | null) {
   return exact ?? firstBuyable(inFlavour.length ? inFlavour : product.variants)!;
 }
 
+/** Produkter med egna alternativ (storlek, färg …) väljer variant via ?v=<id>. */
+function resolveGeneric(product: Product, id: string | null) {
+  return product.variants.find((v) => v.id === id && v.offered) ?? firstBuyable(product.variants)!;
+}
+
 function highlightAllergens(text: string, allergens: string[]) {
   if (!allergens.length) return text;
   const re = new RegExp(`(${allergens.map((a) => a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
@@ -81,9 +86,10 @@ function ProductView({ product }: { product: Product }) {
   const { policies } = useSettings();
   const [, navigate] = useLocation();
   const params = new URLSearchParams(useSearch());
-  const variant = resolve(product, params.get('smak'), params.get('pack'));
+  const generic = Boolean(product.optionNames?.length);
+  const variant = generic ? resolveGeneric(product, params.get('v')) : resolve(product, params.get('smak'), params.get('pack'));
   const [qty, setQty] = useState(1);
-  const [view, setView] = useState<ImageView>('front');
+  const [view, setView] = useState<ImageView>(product.images && product.images.length > 1 ? 'img:0' : 'front');
   const [zoomOpen, setZoomOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState(false);
@@ -101,6 +107,16 @@ function ProductView({ product }: { product: Product }) {
   const low30 = lowestPrice30Days(variant.priceHistory);
   const views = galleryViews(product, variant);
   const title = flavour ? `${product.name} ${flavour.name}` : product.name;
+  const optionNames = product.optionNames ?? [];
+  /** Värden för ett alternativ i den ordning de först förekommer. */
+  const valuesOf = (name: string) => uniq(product.variants.filter((v) => v.offered).map((v) => v.options?.[name]));
+  const matchWith = (name: string, value: string) =>
+    product.variants.find((v) => v.offered && optionNames.every((n) => (n === name ? v.options?.[n] === value : v.options?.[n] === variant.options?.[n])));
+  const optionStatus = (name: string, value: string) => {
+    const exact = matchWith(name, value);
+    if (exact) return exact.stock > 0 ? { state: 'ok' as const, text: '' } : { state: 'soldout' as const, text: 'Slut i lager' };
+    return product.variants.some((v) => v.offered && v.options?.[name] === value) ? { state: 'ok' as const, text: '' } : { state: 'unavailable' as const, text: 'Finns inte' };
+  };
 
   usePageMeta(
     `${title}${variant.pack && showPacks ? ` ${packLabel(variant.pack)}` : ''} – ${kr(variant.price)}`,
@@ -110,15 +126,16 @@ function ProductView({ product }: { product: Product }) {
   // Keep canonical URL in sync with the resolved variant
   useEffect(() => {
     const qs = new URLSearchParams();
+    if (generic && product.variants.length > 1) qs.set('v', variant.id);
     if (variant.flavour && showFlavours) qs.set('smak', variant.flavour);
     if (variant.pack && showPacks) qs.set('pack', String(variant.pack));
     const want = qs.toString();
     const current = new URLSearchParams(window.location.search).toString();
     if (want !== current) navigate(`/produkt/${product.slug}${want ? `?${want}` : ''}`, { replace: true });
-  }, [variant.id, product.slug, showFlavours, showPacks, navigate, variant.flavour, variant.pack]);
+  }, [variant.id, product.slug, showFlavours, showPacks, navigate, variant.flavour, variant.pack, generic, product.variants.length]);
 
   useEffect(() => {
-    if (!views.includes(view)) setView('front');
+    if (!views.includes(view)) setView(views[0] ?? 'front');
   }, [variant.id, view, views]);
 
   useEffect(() => {
@@ -129,6 +146,7 @@ function ProductView({ product }: { product: Product }) {
 
   const go = (v: Variant) => {
     const qs = new URLSearchParams();
+    if (generic) qs.set('v', v.id);
     if (v.flavour && showFlavours) qs.set('smak', v.flavour);
     if (v.pack && showPacks) qs.set('pack', String(v.pack));
     const s = qs.toString();
@@ -153,6 +171,21 @@ function ProductView({ product }: { product: Product }) {
       setNotice(`${packLabel(variant.pack)} ${why} i smaken ${fName}. Vi har valt ${packLabel(fallback.pack)} åt dig.`);
     } else setNotice(null);
     go(fallback);
+  };
+
+  const selectOption = (name: string, value: string) => {
+    const exact = matchWith(name, value);
+    if (exact && isBuyable(exact)) {
+      setNotice(null);
+      go(exact);
+      return;
+    }
+    const withValue = product.variants.filter((v) => v.offered && v.options?.[name] === value);
+    const pick = withValue.find(isBuyable) ?? exact ?? withValue[0];
+    if (!pick) return;
+    const changed = optionNames.filter((n) => n !== name && pick.options?.[n] !== variant.options?.[n]);
+    setNotice(changed.length ? `${value} finns inte i ${changed.map((n) => variant.options?.[n]).join(' / ')}. Vi har valt ${changed.map((n) => pick.options?.[n]).join(' / ')} åt dig.` : null);
+    go(pick);
   };
 
   const selectPack = (p: number) => {
@@ -220,7 +253,7 @@ function ProductView({ product }: { product: Product }) {
             onView={setView}
             title={title}
           />
-          {product.primaryImage && <p className="image-placeholder-note">Tillfällig exempelbild – kan bytas ut senare.</p>}
+          {product.primaryImage && !product.images?.length && <p className="image-placeholder-note">Tillfällig exempelbild – kan bytas ut senare.</p>}
           {views.length > 1 && (
             <ul className="thumbs" aria-label="Välj bild">
               {views.map((v) => (
@@ -229,7 +262,7 @@ function ProductView({ product }: { product: Product }) {
                     type="button"
                     className={`thumb tone-${category?.tone ?? 'lavender'}`}
                     aria-pressed={view === v}
-                    aria-label={v === 'front' ? 'Visa produktbild' : v === 'pack' ? 'Visa förpackning' : product.slug === 'pwo-plus' ? 'Visa smakbilder' : 'Visa miljöbild'}
+                    aria-label={v.startsWith('img:') ? `Visa bild ${Number(v.slice(4)) + 1}` : v === 'front' ? 'Visa produktbild' : v === 'pack' ? 'Visa förpackning' : product.slug === 'pwo-plus' ? 'Visa smakbilder' : 'Visa miljöbild'}
                     onClick={() => setView(v)}
                     data-testid={`button-thumb-${v}`}
                   >
@@ -251,6 +284,45 @@ function ProductView({ product }: { product: Product }) {
             </h1>
             <p className="lead">{product.tagline}</p>
           </div>
+
+          {generic &&
+            optionNames.map((name) => {
+              const values = valuesOf(name);
+              if (values.length < 2 && product.variants.length < 2) return null;
+              return (
+                <fieldset className="option-group" key={name}>
+                  <legend>
+                    {name}: <span>{variant.options?.[name]}</span>
+                  </legend>
+                  <div className="options">
+                    {values.map((value) => {
+                      const st = optionStatus(name, value);
+                      const id = `opt-${name}-${value}`.replace(/\W+/g, '-');
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          className="option"
+                          aria-pressed={variant.options?.[name] === value}
+                          aria-disabled={st.state === 'unavailable'}
+                          aria-describedby={st.text ? id : undefined}
+                          data-state={st.state}
+                          onClick={() => st.state !== 'unavailable' && selectOption(name, value)}
+                          data-testid={`button-option-${name}-${value}`}
+                        >
+                          <span className="option-name">{value}</span>
+                          {st.text && (
+                            <span className="option-meta" id={id}>
+                              {st.text}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+              );
+            })}
 
           {showFlavours && (
             <fieldset className="option-group">

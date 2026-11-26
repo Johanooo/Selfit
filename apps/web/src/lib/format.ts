@@ -34,6 +34,7 @@ export function variantLabel(product: Product, v: Variant): string {
   const f = getFlavour(v.flavour);
   if (f) parts.push(f.name);
   if (v.pack) parts.push(packLabel(v.pack));
+  if (v.options) parts.push(...(product.optionNames ?? Object.keys(v.options)).map((n) => v.options![n]).filter(Boolean));
   if (!parts.length) parts.push(product.sizeLabel);
   return parts.join(' · ');
 }

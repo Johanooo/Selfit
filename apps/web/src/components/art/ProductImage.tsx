@@ -4,9 +4,11 @@ import { getFlavour } from '@/data/products';
 import { PwoCan, PwoPack } from './PwoCan';
 import { ProductArt } from './ProductArt';
 
-export type ImageView = 'front' | 'pack' | 'photo';
+/** img:0, img:1 … = uppladdade bilder (Admin). */
+export type ImageView = 'front' | 'pack' | 'photo' | `img:${number}`;
 
 export function galleryViews(product: Product, variant: Variant): ImageView[] {
+  if (product.images && product.images.length > 1) return product.images.map((_, i) => `img:${i}` as ImageView);
   if (variant.image.startsWith('photo:')) return ['front'];
   const views: ImageView[] = ['front'];
   if (variant.image.startsWith('can:') && variant.pack && variant.pack > 1) views.push('pack');
@@ -29,6 +31,20 @@ export function ProductImage({
   view?: ImageView;
 }) {
   const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  if (view.startsWith('img:') && product.images) {
+    const img = product.images[Number(view.slice(4))] ?? product.images[0];
+    return (
+      <img
+        className="product-photo"
+        width={720}
+        height={720}
+        src={img.src.startsWith('/') ? `${base}${img.src}` : img.src}
+        alt={img.alt || `${product.brand} ${product.name}`}
+        loading="lazy"
+        decoding="async"
+      />
+    );
+  }
   if (variant.image.startsWith('photo:')) {
     const flavour = getFlavour(variant.flavour)?.name;
     return (

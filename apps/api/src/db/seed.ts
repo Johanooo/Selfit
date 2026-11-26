@@ -38,10 +38,10 @@ export async function seed(db: Db) {
     await tx.insert(s.depositClasses).values({ id: 'pant-burk', name: 'Pant burk', vatClassId: 'vat-standard' });
     await tx.insert(s.depositRates).values({ id: 'dr-burk', depositClassId: 'pant-burk', amountOre: 100, validFrom: '2020-01-01' });
 
-    await tx.insert(s.brands).values(webBrands.map((b) => ({ id: `br_${b.slug}`, ...b })));
+    await tx.insert(s.brands).values(webBrands.map((b) => ({ id: `br_${b.slug}`, ...b }))).onConflictDoNothing();
     await tx.insert(s.categories).values(
       webCategories.map((c, i) => ({ id: `cat_${c.slug}`, ...c, sortOrder: i })),
-    );
+    ).onConflictDoNothing();
     await tx.insert(s.collections).values(webCollections.map((c) => ({ id: `col_${c.slug}`, ...c })));
     await tx.insert(s.flavours).values(pwoFlavours);
 

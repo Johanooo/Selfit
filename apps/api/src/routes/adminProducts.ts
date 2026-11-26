@@ -9,6 +9,7 @@ import { and, asc, eq, inArray } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { brands as codeBrands, categories as codeCategories, getSubcategory } from '../../../web/src/data/categories.ts';
+import { pwoFlavours } from '../../../web/src/data/products.ts';
 import type { Db } from '../db/client.ts';
 import * as s from '../db/schema.ts';
 import { logChange } from '../lib/audit.ts';
@@ -127,7 +128,10 @@ async function readProduct(db: Db, id: string) {
   if (!row) return null;
   const { f } = row;
   const d = (f.display ?? {}) as ProductDisplay;
-  const vars = await db.select().from(s.variants).where(eq(s.variants.familyId, id)).orderBy(asc(s.variants.sortOrder), asc(s.variants.id));
+  const flavourIndex = (slug: string | null) => (slug ? pwoFlavours.findIndex((f) => f.slug === slug) : -1);
+  const vars = (await db.select().from(s.variants).where(eq(s.variants.familyId, id))).sort(
+    (a, b) => a.sortOrder - b.sortOrder || flavourIndex(a.flavourSlug) - flavourIndex(b.flavourSlug) || (a.packSize ?? 0) - (b.packSize ?? 0),
+  );
   const ids = vars.map((v) => v.id);
   const [price, stock] = await Promise.all([currentPrices(db, ids, today()), availableStock(db, ids)]);
   const subcategory = d.subcategory ?? '';
@@ -350,7 +354,12 @@ export function adminProductRoutes(db: Db) {
   });
 
   app.get('/admin/products/:id', async (c) => {
-    const p = await readProduct(db, c.req.param('id'));
+    const key = c.req.param('id');
+    let p = await readProduct(db, key);
+    if (!p) {
+      const [bySlug] = await db.select({ id: s.productFamilies.id }).from(s.productFamilies).where(eq(s.productFamilies.slug, key));
+      if (bySlug) p = await readProduct(db, bySlug.id);
+    }
     return p ? c.json(p) : c.json({ error: 'Produkten finns inte.' }, 404);
   });
 
@@ -387,7 +396,10 @@ export function adminProductRoutes(db: Db) {
       ];
       for (const v of after!.variants) {
         const b = before.variants.find((x) => x.id === v.id);
-        const label = Object.values(v.options).join(' ') || v.sku;
+        const label =
+          Object.values(v.options).join(' · ') ||
+          [pwoFlavours.find((f) => f.slug === v.flavour)?.name, v.pack ? `${v.pack}-pack` : ''].filter(Boolean).join(' · ') ||
+          v.sku;
         if (b && b.price !== v.price) fields.push([`Pris ${label}`, `${b.price} kr`, `${v.price} kr`]);
         if (b && b.stock !== v.stock) fields.push([`Lager ${label}`, b.stock, v.stock]);
       }

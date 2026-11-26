@@ -37,6 +37,7 @@ import { StockView, PurchasingView, BatchView, TransfersView, CountsView } from 
 import { CompanySettingsView, ComingSoonView, PoliciesSettingsView } from './storeSettingsViews';
 import { PageEditorView, PagesListView } from './pagesViews';
 import { AuditLogView } from './auditLogView';
+import { ProductFormView, ProductsListView } from './productAdminViews';
 import './admin.css';
 
 type ButtonProps = { children: ReactNode; onClick?: () => void; kind?: 'primary' | 'quiet' | 'danger'; small?: boolean; testId: string; ariaLabel?: string; ariaExpanded?: boolean; ariaControls?: string; className?: string; disabled?: boolean };
@@ -567,8 +568,9 @@ function AdminWorkspace() {
   let page: ReactNode;
   if (genericDetail) page = <RowDetailView key={genericDetail[1]} id={decodeURIComponent(genericDetail[1])} notify={notify} />;
   else if (route === '/admin' || route === '/admin/') page = <Dashboard go={go} notice={notice} setNotice={notify} />;
-  else if (route === '/admin/produkter') page = <Products go={go} notice={notice} setNotice={notify} />;
-  else if (detailProduct) page = <ProductEditor key={detailProduct[1]} slug={detailProduct[1]} go={go} notify={notify} productTypes={productTypes} mediaItems={mediaItems} onMediaItemsChange={setMediaItems} onAddRedirect={addRedirect} />;
+  else if (route === '/admin/produkter') page = <ProductsListView go={go} />;
+  else if (route === '/admin/produkter/ny') page = <ProductFormView key="ny" go={go} onTitleChange={(value) => setDetailTitles((titles) => titles[route] === value ? titles : { ...titles, [route]: value })} />;
+  else if (detailProduct) page = <ProductFormView key={detailProduct[1]} id={decodeURIComponent(detailProduct[1])} go={go} onTitleChange={(value) => setDetailTitles((titles) => titles[route] === value ? titles : { ...titles, [route]: value })} />;
   else if (route === '/admin/kunder') page = <CustomersView go={go} />;
   else if (detailCustomer) page = <CustomerDetailView customerId={detailCustomer[1]} go={go} notify={notify} />;
   else if (route === '/admin/manuella-order' || route === '/admin/order/ny') page = <ManualOrderForm go={go} notify={notify} />;
