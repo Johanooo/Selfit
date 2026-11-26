@@ -353,7 +353,6 @@ function ProductView({ product }: { product: Product }) {
                         }}
                         data-testid={`button-flavour-${f.slug}`}
                       >
-                        <span className="swatch" style={{ background: `var(--flavour-${f.slug})` }} aria-hidden="true" />
                         <span className="option-name">{f.name}</span>
                         {unavailable && (
                           <span className="option-meta" id={statusId}>
