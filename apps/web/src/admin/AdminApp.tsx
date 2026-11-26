@@ -38,6 +38,7 @@ import { CompanySettingsView, ComingSoonView, PoliciesSettingsView } from './sto
 import { PageEditorView, PagesListView } from './pagesViews';
 import { AuditLogView } from './auditLogView';
 import { ProductFormView, ProductsListView } from './productAdminViews';
+import { MediaLibraryPage } from './mediaViews';
 import './admin.css';
 
 type ButtonProps = { children: ReactNode; onClick?: () => void; kind?: 'primary' | 'quiet' | 'danger'; small?: boolean; testId: string; ariaLabel?: string; ariaExpanded?: boolean; ariaControls?: string; className?: string; disabled?: boolean };
@@ -578,7 +579,7 @@ function AdminWorkspace() {
   else if (route === '/admin/rapporter') page = <ReportsView />;
   else if (route === '/admin/kategorier') page = <Categories notify={notify} go={go} productTypes={productTypes} categoryFilters={categoryFilters} onCategoryFiltersChange={setCategoryFilters} />;
   else if (route === '/admin/produkttyper' || detailType) page = <ProductTypesAndFiltersView id={detailType?.[1]} go={go} productTypes={productTypes} onProductTypesChange={setProductTypes} categoryFilters={categoryFilters} onCategoryFiltersChange={setCategoryFilters} />;
-  else if (route === '/admin/media' || detailMedia) page = <MediaLibraryView key={detailMedia?.[1] ?? 'library'} id={detailMedia?.[1]} go={go} notify={notify} items={mediaItems} onItemsChange={setMediaItems} />;
+  else if (route === '/admin/media' || detailMedia) page = <MediaLibraryPage />;
   else if (route === '/admin/order') page = <OperationalOrders key={search} go={go} notify={notify} />;
   else if (detailOrder) page = <OperationalOrderDetail key={detailOrder[1]} id={detailOrder[1]} go={go} notify={notify} />;
   else if (route === '/admin/lager') page = <Warehouse notify={notify} />;

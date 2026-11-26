@@ -3,8 +3,6 @@
  * och ladda upp bilder. Allt som ändras skrivs i ändringsloggen.
  */
 import { randomBytes } from 'node:crypto';
-import { writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
@@ -13,9 +11,9 @@ import { pwoFlavours } from '../../../web/src/data/products.ts';
 import type { Db } from '../db/client.ts';
 import * as s from '../db/schema.ts';
 import { logChange } from '../lib/audit.ts';
-import { uploadsDir } from '../lib/paths-data.ts';
 import { availableStock, currentPrices, today } from '../lib/pricing.ts';
 import type { ProductDisplay } from '../lib/storefront.ts';
+import { saveUpload } from './media.ts';
 
 const PRODUCT_TYPES = ['kosttillskott', 'livsmedel', 'dryck', 'kroppsvard', 'klader', 'redskap'] as const;
 
@@ -462,17 +460,17 @@ export function adminProductRoutes(db: Db) {
     return c.json({ ok: true });
   });
 
-  /** Bilduppladdning. Butiken skickar en färdig, förminskad bild (webp/jpeg/png). */
+  /** Bilduppladdning från produktformuläret. Bilden hamnar också i mediebiblioteket. */
   app.post('/admin/uploads', async (c) => {
     const form = await c.req.formData().catch(() => null);
     const file = form?.get('file');
     if (!(file instanceof File)) return c.json({ error: 'Ingen bild skickades.' }, 400);
-    const ext = ({ 'image/webp': 'webp', 'image/jpeg': 'jpg', 'image/png': 'png' } as Record<string, string>)[file.type];
-    if (!ext) return c.json({ error: 'Bilden måste vara WebP, JPEG eller PNG.' }, 400);
-    if (file.size > 5 * 1024 * 1024) return c.json({ error: 'Bilden är större än 5 MB.' }, 400);
-    const name = `${Date.now().toString(36)}-${randomBytes(4).toString('hex')}.${ext}`;
-    await writeFile(join(uploadsDir(), name), Buffer.from(await file.arrayBuffer()));
-    return c.json({ src: `/uploads/${name}` });
+    try {
+      const row = await saveUpload(db, file, String(form?.get('alt') ?? ''));
+      return c.json({ src: row.src, id: row.id });
+    } catch (e) {
+      return c.json({ error: (e as Error).message }, 400);
+    }
   });
 
   return app;

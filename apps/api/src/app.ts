@@ -9,6 +9,7 @@ import { cartRoutes } from './routes/cart.ts';
 import { catalogRoutes } from './routes/catalog.ts';
 import { adminProductRoutes } from './routes/adminProducts.ts';
 import { auditRoutes } from './routes/audit.ts';
+import { mediaRoutes } from './routes/media.ts';
 import { pageRoutes } from './routes/pages.ts';
 import { settingsRoutes } from './routes/settings.ts';
 
@@ -26,6 +27,7 @@ export function createApp(db: Db) {
   app.route('/', pageRoutes(db));
   app.route('/', auditRoutes(db));
   app.route('/', adminProductRoutes(db));
+  app.route('/', mediaRoutes(db));
   app.onError((err, c) => {
     console.error(err);
     return c.json({ error: 'Något gick fel på servern.' }, 500);

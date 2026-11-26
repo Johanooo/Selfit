@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { categories, getCategory, getSubcategory, subcategoriesOf } from '@/data/categories';
 import { getFlavour } from '@/data/products';
 import { PwoCan } from '@/components/art/PwoCan';
+import { MediaPicker } from './mediaViews';
 
 /**
  * Admin → Produkter. Listan och formuläret läser och sparar direkt i databasen.
@@ -485,6 +486,7 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [optionDraft, setOptionDraft] = useState<{ name: string; values: string }[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -726,9 +728,14 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
               }}
             >
               <p>Dra in bilder hit, eller</p>
-              <button type="button" className="admin-btn" onClick={() => fileRef.current?.click()} data-testid="button-choose-images">
-                Välj bilder
-              </button>
+              <div className="admin-actions">
+                <button type="button" className="admin-btn" onClick={() => fileRef.current?.click()} data-testid="button-choose-images">
+                  Ladda upp från datorn
+                </button>
+                <button type="button" className="admin-btn" onClick={() => setPickerOpen(true)} data-testid="button-open-media">
+                  Välj från mediebiblioteket
+                </button>
+              </div>
               <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => e.target.files && upload(e.target.files)} data-testid="input-product-images" />
               {uploading > 0 && (
                 <p role="status">
@@ -765,6 +772,13 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
               </ul>
             )}
           </Section>
+
+          <MediaPicker
+            open={pickerOpen}
+            onClose={() => setPickerOpen(false)}
+            already={form.images.map((i) => i.src)}
+            onPick={(picked) => set('images', [...form.images, ...picked.map((m) => ({ src: m.src, alt: m.alt || form.name }))])}
+          />
 
           <Section n={3} title="Pris och lager">
             {!legacy && (

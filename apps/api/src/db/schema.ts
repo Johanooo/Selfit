@@ -392,3 +392,15 @@ export const auditLog = sqliteTable(
   },
   (t) => [index('audit_log_at_idx').on(t.at)],
 );
+
+/** Mediebiblioteket: bilder som laddats upp i Admin. Filen ligger i ~/selfit-data/uploads. */
+export const media = sqliteTable('media', {
+  id: text('id').primaryKey(),
+  src: text('src').notNull().unique(),
+  name: text('name').notNull(),
+  alt: text('alt').notNull().default(''),
+  width: integer('width'),
+  height: integer('height'),
+  bytes: integer('bytes').notNull().default(0),
+  createdAt: createdAt(),
+});

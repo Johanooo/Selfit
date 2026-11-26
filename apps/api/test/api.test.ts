@@ -299,3 +299,34 @@ describe('Admin: produkter', () => {
     expect(log.some((r: any) => r.action === 'Produkt borttagen')).toBe(true);
   });
 });
+
+describe('mediebibliotek', () => {
+  it('laddar upp, listar, ändrar bildtext och tar bort bilder', async () => {
+    const fd = new FormData();
+    fd.append('file', new File([new Uint8Array([1, 2, 3])], 'burk.png', { type: 'image/png' }));
+    const up = await app.request('/api/admin/media', { method: 'POST', body: fd });
+    expect(up.status).toBe(200);
+    const img = (await up.json()) as any;
+    expect(img.src).toMatch(/^\/uploads\/.+\.png$/);
+    const list = (await get('/admin/media')).body;
+    expect(list.uploads.some((m: any) => m.id === img.id)).toBe(true);
+    const put = await app.request(`/api/admin/media/${img.id}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ alt: 'Svart burk' }) });
+    expect(((await put.json()) as any).alt).toBe('Svart burk');
+    expect((await app.request(`/api/admin/media/${img.id}`, { method: 'DELETE' })).status).toBe(200);
+  });
+
+  it('tar inte bort bilder som används av en produkt', async () => {
+    const fd = new FormData();
+    fd.append('file', new File([new Uint8Array([1])], 'x.png', { type: 'image/png' }));
+    const img = (await (await app.request('/api/admin/media', { method: 'POST', body: fd })).json()) as any;
+    const res = await app.request('/api/admin/products', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Med bild', brand: 'SELFIT', productType: 'redskap', subcategory: 'shakers-och-flaskor', vat: 'vat-standard', images: [{ src: img.src }], variants: [{ price: 99, stock: 1 }] }),
+    });
+    expect(res.status).toBe(200);
+    const del = await app.request(`/api/admin/media/${img.id}`, { method: 'DELETE' });
+    expect(del.status).toBe(409);
+    expect(((await del.json()) as any).error).toMatch(/Med bild/);
+  });
+});
