@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { categories, getCategory, getSubcategory, subcategoriesOf } from '@/data/categories';
 import { getFlavour } from '@/data/products';
 import { PwoCan } from '@/components/art/PwoCan';
 import { MediaPicker, uploadImage } from './mediaViews';
-import { BodyEditor } from './pagesViews';
 import { BrandDialog, type Brand } from './brandViews';
+
+const RichTextEditor = lazy(() => import('./RichTextEditor'));
 
 /**
  * Admin → Produkter → Skapa/redigera produkt.
@@ -116,6 +117,64 @@ function problems(f: Form) {
   else if (sell.some((v) => !(v.price > 0))) out.push(f.optionNames.length || sell.length > 1 ? 'Pris på alla varianter' : 'Pris');
   if (f.optionNames.length && sell.some((v) => f.optionNames.some((n) => !v.options[n]?.trim()))) out.push('Värden för alla alternativ');
   return out;
+}
+
+/** Fält där varje värde blir en bricka: skriv och tryck Enter eller komma. */
+function ChipInput({ id, values, onChange, placeholder, testId }: { id: string; values: string[]; onChange: (v: string[]) => void; placeholder?: string; testId?: string }) {
+  const [text, setText] = useState('');
+  const commit = (raw: string) => {
+    const add = raw.split(',').map((x) => x.trim()).filter((x) => x && !values.some((v) => v.toLowerCase() === x.toLowerCase()));
+    if (add.length) onChange([...values, ...add]);
+    setText('');
+  };
+  return (
+    <div className="pf-chips">
+      {values.map((v) => (
+        <span key={v} className="pf-chip">
+          {v}
+          <button type="button" aria-label={`Ta bort ${v}`} onClick={() => onChange(values.filter((x) => x !== v))}>
+            ✕
+          </button>
+        </span>
+      ))}
+      <input
+        id={id}
+        className="pf-chip-input"
+        value={text}
+        placeholder={values.length ? 'Lägg till fler …' : placeholder}
+        onChange={(e) => (e.target.value.includes(',') ? commit(e.target.value) : setText(e.target.value))}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            commit(text);
+          } else if (e.key === 'Backspace' && !text && values.length) onChange(values.slice(0, -1));
+        }}
+        onBlur={() => commit(text)}
+        data-testid={testId}
+      />
+    </div>
+  );
+}
+
+/** Textruta där varje rad blir ett värde. Texten sparas fritt medan man skriver. */
+function LinesInput({ id, values, onChange }: { id: string; values: string[]; onChange: (v: string[]) => void }) {
+  const [text, setText] = useState(values.join('\n'));
+  const parsed = (s: string) => s.split('\n').map((x) => x.trim()).filter(Boolean);
+  useEffect(() => {
+    if (parsed(text).join('\n') !== values.join('\n')) setText(values.join('\n'));
+  }, [values.join('\n')]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <textarea
+      id={id}
+      className="pf-input"
+      rows={3}
+      value={text}
+      onChange={(e) => {
+        setText(e.target.value);
+        onChange(parsed(e.target.value));
+      }}
+    />
+  );
 }
 
 function Card({ title, action, children, className = '' }: { title?: string; action?: ReactNode; children: ReactNode; className?: string }) {
@@ -342,8 +401,10 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
               <input id="p-tagline" className="pf-input" value={form.tagline} onChange={(e) => set('tagline', e.target.value)} placeholder="T.ex. 5 g kreatin per dos" data-testid="input-product-tagline" />
             </Field>
             <div className="pf-field">
-              <label htmlFor="p-desc">Beskrivning</label>
-              <BodyEditor id="p-desc" value={form.description} onChange={(v) => set('description', v)} fields={false} rows={7} />
+              <span className="pf-label" id="p-desc-label">Beskrivning</span>
+              <Suspense fallback={<div className="rte rte-loading">Laddar textredigeraren …</div>}>
+                <RichTextEditor id="p-desc" value={form.description} onChange={(v) => set('description', v)} />
+              </Suspense>
             </div>
 
             <div className="pf-field">
@@ -576,11 +637,11 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
                       <textarea id="p-ingr" className="pf-input" rows={3} value={form.ingredients} onChange={(e) => set('ingredients', e.target.value)} />
                     </Field>
                     <div className="pf-row two">
-                      <Field id="p-allergens" label="Allergener" help="Skilj med komma. Visas i fetstil.">
-                        <input id="p-allergens" className="pf-input" value={form.allergens.join(', ')} onChange={(e) => set('allergens', e.target.value.split(',').map((x) => x.trim()).filter(Boolean))} placeholder="T.ex. mjölk, soja" />
+                      <Field id="p-allergens" label="Allergener" help="Tryck Enter eller komma efter varje. Visas i fetstil i ingredienserna.">
+                        <ChipInput id="p-allergens" values={form.allergens} onChange={(v) => set('allergens', v)} placeholder="T.ex. mjölk" testId="input-product-allergens" />
                       </Field>
                       <Field id="p-warn" label="Varningstexter" help="En per rad.">
-                        <textarea id="p-warn" className="pf-input" rows={2} value={form.warnings.join('\n')} onChange={(e) => set('warnings', e.target.value.split('\n').map((x) => x.trim()).filter(Boolean))} />
+                        <LinesInput id="p-warn" values={form.warnings} onChange={(v) => set('warnings', v)} />
                       </Field>
                     </div>
                     <div className="pf-field">

@@ -201,7 +201,8 @@ async function writeProduct(db: Db, input: ProductInput, existingId?: string) {
     brandId,
     productType: input.productType,
     tagline: input.tagline,
-    description: input.description.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean),
+    // HTML från textredigeraren sparas som ett stycke. Äldre text delas vid tomma rader.
+    description: /^\s*</.test(input.description) ? [input.description.trim()] : input.description.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean),
     usage: input.usage,
     ingredients: input.ingredients,
     allergens: input.allergens,

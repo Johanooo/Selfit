@@ -19,6 +19,7 @@ import { useCart } from '@/state/cart';
 import NotFound from './not-found';
 import { useSettings } from '@/state/settings';
 import { parseBody } from '@/data/support';
+import { isHtml, sanitizeHtml } from '@/lib/richText';
 import { RichText } from '@/components/RichText';
 
 /** Obligatorisk text för kosttillskott (LIVSFS 2003:9). */
@@ -513,6 +514,9 @@ function ProductView({ product }: { product: Product }) {
               <summary>
                 Beskrivning <Plus size={20} aria-hidden="true" />
               </summary>
+              {isHtml(product.description.join('\n\n')) ? (
+                <div className="details-body rich-description" data-testid="text-product-description" dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.description.join('\n\n')) }} />
+              ) : (
               <div className="details-body">
                 {parseBody(product.description.join('\n\n')).map((b, i) =>
                   b.type === 'p' ? (
@@ -530,6 +534,7 @@ function ProductView({ product }: { product: Product }) {
                   ),
                 )}
               </div>
+              )}
             </details>
             <details className="details-item">
               <summary>
