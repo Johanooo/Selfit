@@ -46,7 +46,7 @@ export const settingsSchemas = {
       .array(
         z.union([
           z.object({ kind: z.literal('row'), id: z.string().min(1).max(40) }),
-          z.object({ kind: z.enum(['categories', 'pwo', 'services', 'instagram']) }),
+          z.object({ kind: z.enum(['categories', 'pwo', 'services', 'instagram', 'tiles']) }),
         ]),
       )
       .max(20),
@@ -65,6 +65,7 @@ export const settingsSchemas = {
       .max(10),
     categoriesTitle: text(80),
     services: z.array(z.object({ icon: z.enum(['truck', 'zap', 'rotate', 'chat', 'shield', 'gift', 'heart', 'star']), title: text(60).min(1), text: text(160) })).max(4),
+    tiles: z.array(z.object({ image: text(400).min(1, 'Varje bildruta behöver en bild.'), title: text(60), buttonLabel: text(40), href: text(300) })).max(4),
     instagram: z.object({
       handle: text(40),
       url: text(300),
@@ -115,7 +116,7 @@ export function settingsRoutes(db: Db) {
     const changes = diff(before, parsed.data as Record<string, unknown>);
     if (changes.length) {
       const names: Record<Key, string> = { company: 'Företagsuppgifter', policies: 'Villkor och avgifter', home: 'Startsida', navigation: 'Topprad och meny' };
-      const labels: Record<string, string> = { hero: 'Startbild', quickLinks: 'Snabblänkar', sections: 'Ordning på startsidan', rows: 'Produktrader', categoriesTitle: 'Rubrik för kategorier', services: 'Fördelar', instagram: 'Instagram', topbar: 'Topprad', menuLinks: 'Menylänkar' };
+      const labels: Record<string, string> = { hero: 'Startbild', quickLinks: 'Snabblänkar', sections: 'Ordning på startsidan', rows: 'Produktrader', categoriesTitle: 'Rubrik för kategorier', services: 'Fördelar', instagram: 'Instagram', tiles: 'Bildrutor', topbar: 'Topprad', menuLinks: 'Menylänkar' };
       // Listor och block loggas som "ändrad" i stället för hela innehållet, så att loggen går att läsa.
       const readable = changes.map((ch) =>
         typeof ch.from === 'object' || typeof ch.to === 'object' ? { field: labels[ch.field] ?? ch.field, from: 'tidigare version', to: 'ny version' } : ch,

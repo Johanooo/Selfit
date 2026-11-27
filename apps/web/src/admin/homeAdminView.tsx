@@ -102,7 +102,7 @@ const FIELDS_HELP = 'Fält som {leveranstid} och {öppet köp} fylls i automatis
 
 export function HomepageAdminView() {
   const form = useSettingsForm('home');
-  const [pickerOpen, setPickerOpen] = useState<null | 'hero' | 'ig'>(null);
+  const [pickerOpen, setPickerOpen] = useState<null | 'hero' | 'ig' | number>(null);
   const [uploading, setUploading] = useState(false);
   const [openRow, setOpenRow] = useState<string | null>(null);
   const [addBlock, setAddBlock] = useState('');
@@ -112,9 +112,9 @@ export function HomepageAdminView() {
   const setHero = (patch: Partial<typeof hero>) => form.set('hero', { ...hero, ...patch });
   const setRow = (id: string, patch: Partial<ProductRow>) => form.set('rows', home.rows.map((r) => (r.id === id ? { ...r, ...patch } : r)));
   const sources = sourceOptions();
-  const missingBlocks = (['categories', 'pwo', 'services', 'instagram'] as const).filter((k) => !home.sections.some((s) => s.kind === k));
+  const missingBlocks = (['categories', 'tiles', 'pwo', 'services', 'instagram'] as const).filter((k) => !home.sections.some((s) => s.kind === k));
   const blockName = (s: HomeSection) =>
-    s.kind === 'row' ? home.rows.find((r) => r.id === s.id)?.title || 'Produktrad' : s.kind === 'categories' ? 'Kategorirutor' : s.kind === 'pwo' ? 'PWO+-bandet' : s.kind === 'instagram' ? 'Instagram-remsa' : 'Fördelar (ikoner längst ner)';
+    s.kind === 'row' ? home.rows.find((r) => r.id === s.id)?.title || 'Produktrad' : s.kind === 'categories' ? 'Kategorirutor' : s.kind === 'pwo' ? 'PWO+-bandet' : s.kind === 'instagram' ? 'Instagram-remsa' : s.kind === 'tiles' ? 'Stora bildrutor' : 'Fördelar (ikoner längst ner)';
 
   const addSection = () => {
     if (addBlock === 'row') {
@@ -124,7 +124,7 @@ export function HomepageAdminView() {
       form.set('sections', [...home.sections, { kind: 'row', id }]);
       setOpenRow(id);
     } else if (addBlock) {
-      form.set('sections', [...home.sections, { kind: addBlock as 'categories' | 'pwo' | 'services' | 'instagram' }]);
+      form.set('sections', [...home.sections, { kind: addBlock as 'categories' | 'pwo' | 'services' | 'instagram' | 'tiles' }]);
     }
     setAddBlock('');
   };
@@ -141,6 +141,19 @@ export function HomepageAdminView() {
     try {
       const item = await uploadImage(file, 'Startbild');
       setHero({ image: item.src });
+    } finally {
+      setUploading(false);
+    }
+  };
+  const tiles = home.tiles;
+  const setTile = (j: number, patch: Partial<(typeof tiles)[number]>) => form.set('tiles', tiles.map((t, k) => (k === j ? { ...t, ...patch } : t)));
+  const uploadTile = async (j: number, files: FileList) => {
+    const file = files[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const item = await uploadImage(file, tiles[j]?.title || 'Bildruta');
+      setTile(j, { image: item.src });
     } finally {
       setUploading(false);
     }
@@ -293,16 +306,53 @@ export function HomepageAdminView() {
                       <p className="admin-field-hint">Det svarta bandet med PWO+-burkarna. Innehållet hämtas från produkten PWO+.</p>
                     </div>
                   )}
+                  {openRow === key && s.kind === 'tiles' && (
+                    <div className="home-block-body">
+                      <ul className="tile-admin-list">
+                        {tiles.map((t, j) => (
+                          <li key={j} className="tile-admin">
+                            <div className="tile-admin-img" style={{ backgroundImage: `url(${t.image.startsWith('/') ? base + t.image : t.image})` }}>
+                              <span>{t.title}</span>
+                            </div>
+                            <div className="tile-admin-fields">
+                              <input className="admin-control" aria-label={`Rubrik ruta ${j + 1}`} value={t.title} onChange={(e) => setTile(j, { title: e.target.value })} placeholder="Rubrik, t.ex. Kläder herr" data-testid={`input-tile-${j}-title`} />
+                              <input className="admin-control" aria-label={`Knapptext ruta ${j + 1}`} value={t.buttonLabel} onChange={(e) => setTile(j, { buttonLabel: e.target.value })} placeholder="Knapptext (tom = ingen knapp)" />
+                              <input className="admin-control" aria-label={`Länk ruta ${j + 1}`} list="store-links" value={t.href} onChange={(e) => setTile(j, { href: e.target.value })} placeholder="Länk" data-testid={`input-tile-${j}-href`} />
+                              <div className="admin-actions">
+                                <button type="button" className="admin-btn small" onClick={() => setPickerOpen(j)}>
+                                  Välj bild
+                                </button>
+                                <label className="admin-btn small">
+                                  {uploading ? 'Laddar upp …' : 'Ladda upp'}
+                                  <input type="file" accept="image/*" hidden onChange={(e) => e.target.files && uploadTile(j, e.target.files)} />
+                                </label>
+                                <OrderButtons i={j} count={tiles.length} onMove={(d) => form.set('tiles', moveItem(tiles, j, d))} label={`ruta ${j + 1}`} />
+                                <button type="button" className="admin-btn small danger" onClick={() => form.set('tiles', tiles.filter((_, k) => k !== j))} aria-label={`Ta bort ruta ${j + 1}`}>
+                                  ✕
+                                </button>
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                      {tiles.length < 4 && (
+                        <button type="button" className="admin-btn small" onClick={() => form.set('tiles', [...tiles, { image: '/images/hero.webp', title: 'Ny ruta', buttonLabel: 'Handla nu', href: '' }])} data-testid="button-add-tile">
+                          ＋ Lägg till bildruta
+                        </button>
+                      )}
+                      <p className="admin-field-hint">2–4 rutor bredvid varandra. Stående bilder (ungefär 4:5) blir snyggast.</p>
+                    </div>
+                  )}
                   {openRow === key && s.kind === 'instagram' && (
                     <div className="home-block-body">
                       <div className="admin-form-grid">
                         <div className="admin-field">
                           <label htmlFor="ig-handle">Namn i bubblan</label>
-                          <input id="ig-handle" className="admin-control" value={ig.handle} onChange={(e) => setIg({ handle: e.target.value })} placeholder="@selfit" data-testid="input-ig-handle" />
+                          <input id="ig-handle" className="admin-control" value={ig.handle} onChange={(e) => setIg({ handle: e.target.value })} placeholder="@selfit.se" data-testid="input-ig-handle" />
                         </div>
                         <div className="admin-field">
                           <label htmlFor="ig-url">Länk till profilen</label>
-                          <input id="ig-url" className="admin-control" value={ig.url} onChange={(e) => setIg({ url: e.target.value })} placeholder="https://www.instagram.com/selfit" data-testid="input-ig-url" />
+                          <input id="ig-url" className="admin-control" value={ig.url} onChange={(e) => setIg({ url: e.target.value })} placeholder="https://www.instagram.com/selfit.se/" data-testid="input-ig-url" />
                         </div>
                       </div>
                       <ul className="ig-admin-grid">
@@ -367,7 +417,7 @@ export function HomepageAdminView() {
               <option value="row">Ny produktrad</option>
               {missingBlocks.map((k) => (
                 <option key={k} value={k}>
-                  {k === 'categories' ? 'Kategorirutor' : k === 'pwo' ? 'PWO+-bandet' : k === 'instagram' ? 'Instagram-remsa' : 'Fördelar'}
+                  {k === 'categories' ? 'Kategorirutor' : k === 'pwo' ? 'PWO+-bandet' : k === 'instagram' ? 'Instagram-remsa' : k === 'tiles' ? 'Stora bildrutor' : 'Fördelar'}
                 </option>
               ))}
             </select>
@@ -399,6 +449,7 @@ export function HomepageAdminView() {
         already={pickerOpen === 'ig' ? ig.images.map((x) => x.src) : []}
         onPick={(items) => {
           if (pickerOpen === 'hero' && items[0]) setHero({ image: items[0].src });
+          if (typeof pickerOpen === 'number' && items[0]) setTile(pickerOpen, { image: items[0].src });
           if (pickerOpen === 'ig') setIg({ images: [...ig.images, ...items.map((m) => ({ src: m.src, href: '' }))].slice(0, 16) });
         }}
       />

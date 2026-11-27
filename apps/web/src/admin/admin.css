@@ -466,3 +466,7 @@
 .admin-root .ig-admin-grid { list-style: none; margin: var(--space-3) 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-3); }
 .admin-root .ig-admin-grid li { display: grid; gap: 6px; }
 .admin-root .ig-admin-grid img { width: 100%; aspect-ratio: 9 / 13; object-fit: cover; border-radius: 10px; background: #eee; }
+.admin-root .tile-admin-list { list-style: none; margin: 0 0 var(--space-3); padding: 0; display: grid; gap: var(--space-3); }
+.admin-root .tile-admin { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: var(--space-3); align-items: start; }
+.admin-root .tile-admin-img { aspect-ratio: 4 / 5; border-radius: 6px; background: #ddd center / cover; display: flex; align-items: flex-end; padding: 8px; color: #fff; font-weight: 700; font-size: 13px; text-shadow: 0 1px 4px rgb(0 0 0 / 0.6); }
+.admin-root .tile-admin-fields { display: grid; gap: 6px; }

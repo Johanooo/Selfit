@@ -50,6 +50,16 @@ export interface HomeSettings {
   categoriesTitle: string;
   services: ServiceItem[];
   instagram: InstagramSettings;
+  tiles: TileItem[];
+}
+
+/** Stora bildrutor med rubrik och knapp, t.ex. "Kläder herr" / "Kläder dam" / "Tillbehör". */
+export interface TileItem {
+  image: string;
+  title: string;
+  /** Tom = ingen knapp, bara bilden och rubriken. */
+  buttonLabel: string;
+  href: string;
 }
 
 /** Bilder från Instagram som visas i en remsa längst ner. Väljs för hand i Admin. */
@@ -63,7 +73,7 @@ export interface InstagramSettings {
 }
 
 /** Blocken under bilden och snabblänkarna, i den ordning de visas. */
-export type HomeSection = { kind: 'row'; id: string } | { kind: 'categories' } | { kind: 'pwo' } | { kind: 'services' } | { kind: 'instagram' };
+export type HomeSection = { kind: 'row'; id: string } | { kind: 'categories' } | { kind: 'pwo' } | { kind: 'services' } | { kind: 'instagram' } | { kind: 'tiles' };
 
 export interface MenuLink extends LinkItem {
   /** Före eller efter kategorierna i menyn. */
@@ -100,6 +110,7 @@ export const defaultHome: HomeSettings = {
     { kind: 'row', id: 'sale' },
     { kind: 'categories' },
     { kind: 'row', id: 'popular' },
+    { kind: 'tiles' },
     { kind: 'pwo' },
     { kind: 'row', id: 'new' },
     { kind: 'instagram' },
@@ -117,10 +128,15 @@ export const defaultHome: HomeSettings = {
     { icon: 'rotate', title: '{öppet köp} dagars öppet köp', text: 'På oöppnade varor' },
     { icon: 'chat', title: 'Kundtjänst som svarar', text: '[Till kundservice](/support)' },
   ],
+  tiles: [
+    { image: '/images/traning.webp', title: 'Träning', buttonLabel: 'Handla nu', href: '/kategori/traningsutrustning' },
+    { image: '/images/halsa.webp', title: 'Hälsa', buttonLabel: 'Handla nu', href: '/kategori/kosttillskott' },
+    { image: '/images/skonhet.webp', title: 'Kroppsvård', buttonLabel: 'Handla nu', href: '/kategori/kroppsvard' },
+  ],
   // Exempelbilder från butiken tills riktiga Instagram-bilder valts i Admin.
   instagram: {
-    handle: '@selfit',
-    url: 'https://www.instagram.com/',
+    handle: '@selfit.se',
+    url: 'https://www.instagram.com/selfit.se/',
     images: [
       { src: '/images/pwo-plus/blueberry-campaign.webp', href: '' },
       { src: '/images/traning.webp', href: '' },

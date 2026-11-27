@@ -120,6 +120,23 @@ export default function Home() {
         </section>
       );
     }
+    if (s.kind === 'tiles' && home.tiles.length) {
+      return (
+        <section className="section" aria-label="Utvalt" key={`tiles-${i}`}>
+          <div className={`container promo-tiles promo-tiles--${Math.min(home.tiles.length, 4)}`}>
+            {home.tiles.map((t, j) => (
+              <Link key={j} href={t.href || '/'} className="promo-tile" data-testid={`link-promo-${j}`}>
+                <img src={withBase(t.image)} alt="" loading="lazy" width={640} height={800} />
+                <span className="promo-tile-body">
+                  {t.title && <span className="promo-tile-title">{f(t.title)}</span>}
+                  {t.buttonLabel && <span className="btn btn--on-dark btn--sm">{f(t.buttonLabel)}</span>}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      );
+    }
     if (s.kind === 'instagram' && home.instagram.images.length) {
       const ig = home.instagram;
       const external = (href: string) => /^https?:/.test(href);
