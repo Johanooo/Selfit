@@ -25,6 +25,8 @@ export interface ProductDisplay {
   primaryImageAlt?: string;
   isNew?: boolean;
   allergenInfoKnown?: boolean;
+  /** Storleksguide för kläder eller skor. */
+  sizeGuide?: 'klader' | 'skor';
 }
 
 const KIND: Record<string, Product['kind']> = {
@@ -33,7 +35,7 @@ const KIND: Record<string, Product['kind']> = {
   kosttillskott: 'kosttillskott',
   kroppsvard: 'kroppsvard',
   redskap: 'redskap',
-  klader: 'redskap',
+  klader: 'klader',
 };
 
 type Status = 'draft' | 'published' | 'archived';
@@ -118,6 +120,7 @@ export async function buildStorefrontProducts(db: Db, statuses: Status[] = ['pub
       subcategory: d.subcategory ?? base?.subcategory,
       alsoIn: d.alsoIn ?? base?.alsoIn,
       kind: KIND[f.productType] ?? base?.kind,
+      sizeGuide: d.sizeGuide ?? base?.sizeGuide,
       warnings: d.warnings ?? base?.warnings,
       collections: cols.filter((c) => c.familyId === f.id).map((c) => c.slug),
       tagline: f.tagline ?? '',

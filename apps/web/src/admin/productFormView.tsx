@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { categories, getCategory, getSubcategory, subcategoriesOf } from '@/data/categories';
+import { kindForCategory } from '@/lib/productKind';
 import { getFlavour } from '@/data/products';
 import { PwoCan } from '@/components/art/PwoCan';
 import { MediaPicker, uploadImage } from './mediaViews';
@@ -74,6 +75,7 @@ interface Form {
   optionNames: string[];
   variants: FormVariant[];
   isNew: boolean;
+  sizeGuide?: '' | 'klader' | 'skor';
 }
 
 const emptyVariant = (): FormVariant => ({ options: {}, price: 0, stock: 0, ean: '', sku: '', offered: true });
@@ -98,6 +100,7 @@ const emptyForm = (): Form => ({
   optionNames: [],
   variants: [emptyVariant()],
   isNew: true,
+  sizeGuide: '',
 });
 
 const STATUS_LABEL: Record<Status, string> = { draft: 'Utkast', published: 'Aktiv', archived: 'Arkiverad' };
@@ -455,7 +458,27 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
             </div>
 
             <Field id="p-cat" label="Kategori" help="Bestämmer var produkten visas i butikens meny.">
-              <select id="p-cat" className="pf-input" value={form.subcategory} onChange={(e) => set('subcategory', e.target.value)} data-testid="select-product-category">
+              <select
+                id="p-cat"
+                className="pf-input"
+                value={form.subcategory}
+                onChange={(e) => {
+                  // Typen följer kategorin automatiskt (kan ändras under Produktorganisation).
+                  const parent = getSubcategory(e.target.value)?.parent;
+                  const k = kindForCategory(parent);
+                  const t = TYPES.find((x) => x.value === k);
+                  if (!t) return set('subcategory', e.target.value);
+                  setForm({
+                    ...form,
+                    subcategory: e.target.value,
+                    productType: t.value,
+                    vat: t.food ? 'vat-food' : 'vat-standard',
+                    deposit: t.value === 'dryck' ? form.deposit : false,
+                    sizeGuide: t.value === 'klader' ? (form.sizeGuide || (/sko/.test(e.target.value) ? 'skor' : 'klader')) : '',
+                  });
+                }}
+                data-testid="select-product-category"
+              >
                 <option value="">Välj en kategori</option>
                 {categories.map((c) => (
                   <optgroup key={c.slug} label={c.name}>
@@ -617,7 +640,7 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
           </Card>
 
           <Card
-            title={type.food ? 'Innehåll och märkning' : 'Mer information'}
+            title={type.food ? 'Innehåll och märkning' : form.productType === 'klader' ? 'Material, skötsel och storlek' : form.productType === 'kroppsvard' ? 'Innehåll och användning' : 'Material och användning'}
             action={
               <button type="button" className="pf-link" onClick={() => setShowMore((s) => !s)} aria-expanded={showMore} data-testid="button-toggle-more">
                 {showMore ? 'Dölj' : 'Visa'}
@@ -625,7 +648,15 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
             }
           >
             {!showMore ? (
-              <p className="pf-help">{type.food ? 'Ingredienser, näringsvärde, användning och varningstexter. Ska stämma med förpackningen.' : 'Fakta som material, mått eller skötselråd.'}</p>
+              <p className="pf-help">
+                {type.food
+                  ? 'Ingredienser, näringsvärde, användning och varningstexter. Ska stämma med förpackningen.'
+                  : form.productType === 'klader'
+                    ? 'Material, skötselråd och vilken storleksguide som visas.'
+                    : form.productType === 'kroppsvard'
+                      ? 'Innehållsförteckning (INCI), användning och varningstexter.'
+                      : 'Material, användning och fakta som mått och vikt.'}
+              </p>
             ) : (
               <>
                 {type.food && (
@@ -708,6 +739,46 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
                         )}
                       </div>
                     </div>
+                  </>
+                )}
+                {form.productType === 'klader' && (
+                  <>
+                    <Field id="p-material" label="Material" help="T.ex. 88 % polyester, 12 % elastan.">
+                      <textarea id="p-material" className="pf-input" rows={2} value={form.ingredients} onChange={(e) => set('ingredients', e.target.value)} data-testid="input-product-material" />
+                    </Field>
+                    <Field id="p-care" label="Skötselråd" help="T.ex. Tvättas i 40 °C. Torktumla inte.">
+                      <textarea id="p-care" className="pf-input" rows={2} value={form.usage} onChange={(e) => set('usage', e.target.value)} data-testid="input-product-care" />
+                    </Field>
+                    <Field id="p-sizeguide" label="Storleksguide" help="Visas som en länk vid storleksvalet på produktsidan.">
+                      <select id="p-sizeguide" className="pf-input" value={form.sizeGuide ?? ''} onChange={(e) => set('sizeGuide', e.target.value as Form['sizeGuide'])} data-testid="select-product-sizeguide">
+                        <option value="">Ingen storleksguide</option>
+                        <option value="klader">Kläder (bröst, midja, höft)</option>
+                        <option value="skor">Skor (EU, UK, US, fotlängd)</option>
+                      </select>
+                    </Field>
+                  </>
+                )}
+                {form.productType === 'kroppsvard' && (
+                  <>
+                    <Field id="p-usage-body" label="Användning">
+                      <textarea id="p-usage-body" className="pf-input" rows={3} value={form.usage} onChange={(e) => set('usage', e.target.value)} />
+                    </Field>
+                    <Field id="p-inci" label="Innehåll (INCI)" help="Skriv som på förpackningen.">
+                      <textarea id="p-inci" className="pf-input" rows={3} value={form.ingredients} onChange={(e) => set('ingredients', e.target.value)} />
+                    </Field>
+                    <Field id="p-warn-body" label="Varningstexter" help="En per rad.">
+                      <LinesInput id="p-warn-body" values={form.warnings} onChange={(v) => set('warnings', v)} />
+                    </Field>
+                  </>
+                )}
+                {form.productType === 'redskap' && (
+                  <>
+                    <Field id="p-usage-gear" label="Användning">
+                      <textarea id="p-usage-gear" className="pf-input" rows={3} value={form.usage} onChange={(e) => set('usage', e.target.value)} />
+                    </Field>
+                    <Field id="p-material-gear" label="Material" help="T.ex. BPA-fri plast, naturgummi.">
+                      <textarea id="p-material-gear" className="pf-input" rows={2} value={form.ingredients} onChange={(e) => set('ingredients', e.target.value)} />
+                    </Field>
                   </>
                 )}
                 <div className="pf-field">

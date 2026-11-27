@@ -21,7 +21,10 @@ export interface Subcategory {
 }
 
 /** Produktens klassificering styr t.ex. vilka obligatoriska texter som visas. */
-export type ProductKind = 'dryck' | 'livsmedel' | 'kosttillskott' | 'kroppsvard' | 'redskap';
+export type ProductKind = 'dryck' | 'livsmedel' | 'kosttillskott' | 'kroppsvard' | 'klader' | 'redskap';
+
+/** Vilken storleksguide som visas på produktsidan. */
+export type SizeGuideKind = 'klader' | 'skor';
 
 export interface Flavour {
   slug: string;
@@ -82,6 +85,8 @@ export interface Product {
   /** Fler underkategorier där produkten också visas, t.ex. PWO+ både under Drycker och Sporttillskott. */
   alsoIn?: string[];
   kind?: ProductKind;
+  /** Storleksguide för kläder eller skor. */
+  sizeGuide?: SizeGuideKind;
   /** Produktspecifika varningstexter från etiketten. */
   warnings?: string[];
   collections: string[];

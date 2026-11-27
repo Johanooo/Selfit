@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams, useSearch } from 'wouter';
-import { Clock, Info, Plus, Truck, RotateCcw, AlertTriangle, Check, Maximize2 } from 'lucide-react';
+import { Clock, Info, Plus, Truck, RotateCcw, AlertTriangle, Check, Maximize2, Ruler } from 'lucide-react';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { ProductCard } from '@/components/ProductCard';
 import { QuantityStepper } from '@/components/QuantityStepper';
@@ -21,6 +21,9 @@ import { useSettings } from '@/state/settings';
 import { parseBody } from '@/data/support';
 import { isHtml, sanitizeHtml } from '@/lib/richText';
 import { RichText } from '@/components/RichText';
+import { SizeGuideDialog } from '@/components/SizeGuideDialog';
+import { isFood, kindOf, sectionLabels } from '@/lib/productKind';
+import type { SizeGuideKind } from '@/data/types';
 
 /** Obligatorisk text för kosttillskott (LIVSFS 2003:9). */
 const SUPPLEMENT_WARNING =
@@ -96,6 +99,7 @@ function ProductView({ product }: { product: Product }) {
   const [zoomOpen, setZoomOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
   const { add } = useCart();
 
   const category = getCategory(product.category);
@@ -111,6 +115,13 @@ function ProductView({ product }: { product: Product }) {
   const views = galleryViews(product, variant);
   const title = flavour ? `${product.name} ${flavour.name}` : product.name;
   const optionNames = product.optionNames ?? [];
+  // Produkttypen styr vilka avsnitt som visas: näringsvärde för mat, material och storleksguide för kläder osv.
+  const kind = kindOf(product);
+  const food = isFood(kind);
+  const labels = sectionLabels(kind);
+  const sizeGuide: SizeGuideKind | undefined =
+    product.sizeGuide ?? (kind === 'klader' ? (/sko/.test(product.subcategory ?? '') ? 'skor' : 'klader') : undefined);
+  const isSizeOption = (name: string) => /storlek|size/i.test(name);
   /** Värden för ett alternativ i den ordning de först förekommer. */
   const valuesOf = (name: string) => uniq(product.variants.filter((v) => v.offered).map((v) => v.options?.[name]));
   const matchWith = (name: string, value: string) =>
@@ -297,6 +308,11 @@ function ProductView({ product }: { product: Product }) {
                   <legend>
                     {name}: <span>{variant.options?.[name]}</span>
                   </legend>
+                  {sizeGuide && isSizeOption(name) && (
+                    <button type="button" className="size-guide-link" onClick={() => setGuideOpen(true)} data-testid="button-size-guide">
+                      <Ruler size={16} aria-hidden="true" /> Storleksguide
+                    </button>
+                  )}
                   <div className="options">
                     {values.map((value) => {
                       const st = optionStatus(name, value);
@@ -535,17 +551,43 @@ function ProductView({ product }: { product: Product }) {
               </div>
               )}
             </details>
+            {product.usage.trim() && (
+              <details className="details-item">
+                <summary>
+                  {labels.usage} <Plus size={20} aria-hidden="true" />
+                </summary>
+                <div className="details-body">
+                  <p>{product.usage}</p>
+                </div>
+              </details>
+            )}
+            {!food && product.ingredients.trim() && (
+              <details className="details-item">
+                <summary>
+                  {labels.ingredients} <Plus size={20} aria-hidden="true" />
+                </summary>
+                <div className="details-body">
+                  <p>{product.ingredients}</p>
+                </div>
+              </details>
+            )}
+            {sizeGuide && (
+              <details className="details-item">
+                <summary>
+                  Storlek och passform <Plus size={20} aria-hidden="true" />
+                </summary>
+                <div className="details-body">
+                  <p>Osäker på storleken? Jämför dina mått med vår tabell.</p>
+                  <button type="button" className="btn btn--secondary btn--sm" onClick={() => setGuideOpen(true)}>
+                    <Ruler size={16} aria-hidden="true" /> Öppna storleksguiden
+                  </button>
+                </div>
+              </details>
+            )}
+            {food && (
             <details className="details-item">
               <summary>
-                Användning <Plus size={20} aria-hidden="true" />
-              </summary>
-              <div className="details-body">
-                <p>{product.usage}</p>
-              </div>
-            </details>
-            <details className="details-item">
-              <summary>
-                Ingredienser och näringsvärde <Plus size={20} aria-hidden="true" />
+                {labels.ingredients} <Plus size={20} aria-hidden="true" />
               </summary>
               <div className="details-body">
                 <p>{highlightAllergens((variant.flavour && product.ingredientsByFlavour?.[variant.flavour]) || product.ingredients, product.allergens)}</p>
@@ -579,6 +621,7 @@ function ProductView({ product }: { product: Product }) {
                 )}
               </div>
             </details>
+            )}
             <details className="details-item">
               <summary>
                 Produktfakta <Plus size={20} aria-hidden="true" />
@@ -599,7 +642,7 @@ function ProductView({ product }: { product: Product }) {
                       </dd>
                     </>
                   )}
-                  {!variant.pack && (
+                  {!variant.pack && product.sizeLabel && (
                     <>
                       <dt>Storlek</dt>
                       <dd>{product.sizeLabel}</dd>
@@ -629,6 +672,8 @@ function ProductView({ product }: { product: Product }) {
           </div>
         </div>
       </div>
+
+      {sizeGuide && <SizeGuideDialog guide={sizeGuide} open={guideOpen} onClose={() => setGuideOpen(false)} />}
 
       {related.length > 0 && (
         <section className="section" aria-labelledby="similar-title">

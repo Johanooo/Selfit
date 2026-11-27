@@ -55,6 +55,7 @@ export const productInput = z.object({
   optionNames: z.array(z.string().trim().min(1).max(40)).max(3).default([]),
   variants: z.array(variantInput).min(1, 'Produkten behöver minst ett pris.').max(200),
   isNew: z.boolean().default(false),
+  sizeGuide: z.enum(['', 'klader', 'skor']).default(''),
   status: z.enum(['draft', 'published']).optional(),
 });
 type ProductInput = z.infer<typeof productInput>;
@@ -153,6 +154,7 @@ async function readProduct(db: Db, id: string) {
     deposit: vars.some((v) => v.depositUnits > 0),
     optionNames: f.optionNames ?? [],
     isNew: d.isNew ?? false,
+    sizeGuide: d.sizeGuide ?? '',
     hasOrders: await hasOrders(db, ids),
     updatedAt: f.updatedAt ?? f.createdAt,
     variants: vars.map((v) => ({
@@ -191,6 +193,7 @@ async function writeProduct(db: Db, input: ProductInput, existingId?: string) {
     primaryImageAlt: input.images[0]?.alt,
     sizeLabel: input.sizeLabel,
     isNew: input.isNew,
+    sizeGuide: input.sizeGuide || undefined,
     art: prevDisplay.art ?? 'box',
     artTone: prevDisplay.artTone ?? 'plum',
     unitLabel: prevDisplay.unitLabel ?? 'st',
