@@ -2,7 +2,7 @@
  * Gör om sidornas texter (pageTemplates.ts eller ändrade i Admin) till färdiga sidor:
  * fälten {e-post}, {öppet köp} … fylls i med butikens aktuella uppgifter.
  */
-import { FREE_SHIPPING_THRESHOLD, SHIPPING } from '@/lib/cart-math';
+import { normalizeShipping } from './shipping';
 import { defaultPages, type Faq, type PageContent } from './pageTemplates';
 import { defaultSettings, isPlaceholder, type SiteSettings } from './siteDefaults';
 
@@ -48,6 +48,7 @@ export const TEXT_FIELDS: { token: string; label: string; group: 'Företag' | 'V
 function fieldValues(settings: SiteSettings): Record<string, string> {
   const c = settings.company;
   const p = settings.policies;
+  const sh = normalizeShipping(settings.shipping);
   return {
     varumärke: c.brand,
     bolagsnamn: c.legalName,
@@ -65,9 +66,9 @@ function fieldValues(settings: SiteSettings): Record<string, string> {
     'beställ före': p.orderCutoff,
     åldersgräns: String(p.ageLimit),
     villkorsdatum: p.termsUpdated,
-    'fri frakt': kr(FREE_SHIPPING_THRESHOLD),
-    'frakt ombud': kr(SHIPPING.ombud),
-    'frakt hem': kr(SHIPPING.hem),
+    'fri frakt': kr(sh.freeFrom),
+    'frakt ombud': kr(sh.methods.ombud.price),
+    'frakt hem': kr(sh.methods.hem.price),
   };
 }
 

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { FREE_SHIPPING_THRESHOLD } from '@/lib/cart-math';
 import { defaultSettings, type SiteSettings } from '@/data/siteDefaults';
 import { fillFields } from '@/data/support';
 
@@ -32,7 +31,7 @@ export function textWarnings(text: string, settings: SiteSettings): string[] {
   if (/(skicka|skickas|leverans)/i.test(text) && /(\d|samma dag)/i.test(text.replace(/före\s*\d{1,2}([:.]\d{2})?/i, '')) && !has('leveranstid'))
     out.push(`Skriv {leveranstid} i stället för leveranstiden (just nu ${p.dispatchDays}).`);
   if (/före\s*\d{1,2}([:.]\d{2})?/i.test(text) && !has('beställ före')) out.push(`Skriv {beställ före} i stället för klockslaget (just nu ${p.orderCutoff}).`);
-  if (/fri frakt|handlar för/i.test(text) && /\d+\s*kr/i.test(text) && !has('fri frakt')) out.push(`Skriv {fri frakt} i stället för beloppet (just nu ${FREE_SHIPPING_THRESHOLD} kr).`);
+  if (/fri frakt|handlar för/i.test(text) && /\d+\s*kr/i.test(text) && !has('fri frakt')) out.push(`Skriv {fri frakt} i stället för beloppet (just nu ${settings.shipping?.freeFrom ?? 499} kr).`);
   return out;
 }
 
@@ -59,14 +58,14 @@ export function TextCheck({ text, settings }: { text: string; settings: SiteSett
 export function PolicyFieldsHelp({ settings }: { settings: SiteSettings }) {
   const p = settings.policies;
   const rows: [string, string][] = [
-    ['{fri frakt}', `${FREE_SHIPPING_THRESHOLD} kr`],
+    ['{fri frakt}', `${settings.shipping?.freeFrom ?? 499} kr`],
     ['{beställ före}', p.orderCutoff],
     ['{leveranstid}', p.dispatchDays],
     ['{öppet köp}', String(p.openPurchaseDays)],
   ];
   return (
     <p className="admin-field-hint text-check-fields">
-      Fält som följer Inställningar → Villkor och avgifter:{' '}
+      Fält som följer Inställningar (Villkor och avgifter, Frakt):{' '}
       {rows.map(([t, v], i) => (
         <span key={t}>
           {i > 0 && ' · '}

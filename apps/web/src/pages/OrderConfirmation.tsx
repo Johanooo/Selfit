@@ -8,6 +8,7 @@ import { findVariant } from '@/data/products';
 import { kr, variantLabel } from '@/lib/format';
 import { loadOrder, type DemoOrder } from '@/lib/order';
 import { useSettings } from '@/state/settings';
+import { shipping } from '@/data/shipping';
 
 export default function OrderConfirmationPage() {
   const { policies } = useSettings();
@@ -83,7 +84,7 @@ export default function OrderConfirmationPage() {
         <TotalsList
           totals={order.totals}
           code={order.code}
-          shippingLabel={order.delivery === 'ombud' ? 'Frakt (ombud)' : 'Frakt (hemleverans)'}
+          shippingLabel={`Frakt (${(shipping.methods[order.delivery]?.name ?? order.delivery).toLowerCase()})`}
         />
       </section>
 
@@ -108,7 +109,7 @@ export default function OrderConfirmationPage() {
           </li>
           <li>
             <span>
-              <strong>{order.delivery === 'ombud' ? 'Hämta hos ombud' : 'Hemleverans på kvällen'}</strong>
+              <strong>{shipping.methods[order.delivery]?.name ?? order.delivery}</strong>
               <br />
               <span className="muted">Kom ihåg att panta burkarna.</span>
             </span>

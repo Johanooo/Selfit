@@ -4,7 +4,8 @@ import { ArrowRight, RotateCcw, ShoppingBag, Truck, X, Zap } from 'lucide-react'
 import { ProductImage } from '@/components/art/ProductImage';
 import { QuantityStepper } from '@/components/QuantityStepper';
 import { FreeShippingProgress } from '@/components/OrderSummary';
-import { computeTotals, FREE_SHIPPING_THRESHOLD } from '@/lib/cart-math';
+import { computeTotals } from '@/lib/cart-math';
+import { capitalize, freeShippingPhrase, shipping } from '@/data/shipping';
 import { productHref } from '@/lib/catalog';
 import { isBuyable, kr, stockText, variantLabel } from '@/lib/format';
 import { CART_MAX_QTY, useCart } from '@/state/cart';
@@ -63,7 +64,7 @@ export function CartDrawer() {
           <div className="cart-drawer-empty">
             <ShoppingBag size={32} aria-hidden="true" />
             <p className="h3">Varukorgen är tom</p>
-            <p className="muted small">Fri frakt när du handlar för {kr(FREE_SHIPPING_THRESHOLD)} eller mer.</p>
+            {freeShippingPhrase() && <p className="muted small">{capitalize(freeShippingPhrase()!)} när du handlar för {kr(shipping.freeFrom)} eller mer.</p>}
             <Link href="/kollektion/bastsaljare" className="btn btn--primary">
               Se bästsäljare
             </Link>
@@ -145,7 +146,7 @@ export function CartDrawer() {
               <ul className="cart-drawer-usps">
                 <li>
                   <Truck size={20} aria-hidden="true" />
-                  <span>Fri frakt över {kr(FREE_SHIPPING_THRESHOLD)}</span>
+                  <span>{freeShippingPhrase() ? `${capitalize(freeShippingPhrase()!)} över ${kr(shipping.freeFrom)}` : 'Frakt'}</span>
                 </li>
                 <li>
                   <Zap size={20} aria-hidden="true" />

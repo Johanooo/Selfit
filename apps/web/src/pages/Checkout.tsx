@@ -10,7 +10,10 @@ import { ProductImage } from '@/components/art/ProductImage';
 import { FreeShippingProgress, TotalsList } from '@/components/OrderSummary';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import { getCategory } from '@/data/categories';
-import { computeTotals, SHIPPING, type DeliveryMethod } from '@/lib/cart-math';
+import { computeTotals, type DeliveryMethod } from '@/lib/cart-math';
+import { activeShippingMethods, shipping, shippingPrice } from '@/data/shipping';
+import { fillFields } from '@/data/support';
+import { useSettings } from '@/state/settings';
 import { isBuyable, kr, stockText, variantLabel } from '@/lib/format';
 import { makeOrderNumber, saveOrder } from '@/lib/order';
 import { checkDiscountCode, useCart } from '@/state/cart';
@@ -24,7 +27,11 @@ export default function CheckoutPage() {
   usePageMeta('Kassa (demo)', 'Slutför din beställning hos SELFIT. Detta är en demo, ingen riktig betalning sker.');
   const { lines, code, discounts, ready, clear, removeCode, setCodeRule } = useCart();
   const [discountError, setDiscountError] = useState('');
-  const [method, setMethod] = useState<DeliveryMethod>('ombud');
+  const settings = useSettings();
+  const methods = activeShippingMethods();
+  const [chosen, setMethod] = useState<DeliveryMethod>(methods[0] ?? 'ombud');
+  // Är det valda fraktsättet avstängt i Admin används det första som är på.
+  const method: DeliveryMethod = methods.includes(chosen) ? chosen : (methods[0] ?? chosen);
   const [termsError, setTermsError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [, navigate] = useLocation();
@@ -60,7 +67,11 @@ export default function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [method]);
   const totals = computeTotals(lines, discounts, method);
-  const free = totals.remainingForFree <= 0;
+  const afterDiscount = totals.subtotal - totals.discount;
+  const priceText = (id: DeliveryMethod) => {
+    const price = id === method ? totals.shipping : shippingPrice(id, afterDiscount);
+    return price === 0 ? 'Fri' : kr(price);
+  };
   const unavailableLines = lines.filter((line) => !isBuyable(line.variant));
 
   const submit = async (e: FormEvent<HTMLFormElement>) => {
@@ -206,40 +217,25 @@ export default function CheckoutPage() {
           <fieldset className="form-section">
             <legend>3. Leveranssätt</legend>
             <div className="radio-cards">
-              <label className="radio-card">
-                <input
-                  type="radio"
-                  name="delivery"
-                  value="ombud"
-                  checked={method === 'ombud'}
-                  onChange={() => setMethod('ombud')}
-                  data-testid="radio-delivery-ombud"
-                />
-                <span>
-                  <strong>Hämta hos ombud</strong>
-                  <span className="field-hint" style={{ display: 'block' }}>
-                    PostNord, 1–3 vardagar. Närmaste ombud väljs utifrån postnummer.
+              {methods.map((id) => (
+                <label className="radio-card" key={id}>
+                  <input
+                    type="radio"
+                    name="delivery"
+                    value={id}
+                    checked={method === id}
+                    onChange={() => setMethod(id)}
+                    data-testid={`radio-delivery-${id}`}
+                  />
+                  <span>
+                    <strong>{shipping.methods[id].name}</strong>
+                    <span className="field-hint" style={{ display: 'block' }}>
+                      {fillFields(shipping.methods[id].text, settings)}
+                    </span>
                   </span>
-                </span>
-                <span className="radio-card-price">{free ? 'Fri' : kr(SHIPPING.ombud)}</span>
-              </label>
-              <label className="radio-card">
-                <input
-                  type="radio"
-                  name="delivery"
-                  value="hem"
-                  checked={method === 'hem'}
-                  onChange={() => setMethod('hem')}
-                  data-testid="radio-delivery-hem"
-                />
-                <span>
-                  <strong>Hemleverans</strong>
-                  <span className="field-hint" style={{ display: 'block' }}>
-                    Kvällsleverans 17–22, 1–2 vardagar. Du aviseras via sms.
-                  </span>
-                </span>
-                <span className="radio-card-price">{free ? kr(39) : kr(SHIPPING.hem)}</span>
-              </label>
+                  <span className="radio-card-price">{priceText(id)}</span>
+                </label>
+              ))}
             </div>
           </fieldset>
 
@@ -358,7 +354,7 @@ export default function CheckoutPage() {
               </button>
             </div>
           )}
-          <TotalsList totals={totals} code={code} shippingLabel={method === 'ombud' ? 'Frakt (ombud)' : 'Frakt (hemleverans)'} />
+          <TotalsList totals={totals} code={code} shippingLabel={`Frakt (${shipping.methods[method].name.toLowerCase()})`} />
           <Link href="/varukorg" className="text-link small">
             Ändra varukorg
           </Link>

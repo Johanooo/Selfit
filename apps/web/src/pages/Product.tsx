@@ -1,4 +1,4 @@
-import { FREE_SHIPPING_THRESHOLD } from '@/lib/cart-math';
+import { capitalize, freeShippingPhrase, shipping } from '@/data/shipping';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams, useSearch } from 'wouter';
 import { Clock, Info, Plus, Truck, RotateCcw, AlertTriangle, Check, Maximize2, Ruler } from 'lucide-react';
@@ -506,9 +506,11 @@ function ProductView({ product }: { product: Product }) {
               <li>
                 <Clock size={16} aria-hidden="true" /> Skickas inom {policies.dispatchDays}
               </li>
-              <li>
-                <Truck size={16} aria-hidden="true" /> Fri frakt till ombud över {kr(FREE_SHIPPING_THRESHOLD)}
-              </li>
+              {freeShippingPhrase() && (
+                <li>
+                  <Truck size={16} aria-hidden="true" /> {capitalize(freeShippingPhrase()!)} över {kr(shipping.freeFrom)}
+                </li>
+              )}
               <li>
                 <RotateCcw size={16} aria-hidden="true" /> {policies.openPurchaseDays} dagars öppet köp på oöppnade varor
               </li>

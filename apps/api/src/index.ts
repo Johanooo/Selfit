@@ -22,6 +22,7 @@ import { buildStorefrontProducts } from './lib/storefront.ts';
 import { markDatabaseCreated } from './db/meta.ts';
 import { syncReferenceData, syncVatClasses } from './routes/adminProducts.ts';
 import { loadTaxonomy, syncTaxonomy } from './routes/taxonomy.ts';
+import { readSettings, syncShipping } from './routes/settings.ts';
 import { uploadsDir } from './lib/paths-data.ts';
 import { runMigrations } from './db/migrate.ts';
 import * as s from './db/schema.ts';
@@ -40,6 +41,7 @@ if (process.env.SEED_IF_EMPTY === 'true' && (await isEmpty(db))) {
 await syncReferenceData(db);
 // Produkttyper och underkategorier läggs in i databasen och läses in i minnet.
 await syncTaxonomy(db);
+await syncShipping(db);
 // Momsen ska alltid följa produkttypen (livsmedel, dryck och kosttillskott har lägre moms).
 const vatFixed = await syncVatClasses(db);
 if (vatFixed) console.log(`Moms rättad på ${vatFixed} varianter.`);
@@ -102,7 +104,9 @@ if (webDir) {
     const html = c.req.path === '/' ? homeHtml : indexHtml;
     // Produkttyper och kategorier (från Admin) skickas med till alla sidor, även Admin.
     const taxonomyJson = JSON.stringify(await loadTaxonomy(db)).replace(/</g, '\\u003c');
-    const taxonomyTag = `<script id="taxonomy-data" type="application/json">${taxonomyJson}</script>`;
+    const shippingJson = JSON.stringify((await readSettings(db)).shipping).replace(/</g, '\\u003c');
+    // Frakten (priser och gräns för fri frakt) följer med på samma sätt.
+    const taxonomyTag = `<script id="taxonomy-data" type="application/json">${taxonomyJson}</script>\n  <script id="shipping-data" type="application/json">${shippingJson}</script>`;
     if (c.req.path.startsWith('/admin')) return c.html(html.replace('</head>', `${taxonomyTag}\n  </head>`));
     const json = JSON.stringify(await buildStorefrontProducts(db)).replace(/</g, '\\u003c');
     // Varumärkenas namn och beskrivning från Admin, för varumärkessidorna.

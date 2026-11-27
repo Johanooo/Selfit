@@ -1,14 +1,17 @@
 import type { ReactNode } from 'react';
 import { kr } from '@/lib/format';
-import { FREE_SHIPPING_THRESHOLD, type Totals } from '@/lib/cart-math';
+import type { Totals } from '@/lib/cart-math';
+import { freeShippingPhrase, shipping } from '@/data/shipping';
 
 export function FreeShippingProgress({ totals }: { totals: Totals }) {
+  const phrase = freeShippingPhrase();
+  if (!phrase) return null;
   const done = totals.remainingForFree <= 0;
-  const ratio = Math.min(1, 1 - totals.remainingForFree / FREE_SHIPPING_THRESHOLD);
+  const ratio = shipping.freeFrom > 0 ? Math.min(1, 1 - totals.remainingForFree / shipping.freeFrom) : 1;
   return (
     <div className="stack-2" data-testid="free-shipping">
       <p className="small" aria-live="polite">
-        {done ? <strong>Du har fri frakt till ombud.</strong> : <><strong>{kr(totals.remainingForFree)}</strong> kvar till fri frakt</>}
+        {done ? <strong>Du har {phrase}.</strong> : <><strong>{kr(totals.remainingForFree)}</strong> kvar till {phrase}</>}
       </p>
       <div className="progress" role="progressbar" aria-label="Fri frakt" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(ratio * 100)}>
         <span style={{ transform: `scaleX(${ratio})` }} />

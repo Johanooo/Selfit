@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { defaultSettings, type SiteSettings } from '../../../web/src/data/siteDefaults.ts';
 import { defaultHome, defaultNavigation } from '../../../web/src/data/homeDefaults.ts';
+import { normalizeShipping, replaceShipping, SHIPPING_METHOD_IDS, type ShippingSettings } from '../../../web/src/data/shipping.ts';
 import type { Db } from '../db/client.ts';
 import * as s from '../db/schema.ts';
 import { diff, logChange } from '../lib/audit.ts';
@@ -10,6 +11,14 @@ import { diff, logChange } from '../lib/audit.ts';
 const text = (max = 200) => z.string().trim().max(max);
 /** En länk: text och adress. Tom adress = bara text. */
 const link = z.object({ label: text(80), href: text(300) });
+
+const shippingMethod = z.object({
+  name: text(60).min(1, 'Varje fraktsätt behöver ett namn.'),
+  text: text(200),
+  price: z.number().min(0, 'Priset kan inte vara negativt.').max(1000),
+  priceOverFree: z.number().min(0, 'Priset kan inte vara negativt.').max(1000),
+  active: z.boolean(),
+});
 
 /** Regler för vad som får sparas. Felmeddelanden visas i Admin. */
 export const settingsSchemas = {
@@ -77,7 +86,33 @@ export const settingsSchemas = {
     topbar: z.array(link).max(5),
     menuLinks: z.array(link.extend({ position: z.enum(['before', 'after']), highlight: z.boolean() })).max(8),
   }),
+  shipping: z
+    .object({
+      freeFrom: z.number().min(0, 'Gränsen kan inte vara negativ.').max(100000),
+      methods: z.object({ ombud: shippingMethod, hem: shippingMethod }),
+    })
+    .refine((v) => SHIPPING_METHOD_IDS.some((id) => v.methods[id].active), {
+      message: 'Minst ett fraktsätt måste vara på, annars kan ingen handla.',
+      path: ['methods'],
+    })
+    .refine((v) => SHIPPING_METHOD_IDS.every((id) => v.methods[id].priceOverFree <= v.methods[id].price), {
+      message: 'Priset över gränsen för fri frakt kan inte vara högre än det vanliga priset.',
+      path: ['methods'],
+    }),
 } as const;
+
+/** Fraktsätten i databasen (används av serverns kassa) hålls i takt med inställningarna. */
+export async function syncShipping(db: Db, value?: ShippingSettings) {
+  const sh = value ?? (await readSettings(db)).shipping;
+  replaceShipping(sh);
+  for (const id of SHIPPING_METHOD_IDS) {
+    const m = sh.methods[id];
+    await db
+      .update(s.shippingMethods)
+      .set({ name: m.name, priceOre: Math.round(m.price * 100), priceOverThresholdOre: Math.round(m.priceOverFree * 100), freeThresholdOre: Math.round(sh.freeFrom * 100), active: m.active })
+      .where(eq(s.shippingMethods.id, `ship_${id}`));
+  }
+}
 
 type Key = keyof typeof settingsSchemas;
 const isKey = (k: string): k is Key => k in settingsSchemas;
@@ -90,6 +125,7 @@ export async function readSettings(db: Db): Promise<SiteSettings> {
     policies: { ...defaultSettings.policies, ...(byKey.policies ?? {}) },
     home: { ...defaultHome, ...(byKey.home ?? {}) },
     navigation: { ...defaultNavigation, ...(byKey.navigation ?? {}) },
+    shipping: normalizeShipping(byKey.shipping),
   };
 }
 
@@ -106,6 +142,9 @@ export function settingsRoutes(db: Db) {
     const parsed = settingsSchemas[key].safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) {
       const fields = Object.fromEntries(parsed.error.issues.map((i) => [String(i.path[0] ?? ''), i.message]));
+      // Fel som gäller hela formuläret (t.ex. inget fraktsätt på) visas som huvudmeddelande.
+      const first = parsed.error.issues[0];
+      if (key === 'shipping' && first) return c.json({ error: first.message, fields }, 400);
       return c.json({ error: 'Kontrollera fälten.', fields }, 400);
     }
     const before = (await readSettings(db))[key] as unknown as Record<string, unknown>;
@@ -114,10 +153,11 @@ export function settingsRoutes(db: Db) {
       .insert(s.siteSettings)
       .values({ key, value: parsed.data, updatedAt: now })
       .onConflictDoUpdate({ target: s.siteSettings.key, set: { value: parsed.data, updatedAt: now } });
+    if (key === 'shipping') await syncShipping(db, normalizeShipping(parsed.data));
     const changes = diff(before, parsed.data as Record<string, unknown>);
     if (changes.length) {
-      const names: Record<Key, string> = { company: 'Företagsuppgifter', policies: 'Villkor och avgifter', home: 'Startsida', navigation: 'Topprad och meny' };
-      const labels: Record<string, string> = { hero: 'Startbild', quickLinks: 'Snabblänkar', sections: 'Ordning på startsidan', rows: 'Produktrader', categoriesTitle: 'Rubrik för kategorier', services: 'Fördelar', instagram: 'Instagram', tiles: 'Bildrutor', topbar: 'Topprad', menuLinks: 'Menylänkar' };
+      const names: Record<Key, string> = { company: 'Företagsuppgifter', policies: 'Villkor och avgifter', home: 'Startsida', navigation: 'Topprad och meny', shipping: 'Frakt' };
+      const labels: Record<string, string> = { hero: 'Startbild', quickLinks: 'Snabblänkar', sections: 'Ordning på startsidan', rows: 'Produktrader', categoriesTitle: 'Rubrik för kategorier', services: 'Fördelar', instagram: 'Instagram', tiles: 'Bildrutor', topbar: 'Topprad', menuLinks: 'Menylänkar', freeFrom: 'Fri frakt från (kr)', methods: 'Fraktsätt' };
       // Listor och block loggas som "ändrad" i stället för hela innehållet, så att loggen går att läsa.
       const readable = changes.map((ch) =>
         typeof ch.from === 'object' || typeof ch.to === 'object' ? { field: labels[ch.field] ?? ch.field, from: 'tidigare version', to: 'ny version' } : ch,

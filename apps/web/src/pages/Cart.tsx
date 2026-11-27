@@ -8,7 +8,8 @@ import { ProductImage } from '@/components/art/ProductImage';
 import { FreeShippingProgress, TotalsList } from '@/components/OrderSummary';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import { getCategory } from '@/data/categories';
-import { computeTotals, FREE_SHIPPING_THRESHOLD } from '@/lib/cart-math';
+import { computeTotals } from '@/lib/cart-math';
+import { activeShippingMethods, capitalize, freeShippingPhrase, shipping } from '@/data/shipping';
 import { productHref } from '@/lib/catalog';
 import { comparison, isBuyable, kr, stockText, variantLabel } from '@/lib/format';
 import { useCart, CART_MAX_QTY } from '@/state/cart';
@@ -63,7 +64,7 @@ export default function CartPage() {
             </>
           }
         >
-          Inget här ännu. Fri frakt till ombud när du handlar för {kr(FREE_SHIPPING_THRESHOLD)} eller mer.
+          Inget här ännu.{freeShippingPhrase() && ` ${capitalize(freeShippingPhrase()!)} när du handlar för ${kr(shipping.freeFrom)} eller mer.`}
         </EmptyState>
       ) : (
         <div className="two-col">
@@ -177,7 +178,7 @@ export default function CartPage() {
                 </form>
               )}
             </div>
-            <TotalsList totals={totals} code={code} shippingLabel="Frakt (ombud)" />
+            <TotalsList totals={totals} code={code} shippingLabel={`Frakt (${shipping.methods[activeShippingMethods()[0] ?? 'ombud'].name.toLowerCase()})`} />
             {hasUnavailableLines ? (
               <button type="button" className="btn btn--primary btn--block" disabled data-testid="button-checkout-blocked">
                 Ta bort slutsålda varor för att gå vidare

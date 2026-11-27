@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { defaultSettings, type SiteSettings } from '@/data/siteDefaults';
+import { replaceShipping } from '@/data/shipping';
 import { buildSupportPages, type PageContent, type SupportPage } from '@/data/support';
 
 interface SettingsCtx {
@@ -23,7 +24,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     fetch(`${base}/settings`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data: SiteSettings | null) => {
-        if (!cancelled && data?.company && data?.policies) setSettings({ ...defaultSettings, ...data });
+        if (!cancelled && data?.company && data?.policies) {
+          if (data.shipping) replaceShipping(data.shipping);
+          setSettings({ ...defaultSettings, ...data });
+        }
       })
       .catch(() => undefined);
     fetch(`${base}/pages`)

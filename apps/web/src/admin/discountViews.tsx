@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useSearch } from 'wouter';
 import { categories, subcategoriesOf } from '@/data/categories';
+import { freeShippingPhrase, shipping } from '@/data/shipping';
 
 /**
  * Admin → Marknadsföring → Rabatter. Upplägget följer Shopify:
@@ -660,6 +661,13 @@ function DiscountForm({ id, go, onTitleChange }: { id: string; go: (path: string
               )}
             </div>
             {d.kind === 'products' && d.appliesTo.type !== 'all' && d.minType !== 'none' && <p className="pf-help">Räknas bara på de produkter rabatten gäller.</p>}
+            {d.kind === 'shipping' && (
+              <p className="pf-help" data-testid="hint-discount-free-shipping">
+                {freeShippingPhrase()
+                  ? `Obs: ordrar över ${shipping.freeFrom} kr har redan ${freeShippingPhrase()} (Inställningar → Frakt). ${d.minType === 'amount' && d.minValue >= shipping.freeFrom ? 'Med det här köpkravet gör rabatten bara skillnad för fraktsätt som kostar något över gränsen.' : 'Rabatten gör nytta för ordrar under gränsen.'}`
+                  : 'Rabatten gör alla fraktsätt gratis.'}
+              </p>
+            )}
           </Card>
 
           {d.method === 'code' && (

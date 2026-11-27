@@ -1,4 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { SHIPPING_METHOD_IDS, shippingPrice, type ShippingMethod, type ShippingMethodId, type ShippingSettings } from '@/data/shipping';
+import { TextCheck, useSiteSettings } from './textCheck';
 import {
   defaultSettings,
   isPlaceholder,
@@ -328,6 +330,99 @@ export function ComingSoonView({ title, group, items }: { title: string; group: 
           </ul>
         </div>
       </section>
+    </>
+  );
+}
+
+const krText = (n: number) => (n === 0 ? 'Fri' : `${n.toLocaleString('sv-SE')} kr`);
+
+/** Inställningar → Frakt. Priserna och gränsen används i varukorgen, kassan och alla texter med {fri frakt}. */
+export function ShippingSettingsView() {
+  const f = useSettingsForm('shipping');
+  const sh = f.value as ShippingSettings;
+  const site = useSiteSettings();
+  const preview = { ...site, shipping: sh };
+  const setMethod = (id: ShippingMethodId, patch: Partial<ShippingMethod>) => f.set('methods', { ...sh.methods, [id]: { ...sh.methods[id], ...patch } });
+  const num = (v: string) => (v === '' ? 0 : Number(v.replace(',', '.')));
+  const examples = [Math.max(0, Math.round(sh.freeFrom * 0.6)), sh.freeFrom];
+  const noneActive = !SHIPPING_METHOD_IDS.some((id) => sh.methods[id].active);
+  return (
+    <>
+      <Heading
+        title="Frakt"
+        description="Fraktsätt, priser och gränsen för fri frakt. Ändras det här, ändras det överallt: varukorgen, kassan, produktsidorna och alla texter med {fri frakt}."
+      />
+      {noneActive && (
+        <div className="admin-inline-message is-error" role="alert">
+          Minst ett fraktsätt måste vara på, annars kan ingen handla.
+        </div>
+      )}
+      <div className="admin-grid two">
+        <Panel title="Fri frakt" subtitle="Gäller alla fraktsätt">
+          <div className="admin-form-grid">
+            <Input
+              id="shipping-freeFrom"
+              label="Fri frakt från"
+              type="number"
+              suffix="kr"
+              value={sh.freeFrom}
+              onChange={(v) => f.set('freeFrom', num(v))}
+              error={f.errors.freeFrom}
+              hint="Räknas på varorna efter rabatt, utan pant. När ordern når gränsen gäller priset ”över gränsen” nedan."
+              wide
+            />
+          </div>
+          <p className="admin-field-hint">
+            <strong>Så blir frakten:</strong>
+          </p>
+          <ul className="admin-field-hint">
+            {examples.map((amount) => (
+              <li key={amount}>
+                Varor för {amount.toLocaleString('sv-SE')} kr:{' '}
+                {SHIPPING_METHOD_IDS.filter((id) => sh.methods[id].active)
+                  .map((id) => `${sh.methods[id].name} ${krText(shippingPrice(id, amount, sh))}`)
+                  .join(' · ')}
+              </li>
+            ))}
+          </ul>
+          <p className="admin-field-hint">
+            <strong>Rabatter:</strong> en rabatt som minskar ordern under gränsen kan göra att kunden får betala frakt. Kassan räknar alltid fram det som blir billigast för kunden. En rabatt av typen ”Fri frakt” gör alla fraktsätt gratis. Över {sh.freeFrom.toLocaleString('sv-SE')} kr gäller redan priserna ”över gränsen”, så en fri frakt-rabatt med köpkrav över gränsen gör bara skillnad för fraktsätt som kostar något där.
+          </p>
+        </Panel>
+        {SHIPPING_METHOD_IDS.map((id) => {
+          const m = sh.methods[id];
+          return (
+            <Panel key={id} title={m.name || 'Fraktsätt'} subtitle={m.active ? 'Visas i kassan' : 'Avstängt – visas inte i kassan'}>
+              <div className="admin-form-grid">
+                <label className="admin-toggle-row span-2">
+                  <input type="checkbox" checked={m.active} onChange={(e) => setMethod(id, { active: e.target.checked })} data-testid={`check-shipping-${id}-active`} /> Visa i kassan
+                </label>
+                <Input id={`shipping-${id}-name`} label="Namn" value={m.name} onChange={(v) => setMethod(id, { name: v })} wide />
+                <div className="admin-field span-2">
+                  <Input id={`shipping-${id}-text`} label="Text i kassan" value={m.text} onChange={(v) => setMethod(id, { text: v })} hint="Skriv {leveranstid} så följer texten Villkor och avgifter." wide />
+                  <TextCheck text={m.text} settings={preview} />
+                </div>
+                <Input id={`shipping-${id}-price`} label="Pris" type="number" suffix="kr" value={m.price} onChange={(v) => setMethod(id, { price: num(v) })} />
+                <Input
+                  id={`shipping-${id}-priceOverFree`}
+                  label={`Pris över ${sh.freeFrom.toLocaleString('sv-SE')} kr`}
+                  type="number"
+                  suffix="kr"
+                  value={m.priceOverFree}
+                  onChange={(v) => setMethod(id, { priceOverFree: num(v) })}
+                  hint="0 = fri frakt."
+                />
+                {m.priceOverFree > m.price && (
+                  <p className="admin-field-error span-2" role="alert">
+                    Priset över gränsen kan inte vara högre än det vanliga priset.
+                  </p>
+                )}
+              </div>
+            </Panel>
+          );
+        })}
+      </div>
+      <SaveBar dirty={f.dirty} status={f.status} onSave={f.save} onReset={f.reset} />
     </>
   );
 }

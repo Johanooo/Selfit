@@ -614,3 +614,27 @@ describe('Admin: pant', () => {
     expect((await send('DELETE', `/admin/deposits/${classId}`)).status).toBe(200);
   });
 });
+
+describe('Admin: frakt', () => {
+  const put = (body: unknown) =>
+    app.request('/api/admin/settings/shipping', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+
+  it('sparar priser och gräns, och kassan på servern räknar med dem', async () => {
+    const before = (await get('/settings')).body.shipping;
+    expect(before.freeFrom).toBe(499);
+    const next = { ...before, freeFrom: 599, methods: { ...before.methods, ombud: { ...before.methods.ombud, price: 59 } } };
+    expect((await put(next)).status).toBe(200);
+    expect((await get('/settings')).body.shipping.freeFrom).toBe(599);
+    const q = await quoteCart(db, { lines: [{ variantId: 'pwo-plus-blueberry-6', quantity: 1 }], shippingMethodId: 'ship_ombud' }, '2026-11-24');
+    expect(q.shippingOre).toBe(5900);
+    expect(q.remainingForFreeOre).toBe(59900 - 14900);
+
+    // Inget fraktsätt på, eller dyrare frakt över gränsen, sparas inte.
+    const off = { ...next, methods: { ombud: { ...next.methods.ombud, active: false }, hem: { ...next.methods.hem, active: false } } };
+    expect((await put(off)).status).toBe(400);
+    const odd = { ...next, methods: { ...next.methods, hem: { ...next.methods.hem, priceOverFree: 999 } } };
+    expect((await put(odd)).status).toBe(400);
+
+    expect((await put(before)).status).toBe(200);
+  });
+});

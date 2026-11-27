@@ -34,7 +34,7 @@ import { MediaLibraryView } from './mediaLibraryView';
 import { OperationsProvider, useOperations, balance, batchStatus, money } from './operationsModel';
 import { OperationalOrders, OperationalOrderDetail, OperationalReturns, ManualOrderForm, PickPackView } from './operationsOrders';
 import { StockView, PurchasingView, BatchView, TransfersView, CountsView } from './warehouseViews';
-import { CompanySettingsView, ComingSoonView, PoliciesSettingsView } from './storeSettingsViews';
+import { CompanySettingsView, ComingSoonView, PoliciesSettingsView, ShippingSettingsView } from './storeSettingsViews';
 import { PageEditorView, PagesListView } from './pagesViews';
 import { FaqAdminView } from './faqView';
 import { TaxSettingsView } from './taxView';
@@ -483,7 +483,7 @@ function Settings({ notify, section, go }: { notify: (s: string) => void; sectio
   const setTab = (value: string) => go(`/admin/installningar/${({ Frakt: 'frakt', 'Moms & pant': 'moms-pant', Behörigheter: 'roller' } as Record<string, string>)[value]}`);
   const tabs = ['Frakt', 'Moms & pant', 'Behörigheter'];
   return <><Heading kicker="Administration" title="Inställningar" description="Operativa regler, åtkomst och spårbarhet." /><div className="admin-panel"><div className="admin-panel-body"><div className="admin-tabs" role="group" aria-label="Inställningsavsnitt">{tabs.map((t) => <button className="admin-tab" type="button" key={t} aria-pressed={tab === t} onClick={() => setTab(t)} data-testid={`tab-settings-${t.toLowerCase().replaceAll(' ', '-')}`}>{t}</button>)}</div>
-    {tab === 'Frakt' && <div className="admin-grid two"><Panel title="Fraktmetoder" subtitle="Priser i SEK"><Table headers={['Metod', 'Pris', 'Leveranstid', 'Status', '']} testId="table-shipping-methods"><tr><td>PostNord ombud</td><td>39 kr</td><td>1–3 vardagar</td><td><Status testId="status-shipping-postnord">Aktiv</Status></td><td><Button small onClick={() => notify('PostNord öppnad för redigering.')} testId="button-edit-shipping-postnord">Redigera</Button></td></tr><tr><td>Hemleverans</td><td>69 kr</td><td>1–3 vardagar</td><td><Status testId="status-shipping-home">Aktiv</Status></td><td><Button small onClick={() => notify('Hemleverans öppnad för redigering.')} testId="button-edit-shipping-home">Redigera</Button></td></tr></Table><div className="admin-panel-body"><Button small onClick={() => notify('Ny fraktmetod öppnad.')} testId="button-add-shipping">＋ Lägg till fraktmetod</Button></div></Panel><Panel title="Fri frakt" subtitle="Tröskel för varukorg"><Field label="Fri frakt från (kr)" value="599" testId="input-free-shipping-threshold" /><div className="admin-actions admin-panel-actions"><Button kind="primary" onClick={() => notify('Fraktregler sparades lokalt.')} testId="button-save-shipping-settings">Spara fraktregler</Button></div></Panel></div>}
+    {tab === 'Frakt' && <ShippingSettingsView />}
     {tab === 'Moms & pant' && <TaxSettingsView />}
     {tab === 'Behörigheter' && <Panel title="Roller och behörigheter" subtitle="Exempelanvändare"><Table headers={['Namn', 'E-post', 'Katalog', 'Support', 'Ekonomi', 'Administration', 'Roll']} testId="table-roles"><tr><td>Ella Svensson</td><td>ella@selfit.se</td>{['check-ella-catalog', 'check-ella-support', 'check-ella-finance', 'check-ella-admin'].map((id, i) => <td key={id}><input type="checkbox" defaultChecked={i < 2} aria-label={`Behörighet ${['katalog', 'support', 'ekonomi', 'administration'][i]} för Ella Svensson`} data-testid={id} /></td>)}<td>Support</td></tr><tr><td>Martin Holm</td><td>martin@selfit.se</td>{['check-martin-catalog', 'check-martin-support', 'check-martin-finance', 'check-martin-admin'].map((id, i) => <td key={id}><input type="checkbox" defaultChecked={i !== 1} aria-label={`Behörighet ${['katalog', 'support', 'ekonomi', 'administration'][i]} för Martin Holm`} data-testid={id} /></td>)}<td>Administratör</td></tr></Table><div className="admin-panel-body"><Button small onClick={() => notify('Rollinställningar sparades lokalt.')} testId="button-save-roles">Spara behörigheter</Button><Button small onClick={() => notify('Dialog för ny medarbetare öppnades.')} testId="button-add-role-user">＋ Lägg till medarbetare</Button></div></Panel>}
   </div></div></>;
@@ -602,6 +602,7 @@ function AdminWorkspace() {
   else if (route === '/admin/andringslogg' || route === '/admin/installningar/logg') page = <AuditLogView />;
   else if (route === '/admin/installningar/foretag') page = <CompanySettingsView />;
   else if (route === '/admin/installningar/villkor') page = <PoliciesSettingsView />;
+  else if (route === '/admin/installningar/frakt') page = <ShippingSettingsView />;
   else if (route === '/admin/kampanjer') page = <ComingSoonView group="Marknadsföring" title="Kampanjer" items={['Sätta kampanjpris på produkter, kategorier eller varumärken', 'Start- och slutdatum som slår på och av automatiskt', 'Lägsta pris senaste 30 dagarna räknas ut och visas automatiskt']} />;
   else if (route === '/admin/varumarken') page = <BrandsView />;
   else if (route === '/admin/innehall/sidor') page = <PagesListView go={go} />;

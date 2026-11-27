@@ -4,6 +4,7 @@
  * Den här filen används bara när databasen saknar ett värde, och delas av butiken och servern.
  */
 import { defaultHome, defaultNavigation, type HomeSettings, type NavigationSettings } from './homeDefaults';
+import { defaultShipping, type ShippingSettings } from './shipping';
 
 export interface CompanyInfo {
   brand: string;
@@ -37,6 +38,7 @@ export interface SiteSettings {
   policies: Policies;
   home: HomeSettings;
   navigation: NavigationSettings;
+  shipping: ShippingSettings;
 }
 
 export const defaultCompany: CompanyInfo = {
@@ -61,7 +63,7 @@ export const defaultPolicies: Policies = {
   termsUpdated: '2026-11-25',
 };
 
-export const defaultSettings: SiteSettings = { company: defaultCompany, policies: defaultPolicies, home: defaultHome, navigation: defaultNavigation };
+export const defaultSettings: SiteSettings = { company: defaultCompany, policies: defaultPolicies, home: defaultHome, navigation: defaultNavigation, shipping: defaultShipping };
 
 /** Är värdet fortfarande en platshållare som behöver fyllas i? */
 export const isPlaceholder = (v: string) => v.trim() === '' || v.startsWith('[FYLL');

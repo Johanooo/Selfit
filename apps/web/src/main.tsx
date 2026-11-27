@@ -16,6 +16,7 @@ import './styles/storefront.css';
 import { replaceProducts } from '@/data/products';
 import { replaceBrands, replaceCategories } from '@/data/categories';
 import { replaceProductTypes } from '@/data/productTypes';
+import { replaceShipping } from '@/data/shipping';
 
 /**
  * Efter en ny publicering har sidans delar nya filnamn. En flik som var öppen sedan innan
@@ -95,6 +96,28 @@ async function loadBrands() {
   }
 }
 
+/** Frakt från Admin (priser och gräns för fri frakt). Inbäddad i sidan, annars hämtad med inställningarna. */
+async function loadShipping() {
+  const inline = document.getElementById('shipping-data');
+  if (inline?.textContent) {
+    try {
+      replaceShipping(JSON.parse(inline.textContent));
+      return;
+    } catch {
+      /* faller tillbaka till hämtning */
+    }
+  }
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2500);
+    const res = await fetch(`${import.meta.env.BASE_URL.replace(/\/$/, '')}/api/settings`, { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (res.ok) replaceShipping((await res.json()).shipping);
+  } catch {
+    /* servern svarar inte – använd standardvärdena */
+  }
+}
+
 async function loadCatalog() {
   const inline = document.getElementById('catalog-data');
   if (inline?.textContent) {
@@ -117,7 +140,7 @@ async function loadCatalog() {
   }
 }
 
-void Promise.all([loadTaxonomy(), loadCatalog(), location.pathname.includes('/admin') ? Promise.resolve() : loadBrands()]).then(render);
+void Promise.all([loadTaxonomy(), loadCatalog(), loadShipping(), location.pathname.includes('/admin') ? Promise.resolve() : loadBrands()]).then(render);
 
 function render() {
 createRoot(document.getElementById('root')!, {

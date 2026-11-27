@@ -62,11 +62,18 @@ export function applyDiscount(rule: DiscountRule, lines: LineLike[]): DiscountRe
   return { rule, amount, freeShipping: false, perLine, unmet: null };
 }
 
-/** Väljer koden om kunden skrivit in en, annars den automatiska rabatt som ger mest. */
-export function pickDiscount(lines: LineLike[], code: DiscountRule | null, automatic: DiscountRule[], shippingValue: number): DiscountResult | null {
+/**
+ * Väljer koden om kunden skrivit in en, annars den automatiska rabatt som ger lägst totalpris.
+ * freightFor ger fraktpriset för varornas värde efter rabatt. Då räknas det rätt även när
+ * en rabatt gör att ordern hamnar under gränsen för fri frakt, eller när frakten redan är fri.
+ */
+export function pickDiscount(lines: LineLike[], code: DiscountRule | null, automatic: DiscountRule[], freightFor: (goodsAfterDiscount: number) => number): DiscountResult | null {
   if (code) return applyDiscount(code, lines);
   const results = automatic.map((r) => applyDiscount(r, lines)).filter((r) => !r.unmet && (r.amount > 0 || r.freeShipping));
   if (!results.length) return null;
-  const worth = (r: DiscountResult) => r.amount + (r.freeShipping ? shippingValue : 0);
-  return results.sort((a, b) => worth(b) - worth(a))[0];
+  const subtotal = lines.reduce((s, l) => s + l.lineTotal, 0);
+  const pay = (r: DiscountResult) => subtotal - r.amount + (r.freeShipping ? 0 : freightFor(subtotal - r.amount));
+  const best = results.sort((a, b) => pay(a) - pay(b))[0];
+  // En rabatt som inte sänker priset alls (t.ex. fri frakt när frakten redan är fri) visas inte.
+  return pay(best) < subtotal + freightFor(subtotal) ? best : null;
 }
