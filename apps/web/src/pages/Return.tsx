@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type DragEvent, type FormEvent } from 'react';
 import { Link } from 'wouter';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, ImagePlus, X } from 'lucide-react';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { TextField, swedishMessage } from '@/components/Field';
 import { usePageMeta } from '@/hooks/use-page-meta';
@@ -20,6 +20,37 @@ export default function ReturnPage() {
   const [reason, setReason] = useState('');
   const [files, setFiles] = useState<string[]>([]);
   const [fileError, setFileError] = useState('');
+  const [dragging, setDragging] = useState(false);
+  const photoInput = useRef<HTMLInputElement>(null);
+
+  /** Kontrollerar valda bilder (från knappen eller när de dras in). */
+  const pickFiles = (input: HTMLInputElement) => {
+    const list = Array.from(input.files ?? []);
+    if (list.length > MAX_FILES) {
+      setFileError(`Välj högst ${MAX_FILES} bilder.`);
+      input.value = '';
+      setFiles([]);
+      return;
+    }
+    setFileError('');
+    setFiles(list.map((f) => f.name));
+  };
+  const dropFiles = (e: DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    setDragging(false);
+    const input = photoInput.current;
+    if (!input) return;
+    const images = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith('image/'));
+    const dt = new DataTransfer();
+    images.forEach((f) => dt.items.add(f));
+    input.files = dt.files;
+    pickFiles(input);
+  };
+  const clearFiles = () => {
+    if (photoInput.current) photoInput.current.value = '';
+    setFiles([]);
+    setFileError('');
+  };
   const defect = DEFECT.has(reason);
 
   const submit = (e: FormEvent<HTMLFormElement>) => {
@@ -132,37 +163,53 @@ export default function ReturnPage() {
                     ? 'Med en bild på felet, förpackningen och bäst före-datumet kan vi oftast lösa ärendet direkt – utan att du behöver skicka tillbaka något. Utan bild behöver vi i regel få tillbaka varan först, och det tar längre tid.'
                     : 'En bild hjälper oss att hantera returen snabbare.'}
                 </p>
-                <input
-                  id="photos"
-                  name="photos"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  aria-describedby={fileError ? 'photos-hint photos-error' : 'photos-hint'}
-                  onChange={(e) => {
-                    const list = Array.from(e.currentTarget.files ?? []);
-                    if (list.length > MAX_FILES) {
-                      setFileError(`Välj högst ${MAX_FILES} bilder.`);
-                      e.currentTarget.value = '';
-                      setFiles([]);
-                      return;
-                    }
-                    setFileError('');
-                    setFiles(list.map((f) => f.name));
-                  }}
-                  data-testid="input-photos"
-                />
+                <div className="upload">
+                  <input
+                    ref={photoInput}
+                    id="photos"
+                    name="photos"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="upload-input"
+                    aria-describedby={fileError ? 'photos-hint photos-error' : 'photos-hint'}
+                    onChange={(e) => pickFiles(e.currentTarget)}
+                    data-testid="input-photos"
+                  />
+                  <label
+                    htmlFor="photos"
+                    className={`upload-zone${dragging ? ' upload-zone--active' : ''}`}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDragging(true);
+                    }}
+                    onDragLeave={() => setDragging(false)}
+                    onDrop={dropFiles}
+                    data-testid="upload-zone"
+                  >
+                    <ImagePlus size={28} aria-hidden="true" />
+                    <span className="upload-button">{files.length ? 'Byt bilder' : 'Välj bilder'}</span>
+                    <span className="upload-hint">eller dra in dem hit · högst {MAX_FILES} bilder</span>
+                  </label>
+                </div>
                 {fileError && (
                   <p id="photos-error" className="field-error" role="alert">
                     {fileError}
                   </p>
                 )}
                 {files.length > 0 && (
-                  <ul className="small muted" aria-label="Valda bilder">
-                    {files.map((f) => (
-                      <li key={f}>{f}</li>
-                    ))}
-                  </ul>
+                  <div className="upload-files">
+                    <ul aria-label="Valda bilder">
+                      {files.map((f) => (
+                        <li key={f}>
+                          <CheckCircle2 size={16} aria-hidden="true" /> {f}
+                        </li>
+                      ))}
+                    </ul>
+                    <button type="button" className="upload-clear" onClick={clearFiles} data-testid="button-clear-photos">
+                      <X size={14} aria-hidden="true" /> Ta bort bilderna
+                    </button>
+                  </div>
                 )}
               </div>
               <button type="submit" className="btn btn--primary" data-testid="button-submit-return">

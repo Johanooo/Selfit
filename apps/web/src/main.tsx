@@ -14,6 +14,30 @@ import './index.css';
 import './styles/storefront.css';
 
 import { replaceProducts } from '@/data/products';
+
+/**
+ * Efter en ny publicering har sidans delar nya filnamn. En flik som var öppen sedan innan
+ * försöker då hämta gamla filer som inte finns längre, och sidan visar "Något gick fel".
+ * Då laddar vi om sidan en gång så att den nya versionen hämtas.
+ */
+const RELOAD_KEY = 'selfit-reloaded-for-update';
+window.addEventListener('vite:preloadError', (event) => {
+  let last = 0;
+  try {
+    last = Number(sessionStorage.getItem(RELOAD_KEY) ?? 0);
+  } catch {
+    /* lagring kan vara avstängd */
+  }
+  // Högst en omladdning per halvminut, så att det aldrig blir en evig loop.
+  if (Date.now() - last < 30_000) return;
+  event.preventDefault();
+  try {
+    sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
+  } catch {
+    /* lagring kan vara avstängd */
+  }
+  window.location.reload();
+});
 import type { Product } from '@/data/types';
 
 /**

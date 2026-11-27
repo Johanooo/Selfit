@@ -45,12 +45,9 @@ function DefaultFallback({ resetError }: ErrorFallbackProps) {
         <p className="muted">
           Det gick inte att visa sidan. Försök igen eller ladda om sidan.
         </p>
-        <button
-          type="button"
-          onClick={resetError}
-          className="button button-primary"
-        >
-          Försök igen
+        {/* Omladdning hämtar den senaste versionen av sidan, vilket löser de flesta fel efter en uppdatering. */}
+        <button type="button" onClick={() => window.location.reload()} className="btn btn--primary" data-testid="button-reload-page">
+          Ladda om sidan
         </button>
       </div>
     </div>

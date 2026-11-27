@@ -412,3 +412,24 @@
 .admin-media-dialog-head h2 { margin: 0; font-size: 1.125rem; }
 .admin-media-dialog-body { min-height: 0; overflow: auto; }
 .admin-media-dialog-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-top: 12px; border-top: 1px solid var(--c-border, #e5e1ea); }
+
+/* Vanliga frågor */
+.admin-root .faq-admin-toolbar { display: flex; gap: var(--space-3); align-items: center; }
+.admin-root .faq-admin-toolbar .admin-control { flex: 1; }
+.admin-root .faq-admin-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.admin-root .faq-admin-item { overflow: hidden; }
+.admin-root .faq-admin-item.is-hidden .faq-admin-q { color: #8a8a8a; }
+.admin-root .faq-admin-item.is-open { box-shadow: 0 0 0 1px #111; }
+.admin-root .faq-admin-row { display: flex; align-items: center; gap: var(--space-3); padding: 10px 12px; }
+.admin-root .faq-admin-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; border: none; background: none; padding: 0; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.admin-root .faq-admin-num { flex: none; width: 24px; height: 24px; border-radius: 50%; background: #f0f0f0; display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+.admin-root .faq-admin-q { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-root .faq-admin-cat { flex: none; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #f0f0f0; color: #444; }
+.admin-root .faq-admin-cat--hidden { background: #fff1d6; color: #7a4d00; }
+.admin-root .faq-admin-visible { align-self: end; padding-bottom: 8px; }
+.admin-root .faq-admin-delete { display: flex; justify-content: flex-end; }
+.admin-root .faq-admin-preview-group + .faq-admin-preview-group { margin-top: var(--space-4); }
+.admin-root .faq-admin-preview-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #666; margin-bottom: 4px; }
+.admin-root .faq-admin-preview details { border-bottom: 1px solid #e6e6e6; padding: 10px 0; }
+.admin-root .faq-admin-preview summary { font-weight: 600; cursor: pointer; }
+.admin-root .faq-admin-preview details p { margin-top: 6px; color: #444; }

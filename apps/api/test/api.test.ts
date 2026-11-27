@@ -354,6 +354,27 @@ describe('Admin: varumärken', () => {
   });
 });
 
+describe('vanliga frågor', () => {
+  const send = (method: string, path: string, body?: unknown) =>
+    app.request(`/api${path}`, { method, headers: { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+
+  it('sparar frågor med rubrik och dold-markering, i ordning', async () => {
+    const faq = [
+      { q: 'Hur lång är leveranstiden?', a: 'Oftast 1–3 vardagar.', category: 'Frakt och leverans' },
+      { q: 'Gammal fråga', a: 'Visas inte.', hidden: true },
+    ];
+    const res = await send('PUT', '/admin/pages/vanliga-fragor', { title: 'Vanliga frågor', summary: 'Snabba svar.', sections: [], faq });
+    expect(res.status).toBe(200);
+    const page = (await get('/pages')).body.find((p: any) => p.slug === 'vanliga-fragor');
+    expect(page.faq).toEqual(faq);
+  });
+
+  it('nekar en fråga utan svar', async () => {
+    const res = await send('PUT', '/admin/pages/vanliga-fragor', { title: 'Vanliga frågor', summary: '', sections: [], faq: [{ q: 'Fråga', a: '' }] });
+    expect(res.status).toBe(400);
+  });
+});
+
 describe('moms', () => {
   const send = (method: string, path: string, body?: unknown) =>
     app.request(`/api${path}`, { method, headers: { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
