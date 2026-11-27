@@ -206,6 +206,7 @@ function Field({ id, label, help, children }: { id: string; label: string; help?
 
 export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (path: string) => void; onTitleChange?: (t: string) => void }) {
   const [form, setForm] = useState<Form | null>(id ? null : emptyForm());
+  const [showAllCats, setShowAllCats] = useState(false);
   const [base, setBase] = useState(id ? '' : JSON.stringify(emptyForm()));
   const [brands, setBrands] = useState<Brand[]>([]);
   const [brandDialog, setBrandDialog] = useState(false);
@@ -267,12 +268,33 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
     setConfirmLeave(false);
     if (status.kind !== 'saving') setStatus({ kind: 'idle' });
   };
+  const sub = getSubcategory(form.subcategory);
   const type = TYPES.find((t) => t.value === form.productType) ?? TYPES[0];
+  /** Kategorier som hör till vald produkttyp. Kategorier utan känd typ visas alltid. */
+  const fitsType = (catSlug: string) => {
+    const k = kindForCategory(catSlug);
+    return !k || k === form.productType;
+  };
+  const visibleCats = showAllCats ? categories : categories.filter((c) => fitsType(c.slug) || c.slug === sub?.parent);
+  const changeType = (value: string) => {
+    const t = TYPES.find((x) => x.value === value) ?? TYPES[0];
+    const keepSub = !getSubcategory(form.subcategory) || (() => {
+      const k = kindForCategory(getSubcategory(form.subcategory)?.parent);
+      return !k || k === t.value;
+    })();
+    setForm({
+      ...form,
+      productType: t.value,
+      subcategory: keepSub ? form.subcategory : '',
+      vat: t.food ? 'vat-food' : 'vat-standard',
+      deposit: t.value === 'dryck' ? form.deposit : false,
+      sizeGuide: t.value === 'klader' ? form.sizeGuide || 'klader' : '',
+    });
+  };
   const legacy = !form.optionNames.length && form.variants.some((v) => v.flavour || v.pack);
   const hasVariants = legacy || form.optionNames.length > 0;
   const missing = problems(form);
   const prices = form.variants.filter((v) => v.offered && v.price > 0).map((v) => v.price);
-  const sub = getSubcategory(form.subcategory);
   const brand = brands.find((b) => b.id === form.brandId);
   const setVariant = (i: number, patch: Partial<FormVariant>) => set('variants', form.variants.map((v, j) => (j === i ? { ...v, ...patch } : v)));
 
@@ -457,13 +479,23 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
               </div>
             </div>
 
+            <div className="pf-row two">
+            <Field id="p-type" label="Produkttyp" help="Styr vilka fält och kategorier som visas.">
+              <select id="p-type" className="pf-input" value={form.productType} onChange={(e) => changeType(e.target.value)} data-testid="select-product-type">
+                {TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
             <Field id="p-cat" label="Kategori" help="Bestämmer var produkten visas i butikens meny.">
               <select
                 id="p-cat"
                 className="pf-input"
                 value={form.subcategory}
                 onChange={(e) => {
-                  // Typen följer kategorin automatiskt (kan ändras under Produktorganisation).
+                  // Väljs en kategori från en annan typ (via "Visa alla") följer typen med.
                   const parent = getSubcategory(e.target.value)?.parent;
                   const k = kindForCategory(parent);
                   const t = TYPES.find((x) => x.value === k);
@@ -480,7 +512,7 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
                 data-testid="select-product-category"
               >
                 <option value="">Välj en kategori</option>
-                {categories.map((c) => (
+                {visibleCats.map((c) => (
                   <optgroup key={c.slug} label={c.name}>
                     {subcategoriesOf(c.slug).map((s) => (
                       <option key={s.slug} value={s.slug}>
@@ -491,6 +523,10 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
                 ))}
               </select>
             </Field>
+            </div>
+            <label className="pf-toggle pf-toggle--small">
+              <input type="checkbox" checked={showAllCats} onChange={(e) => setShowAllCats(e.target.checked)} data-testid="check-show-all-categories" /> Visa kategorier för alla produkttyper
+            </label>
           </Card>
 
           <MediaPicker
@@ -826,24 +862,6 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
           </Card>
 
           <Card title="Produktorganisation">
-            <Field id="p-type" label="Typ">
-              <select
-                id="p-type"
-                className="pf-input"
-                value={form.productType}
-                onChange={(e) => {
-                  const t = TYPES.find((x) => x.value === e.target.value) ?? TYPES[0];
-                  setForm({ ...form, productType: t.value, vat: t.food ? 'vat-food' : 'vat-standard', deposit: t.value === 'dryck' ? form.deposit : false });
-                }}
-                data-testid="select-product-type"
-              >
-                {TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
             <Field id="p-brand" label="Varumärke">
               <select
                 id="p-brand"
