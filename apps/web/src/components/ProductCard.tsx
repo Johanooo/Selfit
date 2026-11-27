@@ -112,14 +112,10 @@ export function ProductCard({ item, filters, index = 0 }: { item: ListingItem; f
             {kr(v.price)}
             {low30 !== null && <span className="price-was">{kr(low30)}</span>}
           </p>
-          {low30 !== null && <p className="price-compare">Lägsta pris 30 dagar: {kr(low30)}</p>}
-          {otherSale && (
-            <p className="price-compare price-compare--sale">
-              Kampanj: {otherSale.pack ? packLabel(otherSale.pack) : 'utvald variant'} {kr(otherSale.price)}
-            </p>
+          {/* En kort rad med jämförpris och pant. Mer detaljer finns på produktsidan. */}
+          {(cmp || depositTotal(v) > 0) && (
+            <p className="price-compare">{[cmp, depositTotal(v) > 0 ? `+ pant ${kr(depositTotal(v))}` : null].filter(Boolean).join(' · ')}</p>
           )}
-          {cmp && <p className="price-compare">Jämförpris {cmp}</p>}
-          {depositTotal(v) > 0 && <p className="price-compare">+ pant {kr(depositTotal(v))}</p>}
         </div>
       </div>
     </article>

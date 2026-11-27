@@ -592,69 +592,78 @@
   }
 }
 
-/* Kategorikort */
+/* Kategorikort: enkla rutor med bild och namn, som en flik i menyn */
 .app-shell .cat-cards {
   display: grid;
-  gap: 0.75rem;
+  gap: 1.25rem 0.75rem;
   grid-template-columns: repeat(2, 1fr);
 }
-@media (min-width: 900px) {
+@media (min-width: 640px) {
   .app-shell .cat-cards {
-    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (min-width: 1024px) {
+  .app-shell .cat-cards {
+    grid-template-columns: repeat(6, 1fr);
   }
 }
 .app-shell .cat-card {
-  position: relative;
-  display: block;
-  aspect-ratio: 4 / 5;
-  overflow: hidden;
-  background: #1a1a1a;
-  color: #fff;
+  display: grid;
+  gap: 0.6rem;
+  color: #111;
   text-decoration: none;
 }
-.app-shell .cat-card > img,
-.app-shell .cat-card-product {
-  position: absolute;
-  inset: 0;
+.app-shell .cat-card-media {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: var(--c-product-photo);
+}
+.app-shell .cat-card-media > img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: transform var(--dur-slow) var(--ease);
 }
 .app-shell .cat-card-product {
+  position: absolute;
+  inset: 0;
   display: grid;
   place-items: center;
   padding: 18%;
-  background: #f0f0f0;
+  transition: transform var(--dur-slow) var(--ease);
 }
 .app-shell .cat-card-product > * {
   max-height: 100%;
   width: auto;
 }
-.app-shell .cat-card:hover > img,
+.app-shell .cat-card:hover .cat-card-media > img,
 .app-shell .cat-card:hover .cat-card-product {
   transform: scale(1.04);
 }
-.app-shell .cat-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, transparent 45%, rgb(0 0 0 / 0.65) 100%);
-}
-.app-shell .cat-card-body {
-  position: absolute;
-  left: 1rem;
-  right: 1rem;
-  bottom: 1rem;
-  z-index: 1;
-  display: grid;
-  gap: 0.6rem;
-  justify-items: start;
-}
 .app-shell .cat-card-name {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e3e3e3;
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: clamp(1.1rem, 2vw, 1.5rem);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  transition: border-color var(--dur-fast) var(--ease);
+}
+.app-shell .cat-card:hover .cat-card-name {
+  border-bottom-color: #111;
+}
+.app-shell .cat-card-name svg {
+  flex: none;
+  transition: transform var(--dur-fast) var(--ease);
+}
+.app-shell .cat-card:hover .cat-card-name svg {
+  transform: translateX(3px);
 }
 
 /* PWO+-bandet */
@@ -862,9 +871,15 @@
   color: #666;
 }
 
-/* Vanliga produktnät (kategorisidor) */
+/* Vanliga produktnät (kategorisidor, sök, liknande produkter): 4 per rad på dator */
 .app-shell .product-grid {
   gap: 1.75rem 0.75rem;
+}
+@media (min-width: 1024px) {
+  .app-shell .product-grid,
+  .app-shell .product-grid--4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 /* ---------------------------------------------------------------- Varukorgen från höger */

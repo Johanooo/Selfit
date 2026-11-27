@@ -1,5 +1,5 @@
 import { Link } from 'wouter';
-import { ArrowRight, MessageCircle, RotateCcw, Truck, Zap } from 'lucide-react';
+import { ArrowRight, ChevronRight, MessageCircle, RotateCcw, Truck, Zap } from 'lucide-react';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import { filledCategories, productsIn } from '@/data/taxonomy';
 import { ProductImage } from '@/components/art/ProductImage';
@@ -89,16 +89,17 @@ export default function Home() {
               const top = productsIn(c.slug).sort((a, b) => b.popularity - a.popularity)[0];
               return (
                 <Link key={c.slug} href={`/kategori/${c.slug}`} className="cat-card" data-testid={`link-category-${c.slug}`}>
-                  {c.image ? (
-                    <img src={`${base}${c.image}`} alt="" loading="lazy" width={640} height={640} />
-                  ) : (
-                    <span className="cat-card-product" aria-hidden="true">
-                      <ProductImage product={top} variant={top.variants.find((v) => v.offered) ?? top.variants[0]} />
-                    </span>
-                  )}
-                  <span className="cat-card-body">
-                    <span className="cat-card-name">{c.name}</span>
-                    <span className="btn btn--on-dark btn--sm">Köp nu</span>
+                  <span className="cat-card-media">
+                    {c.image ? (
+                      <img src={`${base}${c.image}`} alt="" loading="lazy" width={640} height={640} />
+                    ) : (
+                      <span className="cat-card-product" aria-hidden="true">
+                        <ProductImage product={top} variant={top.variants.find((v) => v.offered) ?? top.variants[0]} />
+                      </span>
+                    )}
+                  </span>
+                  <span className="cat-card-name">
+                    {c.name} <ChevronRight size={16} aria-hidden="true" />
                   </span>
                 </Link>
               );

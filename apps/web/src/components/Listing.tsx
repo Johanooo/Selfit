@@ -19,7 +19,7 @@ import { pwoFlavours } from '@/data/products';
 import { packLabel } from '@/lib/format';
 import type { Tone } from '@/data/types';
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 12;
 
 const list = (v: string | null) => (v ? v.split(',').filter(Boolean) : []);
 
