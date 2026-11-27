@@ -58,7 +58,10 @@ export const productInput = z.object({
   sizeLabel: z.string().trim().max(60).default(''),
   /** Skickas av äldre formulär men används inte: momsen räknas fram från produkttypen. */
   vat: z.enum(['vat-food', 'vat-standard']).optional(),
+  /** Äldre formulär: true = standardpanten. Nya formulär skickar depositClass. */
   deposit: z.boolean().default(false),
+  /** Vilken pant produkten har ('' = ingen). Beloppet hämtas från Inställningar → Moms och pant. */
+  depositClass: z.string().max(80).optional(),
   optionNames: z.array(z.string().trim().min(1).max(40)).max(3).default([]),
   variants: z.array(variantInput).min(1, 'Produkten behöver minst ett pris.').max(200),
   isNew: z.boolean().default(false),
@@ -179,6 +182,7 @@ async function readProduct(db: Db, id: string) {
     sizeLabel: d.sizeLabel ?? '',
     vat: vatClassFor(f.productType) as ProductInput['vat'],
     deposit: vars.some((v) => v.depositUnits > 0),
+    depositClass: vars.find((v) => v.depositUnits > 0 && v.depositClassId)?.depositClassId ?? '',
     optionNames: f.optionNames ?? [],
     isNew: d.isNew ?? false,
     sizeGuide: d.sizeGuide ?? '',
@@ -205,6 +209,7 @@ async function writeProduct(db: Db, input: ProductInput, existingId?: string) {
   const date = today();
   const now = new Date().toISOString();
   const brandId = input.brandId;
+  const depositClass = input.depositClass || null;
   const sub = getSubcategory(input.subcategory);
   const id = existingId ?? newId('pf');
   const slug = await uniqueSlug(db, input.slug || input.name, existingId);
@@ -282,8 +287,8 @@ async function writeProduct(db: Db, input: ProductInput, existingId?: string) {
       netUnit: v.netAmount ? (v.netUnit ?? 'st') : null,
       status: (v.offered ? 'active' : 'not_offered') as 'active' | 'not_offered',
       vatClassId: vatClassFor(input.productType),
-      depositClassId: input.deposit ? 'pant-burk' : null,
-      depositUnits: input.deposit ? (v.pack ?? 1) : 0,
+      depositClassId: depositClass,
+      depositUnits: depositClass ? (v.pack ?? 1) : 0,
       options: Object.keys(v.options).length ? v.options : null,
       sortOrder: i,
     };
@@ -402,6 +407,12 @@ export function adminProductRoutes(db: Db) {
       const clash = taken.find((t) => t.familyId !== id);
       if (clash) return { status: 400 as const, body: { error: `Streckkoden ${clash.gtin} används redan av en annan produkt.` } };
     }
+    // Vilken pant: nya formulär skickar depositClass, äldre bara deposit = true (standardpanten).
+    input.depositClass = input.depositClass !== undefined ? input.depositClass : input.deposit ? 'pant-burk' : '';
+    if (input.depositClass) {
+      const [cls] = await db.select({ id: s.depositClasses.id }).from(s.depositClasses).where(eq(s.depositClasses.id, input.depositClass));
+      if (!cls) return { status: 400 as const, body: { error: 'Panten finns inte. Välj en pant från listan eller skapa den under Inställningar → Moms och pant.' } };
+    }
     if (input.status === 'published') {
       const problems = publishProblems(input);
       if (problems.length) return { status: 400 as const, body: { error: `Kan inte publicera: ${problems.join(' ')}`, problems } };
@@ -420,6 +431,7 @@ export function adminProductRoutes(db: Db) {
         ['Beskrivning', before.description.length ? `${before.description.length} tecken` : '', `${after!.description.length} tecken`],
         ['Bilder', before.images.length, after!.images.length],
         ['Antal varianter', before.variants.length, after!.variants.length],
+        ['Pant', before.depositClass || 'Ingen', after!.depositClass || 'Ingen'],
         ['Status', STATUS_NAME[before.status], STATUS_NAME[after!.status]],
       ];
       for (const v of after!.variants) {

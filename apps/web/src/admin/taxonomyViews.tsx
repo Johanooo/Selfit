@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { replaceCategories } from '@/data/categories';
 import { CONTENTS_LABEL, replaceProductTypes, USAGE_LABEL, type ProductTypeDef, type ProductTypeFields } from '@/data/productTypes';
 import type { Category, Subcategory } from '@/data/types';
 import { MediaPicker, uploadImage } from './mediaViews';
+import './productForm.css';
+
+const RichTextEditor = lazy(() => import('./RichTextEditor'));
 
 /**
  * Admin → Katalog → Produkttyper och fält, och Kategorier.
@@ -316,8 +319,11 @@ function CategoryEditor({ initial, isMain, types, onSave, onCancel }: { initial:
         </div>
       )}
       <div className="admin-field span-2">
-        <label htmlFor="cat-intro">Text överst på kategorisidan</label>
-        <textarea id="cat-intro" className="admin-control" rows={2} value={v.intro} onChange={(e) => setV({ ...v, intro: e.target.value })} />
+        <span className="admin-label" id="cat-intro-label">Text överst på kategorisidan</span>
+        <Suspense fallback={<div className="rte rte-loading">Laddar textredigeraren …</div>}>
+          <RichTextEditor id="cat-intro" value={v.intro} onChange={(html) => setV((cur) => ({ ...cur, intro: html }))} />
+        </Suspense>
+        <span className="admin-field-hint">Rubriker, fetstil, listor och länkar går bra. Långa texter visas ihopfällda med "Läs mer" i butiken.</span>
       </div>
       {isMain && (
         <div className="admin-field span-2">

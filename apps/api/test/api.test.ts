@@ -577,3 +577,40 @@ describe('rabatter', () => {
     expect((await check('ENGANG')).error).toMatch(/förbrukad/);
   });
 });
+
+describe('Admin: pant', () => {
+  const send = (method: string, path: string, body?: unknown) =>
+    app.request(`/api${path}`, { method, headers: { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+
+  it('skapar en pant, väljer den på en produkt och räknar pant per burk i flak', async () => {
+    const created = await send('POST', '/admin/deposits', { name: 'Burk 2 kr', amount: 2 });
+    expect(created.status).toBe(200);
+    const { id: classId } = (await created.json()) as any;
+    expect((await send('POST', '/admin/deposits', { name: 'burk 2 kr', amount: 2 })).status).toBe(409);
+
+    const res = await send('POST', '/admin/products', {
+      name: 'Testdryck',
+      brandId: 'br_selfit',
+      productType: 'dryck',
+      subcategory: 'sportdryck',
+      depositClass: classId,
+      variants: [{ pack: 6, price: 120, stock: 10 }],
+    });
+    expect(res.status).toBe(200);
+    const p = (await res.json()) as any;
+    expect(p.depositClass).toBe(classId);
+    await send('POST', `/admin/products/${p.id}/status`, { status: 'published' });
+    const shop = (await get('/storefront/products')).body.find((x: any) => x.slug === 'testdryck');
+    expect(shop.variants[0].depositPerUnit).toBe(2);
+
+    const tax = (await get('/admin/tax')).body;
+    expect(tax.deposits.find((d: any) => d.id === classId).products).toBe(1);
+    expect((await send('DELETE', `/admin/deposits/${classId}`)).status).toBe(409);
+
+    const bad = await send('PUT', `/admin/products/${p.id}`, { ...p, depositClass: 'finns-inte' });
+    expect(bad.status).toBe(400);
+    const none = await send('PUT', `/admin/products/${p.id}`, { ...p, depositClass: '' });
+    expect(((await none.json()) as any).depositClass).toBe('');
+    expect((await send('DELETE', `/admin/deposits/${classId}`)).status).toBe(200);
+  });
+});

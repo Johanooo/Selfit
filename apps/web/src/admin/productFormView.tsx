@@ -67,6 +67,8 @@ interface Form {
   sizeLabel: string;
   vat: 'vat-food' | 'vat-standard';
   deposit: boolean;
+  /** Vald pant ('' = ingen). Beloppen finns under Inställningar → Moms och pant. */
+  depositClass: string;
   optionNames: string[];
   variants: FormVariant[];
   isNew: boolean;
@@ -92,6 +94,7 @@ const emptyForm = (): Form => ({
   sizeLabel: '',
   vat: 'vat-food',
   deposit: false,
+  depositClass: '',
   optionNames: [],
   variants: [emptyVariant()],
   isNew: true,
@@ -204,6 +207,7 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
   const [showAllCats, setShowAllCats] = useState(false);
   const [base, setBase] = useState(id ? '' : JSON.stringify(emptyForm()));
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [deposits, setDeposits] = useState<{ id: string; name: string; amount: number | null }[]>([]);
   const [brandDialog, setBrandDialog] = useState(false);
   const [status, setStatus] = useState<{ kind: 'idle' | 'saving' | 'saved' | 'error'; text?: string }>(() => {
     const flash = sessionStorage.getItem('admin-product-flash');
@@ -220,6 +224,16 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    call<{ today: string; deposits: { id: string; name: string; rates: { amountOre: number; validFrom: string; validTo: string | null }[] }[] }>('GET', '/admin/tax')
+      .then((d) =>
+        setDeposits(
+          d.deposits.map((x) => {
+            const now = x.rates.find((r) => r.validFrom <= d.today && (!r.validTo || r.validTo >= d.today));
+            return { id: x.id, name: x.name, amount: now ? now.amountOre / 100 : null };
+          }),
+        ),
+      )
+      .catch(() => undefined);
     call<Brand[]>('GET', '/admin/brands')
       .then((b) => {
         setBrands(b);
@@ -284,7 +298,7 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
       productType: t.value,
       subcategory: keepSub ? form.subcategory : '',
       vat: t.food ? 'vat-food' : 'vat-standard',
-      deposit: t.def.fields.deposit ? form.deposit : false,
+      depositClass: t.def.fields.deposit ? form.depositClass : '',
       sizeGuide: t.def.fields.sizeGuide ? form.sizeGuide || 'klader' : '',
     });
   };
@@ -502,7 +516,7 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
                     subcategory: e.target.value,
                     productType: t.value,
                     vat: t.food ? 'vat-food' : 'vat-standard',
-                    deposit: t.def.fields.deposit ? form.deposit : false,
+                    depositClass: t.def.fields.deposit ? form.depositClass : '',
                     sizeGuide: t.def.fields.sizeGuide ? (form.sizeGuide || (/sko/.test(e.target.value) ? 'skor' : 'klader')) : '',
                   });
                 }}
@@ -871,9 +885,18 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
               <p className="pf-help">Följer produkttypen automatiskt. Livsmedel, alkoholfria drycker och kosttillskott har lägre moms.</p>
             </div>
             {tf.deposit && (
-              <label className="pf-toggle">
-                <input type="checkbox" checked={form.deposit} onChange={(e) => set('deposit', e.target.checked)} /> Pant, 1 kr per burk
-              </label>
+              <Field id="p-deposit" label="Pant" help="Välj beloppet som står på burken eller flaskan. Säljs den i flak räknas panten per burk. Nya panter skapar du under Inställningar → Moms och pant.">
+                <select id="p-deposit" className="pf-input" value={form.depositClass} onChange={(e) => set('depositClass', e.target.value)} data-testid="select-product-deposit">
+                  <option value="">Ingen pant</option>
+                  {deposits.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                      {d.amount !== null ? ` (${kr(d.amount)} per st)` : ''}
+                    </option>
+                  ))}
+                  {form.depositClass && !deposits.some((d) => d.id === form.depositClass) && <option value={form.depositClass}>{form.depositClass}</option>}
+                </select>
+              </Field>
             )}
             <label className="pf-toggle">
               <input type="checkbox" checked={form.isNew} onChange={(e) => set('isNew', e.target.checked)} /> Visa som nyhet

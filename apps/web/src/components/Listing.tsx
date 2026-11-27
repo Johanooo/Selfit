@@ -103,7 +103,7 @@ export function Listing({ eyebrow, title, intro, tone, crumbs, items, emptyBase,
         <div className="stack-3">
           <p className="eyebrow">{eyebrow}</p>
           <h1 className="h1">{title}</h1>
-          {intro && <div className="lead">{intro}</div>}
+          {intro && <div className="lead listing-lead">{intro}</div>}
         </div>
       </header>
 

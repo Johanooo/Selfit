@@ -108,7 +108,8 @@ const categoryInput = z.object({
   parent: z.string().trim().max(60).nullable().default(null),
   productType: z.string().trim().max(60).nullable().default(null),
   short: z.string().trim().max(200).default(''),
-  intro: z.string().trim().max(600).default(''),
+  /** Kan vara formaterad text (HTML) från textredigeraren. */
+  intro: z.string().trim().max(20000).default(''),
   image: z.string().trim().max(400).default(''),
   imageAlt: z.string().trim().max(200).default(''),
   hidden: z.boolean().default(false),

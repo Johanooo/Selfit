@@ -17,6 +17,34 @@ const dayBefore = (iso: string) => {
   return d.toISOString().slice(0, 10);
 };
 
+const classInput = z.object({
+  name: z.string().trim().min(1, 'Ge panten ett namn, t.ex. Burk 2 kr.').max(60, 'Namnet är för långt.'),
+});
+const newClassInput = classInput.extend({
+  amount: z.number().min(0, 'Pant kan inte vara negativ.').max(20, 'Kontrollera beloppet.'),
+});
+
+/** Antal produkter (produktfamiljer) som använder varje pant. */
+async function usageByClass(db: Db) {
+  const rows = await db.select({ classId: s.variants.depositClassId, familyId: s.variants.familyId }).from(s.variants);
+  const sets = new Map<string, Set<string>>();
+  for (const r of rows) {
+    if (!r.classId) continue;
+    if (!sets.has(r.classId)) sets.set(r.classId, new Set());
+    sets.get(r.classId)!.add(r.familyId);
+  }
+  return new Map([...sets].map(([k, v]) => [k, v.size]));
+}
+
+const slug = (v: string) =>
+  v
+    .toLowerCase()
+    .replace(/[åä]/g, 'a')
+    .replace(/ö/g, 'o')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 40) || 'pant';
+
 const depositInput = z.object({
   amount: z.number().min(0, 'Pant kan inte vara negativ.').max(20, 'Kontrollera beloppet.'),
   validFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ange datum som ÅÅÅÅ-MM-DD.'),
@@ -32,11 +60,58 @@ export function taxRoutes(db: Db) {
       db.select().from(s.depositClasses),
       db.select().from(s.depositRates).orderBy(asc(s.depositRates.validFrom)),
     ]);
+    const used = await usageByClass(db);
     return c.json({
       today: today(),
       vat: vatClasses.map((v) => ({ id: v.id, name: v.name, rates: vatRates.filter((r) => r.vatClassId === v.id).map((r) => ({ rateBp: r.rateBp, validFrom: r.validFrom, validTo: r.validTo })) })),
-      deposits: depClasses.map((d) => ({ id: d.id, name: d.name, rates: depRates.filter((r) => r.depositClassId === d.id).map((r) => ({ amountOre: r.amountOre, validFrom: r.validFrom, validTo: r.validTo })) })),
+      deposits: depClasses.map((d) => ({ id: d.id, name: d.name, products: used.get(d.id) ?? 0, rates: depRates.filter((r) => r.depositClassId === d.id).map((r) => ({ amountOre: r.amountOre, validFrom: r.validFrom, validTo: r.validTo })) })),
     });
+  });
+
+  /** Ny pant, t.ex. "Burk 2 kr". Beloppet gäller från idag. */
+  app.post('/admin/deposits', async (c) => {
+    const parsed = newClassInput.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: parsed.error.issues[0]?.message ?? 'Kontrollera fälten.' }, 400);
+    const { name, amount } = parsed.data;
+    const all = await db.select().from(s.depositClasses);
+    if (all.some((d) => d.name.toLowerCase() === name.toLowerCase())) return c.json({ error: 'Det finns redan en pant med det namnet.' }, 409);
+    let id = `pant-${slug(name)}`;
+    for (let n = 2; all.some((d) => d.id === id); n++) id = `pant-${slug(name)}-${n}`;
+    const date = today();
+    await db.transaction(async (tx) => {
+      await tx.insert(s.depositClasses).values({ id, name, vatClassId: 'vat-standard' });
+      await tx.insert(s.depositRates).values({ id: `dr_${id}_${date}`, depositClassId: id, amountOre: Math.round(amount * 100), validFrom: date, validTo: null });
+    });
+    await logChange(db, { action: 'Pant skapad', object: `Pant: ${name}`, details: [{ field: 'Belopp', from: '–', to: `${amount} kr` }] });
+    return c.json({ ok: true, id });
+  });
+
+  app.patch('/admin/deposits/:id', async (c) => {
+    const id = c.req.param('id');
+    const parsed = classInput.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: parsed.error.issues[0]?.message ?? 'Kontrollera fälten.' }, 400);
+    const [cls] = await db.select().from(s.depositClasses).where(eq(s.depositClasses.id, id));
+    if (!cls) return c.json({ error: 'Panten finns inte.' }, 404);
+    const all = await db.select().from(s.depositClasses);
+    if (all.some((d) => d.id !== id && d.name.toLowerCase() === parsed.data.name.toLowerCase())) return c.json({ error: 'Det finns redan en pant med det namnet.' }, 409);
+    await db.update(s.depositClasses).set({ name: parsed.data.name }).where(eq(s.depositClasses.id, id));
+    if (cls.name !== parsed.data.name) await logChange(db, { action: 'Pant ändrad', object: `Pant: ${parsed.data.name}`, details: [{ field: 'Namn', from: cls.name, to: parsed.data.name }] });
+    return c.json({ ok: true });
+  });
+
+  /** Tar bara bort en pant som ingen produkt använder. Gamla ordrar har beloppet sparat på orderraden. */
+  app.delete('/admin/deposits/:id', async (c) => {
+    const id = c.req.param('id');
+    const [cls] = await db.select().from(s.depositClasses).where(eq(s.depositClasses.id, id));
+    if (!cls) return c.json({ error: 'Panten finns inte.' }, 404);
+    const n = (await usageByClass(db)).get(id) ?? 0;
+    if (n) return c.json({ error: `${n} ${n === 1 ? 'produkt använder' : 'produkter använder'} den här panten. Byt pant på ${n === 1 ? 'den' : 'dem'} först.` }, 409);
+    await db.transaction(async (tx) => {
+      await tx.delete(s.depositRates).where(eq(s.depositRates.depositClassId, id));
+      await tx.delete(s.depositClasses).where(eq(s.depositClasses.id, id));
+    });
+    await logChange(db, { action: 'Pant borttagen', object: `Pant: ${cls.name}` });
+    return c.json({ ok: true });
   });
 
   /** Nytt pantbelopp från ett datum. Tidigare belopp gäller fram till dagen innan. */

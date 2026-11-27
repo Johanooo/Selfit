@@ -1,3 +1,4 @@
+import { CategoryIntro, plainText } from '@/components/CategoryIntro';
 import { Link, useParams } from 'wouter';
 import { ChevronRight } from 'lucide-react';
 import { Listing } from '@/components/Listing';
@@ -70,14 +71,14 @@ export function CategoryPage() {
   const parent = sub ? getCategory(sub.parent) : undefined;
   const name = c?.name ?? sub?.name;
   const intro = c?.intro ?? sub?.intro;
-  usePageMeta(name ? `${name} – handla online` : 'Sidan finns inte', intro ?? 'Sidan kunde inte hittas.');
+  usePageMeta(name ? `${name} – handla online` : 'Sidan finns inte', intro ? plainText(intro).slice(0, 160) : 'Sidan kunde inte hittas.');
 
   if (c) {
     return (
       <Listing
         eyebrow="Kategori"
         title={c.name}
-        intro={c.intro}
+        intro={<CategoryIntro text={c.intro} />}
         tone={c.tone}
         crumbs={[{ label: c.name }]}
         before={<SubcategoryTiles parent={c.slug} tone={c.tone} />}
@@ -91,7 +92,7 @@ export function CategoryPage() {
       <Listing
         eyebrow={parent.name}
         title={sub.name}
-        intro={sub.intro}
+        intro={<CategoryIntro text={sub.intro} />}
         tone={parent.tone}
         crumbs={[{ label: parent.name, href: `/kategori/${parent.slug}` }, { label: sub.name }]}
         items={toItems(productsIn(sub.slug))}

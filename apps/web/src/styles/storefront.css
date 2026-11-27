@@ -1657,3 +1657,50 @@
   font-size: clamp(1.4rem, 2.4vw, 2rem);
   line-height: 1.1;
 }
+
+/* ---------------------------------------------------------------- Kategoritext med "Läs mer" */
+.app-shell .listing-lead {
+  max-width: 78ch;
+  color: #333;
+}
+.app-shell .category-intro-body {
+  position: relative;
+  overflow: hidden;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  transition: max-height var(--dur-base) var(--ease);
+}
+.app-shell .category-intro.is-collapsed .category-intro-body::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 60px;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0), var(--intro-bg, #f5f5f5));
+}
+.app-shell .category-intro-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  border: none;
+  background: none;
+  padding: 0;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #111;
+  cursor: pointer;
+}
+.app-shell .category-intro-toggle:hover {
+  text-decoration: underline;
+}
+.app-shell .category-intro-toggle svg {
+  transition: transform var(--dur-fast) var(--ease);
+}
+.app-shell .rich-description a {
+  color: #111;
+}
+.app-shell .listing-intro {
+  --intro-bg: #f3f3f3;
+}
