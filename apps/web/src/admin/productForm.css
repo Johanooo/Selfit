@@ -253,3 +253,11 @@
   font-size: 0.8125rem;
   color: #616161;
 }
+.admin-root .pf-vat {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #f4f4f4;
+  font-size: var(--fs-sm, 0.8125rem);
+  font-weight: 600;
+}

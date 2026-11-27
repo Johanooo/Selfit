@@ -882,12 +882,13 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
             <Field id="p-size" label="Storlek eller mängd" help="T.ex. 500 g, 60 kapslar, 330 ml.">
               <input id="p-size" className="pf-input" value={form.sizeLabel} onChange={(e) => set('sizeLabel', e.target.value)} />
             </Field>
-            <Field id="p-vat" label="Moms">
-              <select id="p-vat" className="pf-input" value={form.vat} onChange={(e) => set('vat', e.target.value as Form['vat'])}>
-                <option value="vat-food">Livsmedel (lägre moms)</option>
-                <option value="vat-standard">Normal moms (25 %)</option>
-              </select>
-            </Field>
+            <div className="pf-field">
+              <span className="pf-label">Moms</span>
+              <p className="pf-vat" data-testid="text-product-vat">
+                {type.food ? 'Livsmedelsmoms (6 % till och med 2027, sedan 12 %)' : 'Normalmoms 25 %'}
+              </p>
+              <p className="pf-help">Följer produkttypen automatiskt. Livsmedel, alkoholfria drycker och kosttillskott har lägre moms.</p>
+            </div>
             {form.productType === 'dryck' && (
               <label className="pf-toggle">
                 <input type="checkbox" checked={form.deposit} onChange={(e) => set('deposit', e.target.checked)} /> Pant, 1 kr per burk

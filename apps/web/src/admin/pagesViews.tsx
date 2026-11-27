@@ -12,7 +12,7 @@ import { SupportSections } from '@/components/SupportSections';
 const api = (path: string) => `${import.meta.env.BASE_URL.replace(/\/$/, '')}/api${path}`;
 type Saved = PageContent & { updatedAt: string };
 
-function useSavedPages() {
+export function useSavedPages() {
   const [saved, setSaved] = useState<Saved[] | null>(null);
   const [error, setError] = useState('');
   const load = () =>

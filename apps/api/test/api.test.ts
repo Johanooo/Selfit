@@ -8,7 +8,7 @@ import { createDb, type Db } from '../src/db/client.ts';
 import { runMigrations } from '../src/db/migrate.ts';
 import { seed } from '../src/db/seed.ts';
 import { markDatabaseCreated } from '../src/db/meta.ts';
-import { syncReferenceData } from '../src/routes/adminProducts.ts';
+import { syncReferenceData, syncVatClasses } from '../src/routes/adminProducts.ts';
 import * as s from '../src/db/schema.ts';
 import { lowestPrice30Days } from '../src/lib/pricing.ts';
 import { quoteCart } from '../src/routes/cart.ts';
@@ -351,6 +351,33 @@ describe('Admin: varumärken', () => {
     expect((await send('DELETE', '/admin/brands/br_nike')).status).toBe(409);
     const list = (await get('/admin/brands')).body;
     expect(list.find((b: any) => b.id === 'br_nike').products).toBe(1);
+  });
+});
+
+describe('moms', () => {
+  const send = (method: string, path: string, body?: unknown) =>
+    app.request(`/api${path}`, { method, headers: { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+
+  it('sätter momsen efter produkttyp, oavsett vad formuläret skickar', async () => {
+    const shaker = await send('POST', '/admin/products', { name: 'Momstest shaker', brandId: 'br_selfit', productType: 'redskap', subcategory: 'shakers-och-flaskor', vat: 'vat-food', variants: [{ price: 99, stock: 1 }] });
+    expect(shaker.status).toBe(200);
+    const sid = ((await shaker.json()) as any).id;
+    const [sv] = await db.select().from(s.variants).where(eq(s.variants.familyId, sid));
+    expect(sv.vatClassId).toBe('vat-standard');
+
+    const bar = await send('POST', '/admin/products', { name: 'Momstest bar', brandId: 'br_selfit', productType: 'livsmedel', subcategory: 'proteinbars', vat: 'vat-standard', variants: [{ price: 25, stock: 1 }] });
+    expect(bar.status).toBe(200);
+    const bid = ((await bar.json()) as any).id;
+    const [bv] = await db.select().from(s.variants).where(eq(s.variants.familyId, bid));
+    expect(bv.vatClassId).toBe('vat-food');
+  });
+
+  it('rättar fel moms på befintliga varianter vid start', async () => {
+    const [v] = await db.select().from(s.variants).where(eq(s.variants.familyId, 'pf_pwo-plus'));
+    await db.update(s.variants).set({ vatClassId: 'vat-standard' }).where(eq(s.variants.id, v.id));
+    expect(await syncVatClasses(db)).toBeGreaterThanOrEqual(1);
+    const [after] = await db.select().from(s.variants).where(eq(s.variants.id, v.id));
+    expect(after.vatClassId).toBe('vat-food');
   });
 });
 

@@ -20,7 +20,7 @@ import { createApp } from './app.ts';
 import { createDb, defaultDatabaseUrl } from './db/client.ts';
 import { buildStorefrontProducts } from './lib/storefront.ts';
 import { markDatabaseCreated } from './db/meta.ts';
-import { syncReferenceData } from './routes/adminProducts.ts';
+import { syncReferenceData, syncVatClasses } from './routes/adminProducts.ts';
 import { uploadsDir } from './lib/paths-data.ts';
 import { runMigrations } from './db/migrate.ts';
 import { isEmpty, seed } from './db/seed.ts';
@@ -36,6 +36,9 @@ if (process.env.SEED_IF_EMPTY === 'true' && (await isEmpty(db))) {
 }
 // Nya kategorier och varumärken i koden läggs till i databasen (befintliga rörs inte).
 await syncReferenceData(db);
+// Momsen ska alltid följa produkttypen (livsmedel, dryck och kosttillskott har lägre moms).
+const vatFixed = await syncVatClasses(db);
+if (vatFixed) console.log(`Moms rättad på ${vatFixed} varianter.`);
 
 const root = new Hono();
 

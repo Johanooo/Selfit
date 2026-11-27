@@ -8,11 +8,11 @@ import NotFound from './not-found';
 import { SupportSections } from '@/components/SupportSections';
 import { RichText } from '@/components/RichText';
 
-function FaqList({ items }: { items: Faq[] }) {
+function FaqItems({ items, offset = 0 }: { items: Faq[]; offset?: number }) {
   return (
     <div className="details-list">
       {items.map((f, i) => (
-        <details className="details-item" key={f.q} data-testid={`faq-${i}`}>
+        <details className="details-item" key={f.q} data-testid={`faq-${offset + i}`}>
           <summary>
             {f.q} <Plus size={20} aria-hidden="true" />
           </summary>
@@ -23,6 +23,34 @@ function FaqList({ items }: { items: Faq[] }) {
           </div>
         </details>
       ))}
+    </div>
+  );
+}
+
+/** Frågorna i den ordning de har i Admin. Har de rubriker grupperas de under dem. Dolda frågor visas inte. */
+function FaqList({ items }: { items: Faq[] }) {
+  const visible = items.filter((f) => !f.hidden);
+  if (!visible.some((f) => f.category?.trim())) return <FaqItems items={visible} />;
+  const groups = new Map<string, Faq[]>();
+  for (const f of visible) {
+    const key = f.category?.trim() || 'Övrigt';
+    groups.set(key, [...(groups.get(key) ?? []), f]);
+  }
+  // "Övrigt" sist.
+  const ordered = [...groups.entries()].sort(([a], [b]) => Number(a === 'Övrigt') - Number(b === 'Övrigt'));
+  let offset = 0;
+  return (
+    <div className="faq-groups">
+      {ordered.map(([name, list]) => {
+        const start = offset;
+        offset += list.length;
+        return (
+          <section className="faq-group" key={name} aria-label={name}>
+            <h3 className="faq-group-title">{name}</h3>
+            <FaqItems items={list} offset={start} />
+          </section>
+        );
+      })}
     </div>
   );
 }

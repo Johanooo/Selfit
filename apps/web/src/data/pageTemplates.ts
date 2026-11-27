@@ -20,6 +20,10 @@ export interface PageSection {
 export interface Faq {
   q: string;
   a: string;
+  /** Rubrik som frågan visas under, t.ex. "Frakt och leverans". */
+  category?: string;
+  /** true = sparad men visas inte i butiken. */
+  hidden?: boolean;
 }
 export interface PageContent {
   slug: string;
@@ -275,30 +279,37 @@ export const defaultPages: PageContent[] = [
     "faq": [
       {
         "q": "Hur mycket koffein innehåller PWO+?",
+        "category": "PWO+",
         "a": "Koffeinhalten står på burken och på produktsidan. Drick inte mer än det som rekommenderas per dag."
       },
       {
         "q": "Varför pirrar det i huden?",
+        "category": "PWO+",
         "a": "Beta-alanin kan ge en ofarlig, övergående stickande känsla. Den brukar gå över efter en stund."
       },
       {
         "q": "Hur fungerar pant?",
+        "category": "Priser och pant",
         "a": "Varje burk har 1 kr pant som visas separat i varukorgen. Pantar du burken i en butik får du tillbaka beloppet."
       },
       {
         "q": "Vad betyder jämförpris?",
+        "category": "Priser och pant",
         "a": "Jämförpriset visar vad produkten kostar per liter, kilo eller styck, så att du enkelt kan jämföra olika förpackningar."
       },
       {
         "q": "Hur spårar jag min order?",
+        "category": "Order och leverans",
         "a": "Använd sidan [Spåra order](/ordersparning) med ditt ordernummer, eller länken i leveransbeskedet."
       },
       {
         "q": "Kan jag ångra ett köp?",
+        "category": "Retur och reklamation",
         "a": "Ja, du har {öppet köp} dagars öppet köp om förpackningen är oöppnad. Läs mer under [Retur och ångerrätt](/support/retur-och-angerratt)."
       },
       {
         "q": "Varan är trasig. Vad gör jag?",
+        "category": "Retur och reklamation",
         "a": "Kontakta kundtjänst med ordernummer och en bild på varan och bäst före-datumet. Med bild kan vi oftast lösa det direkt, utan att du behöver skicka tillbaka något."
       }
     ]

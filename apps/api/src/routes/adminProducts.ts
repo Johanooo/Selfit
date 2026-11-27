@@ -3,7 +3,7 @@
  * och ladda upp bilder. Allt som ändras skrivs i ändringsloggen.
  */
 import { randomBytes } from 'node:crypto';
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, ne } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { brands as codeBrands, categories as codeCategories, getSubcategory } from '../../../web/src/data/categories.ts';
@@ -16,6 +16,13 @@ import type { ProductDisplay } from '../lib/storefront.ts';
 import { saveUpload } from './media.ts';
 
 const PRODUCT_TYPES = ['kosttillskott', 'livsmedel', 'dryck', 'kroppsvard', 'klader', 'redskap'] as const;
+
+/**
+ * Momsen följer alltid produkttypen. Livsmedel, alkoholfria drycker och kosttillskott har
+ * livsmedelsmoms (satsen och datumen ligger i vat_rates). Allt annat har normalmoms 25 %.
+ */
+const FOOD_TYPES = new Set(['kosttillskott', 'livsmedel', 'dryck']);
+export const vatClassFor = (productType: string) => (FOOD_TYPES.has(productType) ? 'vat-food' : 'vat-standard');
 
 const variantInput = z.object({
   id: z.string().optional(),
@@ -50,7 +57,8 @@ export const productInput = z.object({
     .default(null),
   images: z.array(z.object({ src: z.string().min(1), alt: z.string().max(200).optional() })).max(12).default([]),
   sizeLabel: z.string().trim().max(60).default(''),
-  vat: z.enum(['vat-food', 'vat-standard']),
+  /** Skickas av äldre formulär men används inte: momsen räknas fram från produkttypen. */
+  vat: z.enum(['vat-food', 'vat-standard']).optional(),
   deposit: z.boolean().default(false),
   optionNames: z.array(z.string().trim().min(1).max(40)).max(3).default([]),
   variants: z.array(variantInput).min(1, 'Produkten behöver minst ett pris.').max(200),
@@ -85,6 +93,26 @@ export function publishProblems(p: ProductInput): string[] {
 }
 
 /** Ser till att kategorier och varumärken från koden finns i databasen. */
+/**
+ * Rättar momsen på alla varianter så att den stämmer med produkttypen.
+ * Körs när servern startar. Redan lagda ordrar påverkas inte (de har sparat sina momsbelopp).
+ */
+export async function syncVatClasses(db: Db): Promise<number> {
+  const families = await db.select({ id: s.productFamilies.id, productType: s.productFamilies.productType }).from(s.productFamilies);
+  let fixed = 0;
+  for (const f of families) {
+    const cls = vatClassFor(f.productType);
+    const wrong = await db
+      .select({ id: s.variants.id })
+      .from(s.variants)
+      .where(and(eq(s.variants.familyId, f.id), ne(s.variants.vatClassId, cls)));
+    if (!wrong.length) continue;
+    await db.update(s.variants).set({ vatClassId: cls }).where(and(eq(s.variants.familyId, f.id), ne(s.variants.vatClassId, cls)));
+    fixed += wrong.length;
+  }
+  return fixed;
+}
+
 export async function syncReferenceData(db: Db) {
   for (const [i, c] of codeCategories.entries()) {
     await db
@@ -150,7 +178,7 @@ async function readProduct(db: Db, id: string) {
     nutrition: f.nutrition ?? null,
     images: d.images ?? (d.primaryImage ? [{ src: d.primaryImage, alt: d.primaryImageAlt }] : []),
     sizeLabel: d.sizeLabel ?? '',
-    vat: (vars[0]?.vatClassId ?? 'vat-food') as ProductInput['vat'],
+    vat: vatClassFor(f.productType) as ProductInput['vat'],
     deposit: vars.some((v) => v.depositUnits > 0),
     optionNames: f.optionNames ?? [],
     isNew: d.isNew ?? false,
@@ -254,7 +282,7 @@ async function writeProduct(db: Db, input: ProductInput, existingId?: string) {
       netAmount: v.netAmount ? Math.round(v.netAmount * 1000) : null,
       netUnit: v.netAmount ? (v.netUnit ?? 'st') : null,
       status: (v.offered ? 'active' : 'not_offered') as 'active' | 'not_offered',
-      vatClassId: input.vat,
+      vatClassId: vatClassFor(input.productType),
       depositClassId: input.deposit ? 'pant-burk' : null,
       depositUnits: input.deposit ? (v.pack ?? 1) : 0,
       options: Object.keys(v.options).length ? v.options : null,

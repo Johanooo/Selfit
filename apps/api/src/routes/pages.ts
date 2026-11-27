@@ -12,7 +12,17 @@ export const pageSchema = z.object({
   sections: z
     .array(z.object({ heading: z.string().trim().max(160), body: z.string().max(20000) }))
     .max(60),
-  faq: z.array(z.object({ q: z.string().trim().min(1).max(300), a: z.string().trim().min(1).max(4000) })).max(100).optional(),
+  faq: z
+    .array(
+      z.object({
+        q: z.string().trim().min(1, 'Varje fråga behöver en fråga.').max(300),
+        a: z.string().trim().min(1, 'Varje fråga behöver ett svar.').max(4000),
+        category: z.string().trim().max(60).optional(),
+        hidden: z.boolean().optional(),
+      }),
+    )
+    .max(200)
+    .optional(),
 });
 
 const toContent = (r: typeof s.pages.$inferSelect): PageContent & { updatedAt: string } => ({
@@ -44,7 +54,9 @@ export function pageRoutes(db: Db) {
     }
     const [prev] = await db.select().from(s.pages).where(eq(s.pages.slug, slug));
     const old = prev ?? original;
-    const changed = (['title', 'summary', 'sections'] as const).filter((k) => JSON.stringify(old[k]) !== JSON.stringify(parsed.data[k]));
+    const changed = (['title', 'summary', 'sections', 'faq'] as const).filter(
+      (k) => parsed.data[k] !== undefined && JSON.stringify(old[k] ?? null) !== JSON.stringify(parsed.data[k]),
+    );
     const now = new Date().toISOString();
     const v = { ...parsed.data, faq: parsed.data.faq ?? original.faq ?? null, updatedAt: now };
     await db
@@ -52,11 +64,13 @@ export function pageRoutes(db: Db) {
       .values({ slug, ...v })
       .onConflictDoUpdate({ target: s.pages.slug, set: v });
     if (changed.length) {
-      const names = { title: 'Rubrik', summary: 'Ingress', sections: 'Text' } as const;
+      const names = { title: 'Rubrik', summary: 'Ingress', sections: 'Text', faq: 'Frågor' } as const;
+      const describe = (k: (typeof changed)[number], src: { title: string; summary: string; sections: unknown[]; faq?: unknown[] | null }) =>
+        k === 'sections' ? `${src.sections.length} avsnitt` : k === 'faq' ? `${src.faq?.length ?? 0} frågor` : src[k];
       await logChange(db, {
         action: 'Sida ändrad',
         object: `Sida: ${original.title}`,
-        details: changed.map((k) => ({ field: names[k], from: k === 'sections' ? `${old.sections.length} avsnitt` : old[k], to: k === 'sections' ? `${parsed.data.sections.length} avsnitt` : parsed.data[k] })),
+        details: changed.map((k) => ({ field: names[k], from: describe(k, old), to: describe(k, parsed.data) })),
       });
     }
     const [row] = await db.select().from(s.pages).where(eq(s.pages.slug, slug));

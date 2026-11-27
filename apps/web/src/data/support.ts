@@ -82,7 +82,7 @@ export function renderPage(page: PageContent, settings: SiteSettings): SupportPa
     title: f(page.title),
     summary: f(page.summary),
     sections: page.sections.map((s) => ({ heading: f(s.heading), body: f(s.body) })),
-    ...(page.faq ? { faq: page.faq.map((q) => ({ q: f(q.q), a: f(q.a) })) } : {}),
+    ...(page.faq ? { faq: page.faq.map((q) => ({ ...q, q: f(q.q), a: f(q.a) })) } : {}),
   };
 }
 
