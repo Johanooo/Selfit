@@ -150,8 +150,43 @@ export const collections: Collection[] = [
   { slug: 'kampanjer', name: 'Kampanjer', intro: 'Produkter med sänkt pris just nu. Vi visar alltid lägsta pris de senaste 30 dagarna.' },
 ];
 
+/** Standardtyp för de inbyggda kategorierna. Kan ändras i Admin → Katalog → Kategorier. */
+export const DEFAULT_CATEGORY_TYPES: Record<string, string> = {
+  drycker: 'dryck',
+  livsmedel: 'livsmedel',
+  bars: 'livsmedel',
+  halsokost: 'kosttillskott',
+  kosttillskott: 'kosttillskott',
+  kroppsvard: 'kroppsvard',
+  traningsklader: 'klader',
+  traningsutrustning: 'redskap',
+};
+for (const c of categories) c.productType ??= DEFAULT_CATEGORY_TYPES[c.slug];
+
+/** Lägger in kategorierna från databasen (Admin → Katalog → Kategorier) i stället för standardlistan. */
+export function replaceCategories(cats: Category[], subs: Subcategory[]) {
+  if (!Array.isArray(cats) || cats.length === 0 || !Array.isArray(subs)) return;
+  categories.splice(0, categories.length, ...cats);
+  subcategories.splice(0, subcategories.length, ...subs);
+}
+
 export const getCategory = (slug?: string) => categories.find((c) => c.slug === slug);
 export const getSubcategory = (slug?: string) => subcategories.find((c) => c.slug === slug);
 export const subcategoriesOf = (parent: string) => subcategories.filter((c) => c.parent === parent);
 export const getBrand = (slug?: string) => brands.find((b) => b.slug === slug);
+
+/**
+ * Lägger in varumärkena från databasen (Admin → Varumärken) så att deras namn och
+ * beskrivning visas på varumärkessidan. En tom beskrivning behåller den inbyggda texten.
+ */
+export function replaceBrands(list: { slug: string; name: string; intro?: string | null }[]) {
+  if (!Array.isArray(list)) return;
+  for (const b of list) {
+    if (!b?.slug || !b.name) continue;
+    const existing = brands.find((x) => x.slug === b.slug);
+    const intro = b.intro?.trim() || existing?.intro || `Alla produkter från ${b.name}.`;
+    if (existing) Object.assign(existing, { name: b.name, intro });
+    else brands.push({ slug: b.slug, name: b.name, intro });
+  }
+}
 export const getCollection = (slug?: string) => collections.find((c) => c.slug === slug);

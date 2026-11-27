@@ -470,3 +470,48 @@
 .admin-root .tile-admin { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: var(--space-3); align-items: start; }
 .admin-root .tile-admin-img { aspect-ratio: 4 / 5; border-radius: 6px; background: #ddd center / cover; display: flex; align-items: flex-end; padding: 8px; color: #fff; font-weight: 700; font-size: 13px; text-shadow: 0 1px 4px rgb(0 0 0 / 0.6); }
 .admin-root .tile-admin-fields { display: grid; gap: 6px; }
+.admin-root .home-link-item { width: 100%; display: grid; gap: 4px; }
+.admin-root .text-check { display: grid; gap: 2px; font-size: 12px; }
+.admin-root .text-check-preview { color: #555; margin: 0; }
+.admin-root .text-check-warn { color: #8a4b00; background: #fff4e0; border-radius: 4px; padding: 3px 8px; margin: 0; }
+.admin-root .text-check-fields code { background: #f0f0f0; padding: 0 4px; border-radius: 3px; }
+.admin-root .home-service-check { grid-column: 1 / -1; }
+.admin-root .tax-list { display: grid; gap: var(--space-4); }
+.admin-root .tax-item { display: grid; gap: 6px; }
+.admin-root .tax-item-name { font-weight: 700; margin: 0; }
+.admin-root .tax-item ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.admin-root .tax-item li { display: flex; gap: 10px; align-items: center; font-size: 13px; padding: 6px 10px; border-radius: 6px; background: #f6f6f6; }
+.admin-root .tax-item li.is-past { color: #8a8a8a; background: transparent; }
+.admin-root .tax-item li.is-now { background: #eaf6ee; }
+.admin-root .tax-badge { margin-left: auto; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: #1d7a3a; color: #fff; }
+.admin-root .tax-badge--future { background: #555; }
+.admin-root .tax-edit { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: end; }
+.admin-root .tax-edit label { display: grid; gap: 4px; font-size: 12px; font-weight: 600; }
+
+/* Produkttyper och kategorier */
+.admin-root .admin-link-btn { border: none; background: none; padding: 0; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
+.admin-root .type-list, .admin-root .cat-tree { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.admin-root .type-row.is-open, .admin-root .cat-node:has(.cat-editor) { box-shadow: 0 0 0 1px #111; }
+.admin-root .type-row-head, .admin-root .cat-node-head { display: flex; align-items: center; gap: var(--space-3); padding: 12px 14px; justify-content: space-between; }
+.admin-root .type-name { margin: 0; font-weight: 700; display: flex; gap: 8px; align-items: center; }
+.admin-root .type-meta { margin: 4px 0 0; font-size: 12px; color: #555; display: flex; gap: 8px; align-items: center; }
+.admin-root .type-meta .tax-badge { margin-left: 0; }
+.admin-root .type-fields { margin: 6px 0 0; display: flex; flex-wrap: wrap; gap: 4px; }
+.admin-root .type-editor { display: grid; gap: var(--space-4); }
+.admin-root .type-checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: var(--space-2); }
+.admin-root .type-check { align-items: flex-start; }
+.admin-root .type-check span { display: grid; }
+.admin-root .type-check small { color: #777; font-weight: 400; }
+.admin-root .cat-node.is-hidden > .cat-node-head .home-block-name, .admin-root .cat-subs li.is-hidden .home-block-name { color: #8a8a8a; }
+.admin-root .cat-node-head .tax-badge { margin-left: 0; }
+.admin-root .cat-node-arrow { width: 14px; color: #777; }
+.admin-root .cat-subs { padding: 0 14px 14px 38px; display: grid; gap: var(--space-2); justify-items: start; }
+.admin-root .cat-subs ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; width: 100%; }
+.admin-root .cat-subs li { border-top: 1px solid #eee; padding-top: 6px; display: grid; gap: var(--space-2); }
+.admin-root .cat-sub-head { display: flex; align-items: center; gap: 10px; }
+.admin-root .cat-sub-head .admin-actions { margin-left: auto; }
+.admin-root .cat-editor { padding: 6px 0; width: 100%; }
+.admin-root .cat-image { display: flex; gap: var(--space-3); align-items: center; }
+.admin-root .cat-image img { width: 90px; height: 90px; object-fit: cover; border-radius: 6px; }
+.admin-root .cat-image-empty { font-size: 12px; color: #777; }
+.admin-root .admin-inline-message.is-error { color: #a1243a; background: #fdecee; }

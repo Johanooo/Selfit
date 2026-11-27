@@ -1,36 +1,28 @@
-import type { Product, ProductKind } from '@/data/types';
+import { getCategory, DEFAULT_CATEGORY_TYPES } from '@/data/categories';
+import { CONTENTS_LABEL, getProductType, isFoodType, USAGE_LABEL, type ProductTypeDef } from '@/data/productTypes';
+import type { Product } from '@/data/types';
 
-/** Produkttyp utifrån huvudkategorin, när produkten inte har någon egen typ. */
-const BY_CATEGORY: Record<string, ProductKind> = {
-  drycker: 'dryck',
-  livsmedel: 'livsmedel',
-  bars: 'livsmedel',
-  halsokost: 'kosttillskott',
-  kosttillskott: 'kosttillskott',
-  kroppsvard: 'kroppsvard',
-  traningsklader: 'klader',
-  traningsutrustning: 'redskap',
-};
+/** Produkttyp för en huvudkategori (väljs i Admin → Kategorier). */
+export const kindForCategory = (category: string | undefined): string | undefined =>
+  category ? getCategory(category)?.productType ?? DEFAULT_CATEGORY_TYPES[category] : undefined;
 
-export const kindForCategory = (category: string | undefined): ProductKind | undefined => (category ? BY_CATEGORY[category] : undefined);
+/** Produktens typ: sparad på produkten, annars kategorins. */
+export function typeOf(product: Pick<Product, 'kind' | 'category'>): ProductTypeDef | undefined {
+  return getProductType(product.kind) ?? getProductType(kindForCategory(product.category));
+}
 
-export function kindOf(product: Pick<Product, 'kind' | 'category'>): ProductKind {
-  return product.kind ?? kindForCategory(product.category) ?? 'kosttillskott';
+export function kindOf(product: Pick<Product, 'kind' | 'category'>): string {
+  return typeOf(product)?.id ?? product.kind ?? 'kosttillskott';
 }
 
 /** Mat och dryck: ingredienser, allergener och näringsvärde. */
-export const isFood = (kind: ProductKind) => kind === 'dryck' || kind === 'livsmedel' || kind === 'kosttillskott';
+export const isFood = (kind: string) => isFoodType(getProductType(kind));
 
-/** Rubrikerna på produktsidan för varje typ. Samma fält i databasen, olika namn för kunden. */
-export function sectionLabels(kind: ProductKind) {
-  switch (kind) {
-    case 'klader':
-      return { usage: 'Skötselråd', ingredients: 'Material' };
-    case 'redskap':
-      return { usage: 'Användning', ingredients: 'Material' };
-    case 'kroppsvard':
-      return { usage: 'Användning', ingredients: 'Innehåll (INCI)' };
-    default:
-      return { usage: 'Användning', ingredients: 'Ingredienser och näringsvärde' };
-  }
+/** Rubrikerna på produktsidan för typen. */
+export function sectionLabels(kind: string) {
+  const t = getProductType(kind);
+  return {
+    usage: t ? USAGE_LABEL[t.fields.usage] || 'Användning' : 'Användning',
+    ingredients: t ? CONTENTS_LABEL[t.fields.contents] || 'Innehåll' : 'Ingredienser och näringsvärde',
+  };
 }

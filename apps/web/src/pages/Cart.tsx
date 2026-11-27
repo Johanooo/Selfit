@@ -8,7 +8,7 @@ import { ProductImage } from '@/components/art/ProductImage';
 import { FreeShippingProgress, TotalsList } from '@/components/OrderSummary';
 import { usePageMeta } from '@/hooks/use-page-meta';
 import { getCategory } from '@/data/categories';
-import { computeTotals } from '@/lib/cart-math';
+import { computeTotals, FREE_SHIPPING_THRESHOLD } from '@/lib/cart-math';
 import { productHref } from '@/lib/catalog';
 import { comparison, isBuyable, kr, stockText, variantLabel } from '@/lib/format';
 import { useCart, CART_MAX_QTY } from '@/state/cart';
@@ -63,7 +63,7 @@ export default function CartPage() {
             </>
           }
         >
-          Inget här ännu. Fri frakt till ombud när du handlar för 499 kr eller mer.
+          Inget här ännu. Fri frakt till ombud när du handlar för {kr(FREE_SHIPPING_THRESHOLD)} eller mer.
         </EmptyState>
       ) : (
         <div className="two-col">

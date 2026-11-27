@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { categories, getCategory, getSubcategory, subcategoriesOf } from '@/data/categories';
 import { kindForCategory } from '@/lib/productKind';
+import { isFoodType, productTypes } from '@/data/productTypes';
 import { getFlavour } from '@/data/products';
 import { PwoCan } from '@/components/art/PwoCan';
 import { MediaPicker, uploadImage } from './mediaViews';
@@ -28,15 +29,9 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
 }
 
 type Status = 'draft' | 'published' | 'archived';
-type ProductType = 'kosttillskott' | 'livsmedel' | 'dryck' | 'kroppsvard' | 'klader' | 'redskap';
-const TYPES: { value: ProductType; label: string; food: boolean }[] = [
-  { value: 'kosttillskott', label: 'Kosttillskott', food: true },
-  { value: 'livsmedel', label: 'Livsmedel', food: true },
-  { value: 'dryck', label: 'Dryck', food: true },
-  { value: 'kroppsvard', label: 'Kroppsvård', food: false },
-  { value: 'klader', label: 'Kläder', food: false },
-  { value: 'redskap', label: 'Träningsutrustning', food: false },
-];
+type ProductType = string;
+/** Produkttyperna (från Admin → Produkttyper och fält). Läses vid varje visning så att nya typer syns direkt. */
+const typeList = () => productTypes.map((t) => ({ value: t.id, label: t.name, food: isFoodType(t), def: t }));
 
 interface FormVariant {
   id?: string;
@@ -269,7 +264,9 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
     if (status.kind !== 'saving') setStatus({ kind: 'idle' });
   };
   const sub = getSubcategory(form.subcategory);
+  const TYPES = typeList();
   const type = TYPES.find((t) => t.value === form.productType) ?? TYPES[0];
+  const tf = type.def.fields;
   /** Kategorier som hör till vald produkttyp. Kategorier utan känd typ visas alltid. */
   const fitsType = (catSlug: string) => {
     const k = kindForCategory(catSlug);
@@ -287,8 +284,8 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
       productType: t.value,
       subcategory: keepSub ? form.subcategory : '',
       vat: t.food ? 'vat-food' : 'vat-standard',
-      deposit: t.value === 'dryck' ? form.deposit : false,
-      sizeGuide: t.value === 'klader' ? form.sizeGuide || 'klader' : '',
+      deposit: t.def.fields.deposit ? form.deposit : false,
+      sizeGuide: t.def.fields.sizeGuide ? form.sizeGuide || 'klader' : '',
     });
   };
   const legacy = !form.optionNames.length && form.variants.some((v) => v.flavour || v.pack);
@@ -505,8 +502,8 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
                     subcategory: e.target.value,
                     productType: t.value,
                     vat: t.food ? 'vat-food' : 'vat-standard',
-                    deposit: t.value === 'dryck' ? form.deposit : false,
-                    sizeGuide: t.value === 'klader' ? (form.sizeGuide || (/sko/.test(e.target.value) ? 'skor' : 'klader')) : '',
+                    deposit: t.def.fields.deposit ? form.deposit : false,
+                    sizeGuide: t.def.fields.sizeGuide ? (form.sizeGuide || (/sko/.test(e.target.value) ? 'skor' : 'klader')) : '',
                   });
                 }}
                 data-testid="select-product-category"
@@ -563,7 +560,7 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
               <button
                 type="button"
                 className="pf-add"
-                onClick={() => setOptionDraft([{ name: form.productType === 'klader' ? 'Storlek' : 'Smak', values: [], input: '' }])}
+                onClick={() => setOptionDraft([{ name: tf.sizeGuide ? 'Storlek' : 'Smak', values: [], input: '' }])}
                 data-testid="check-has-variants"
               >
                 ＋ Lägg till alternativ som storlek, färg eller smak
@@ -619,7 +616,7 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
                   </div>
                 ))}
                 {optionDraft.length < 3 && (
-                  <button type="button" className="pf-add small" onClick={() => setOptionDraft([...optionDraft, { name: optionDraft.length === 1 && form.productType === 'klader' ? 'Färg' : '', values: [], input: '' }])}>
+                  <button type="button" className="pf-add small" onClick={() => setOptionDraft([...optionDraft, { name: optionDraft.length === 1 && tf.sizeGuide ? 'Färg' : '', values: [], input: '' }])}>
                     ＋ Lägg till ett alternativ till
                   </button>
                 )}
@@ -676,7 +673,7 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
           </Card>
 
           <Card
-            title={type.food ? 'Innehåll och märkning' : form.productType === 'klader' ? 'Material, skötsel och storlek' : form.productType === 'kroppsvard' ? 'Innehåll och användning' : 'Material och användning'}
+            title={type.food ? 'Innehåll och märkning' : `${tf.contents === 'material' ? 'Material' : 'Innehåll'}${tf.usage === 'care' ? ', skötsel' : tf.usage === 'usage' ? ' och användning' : ''}${tf.sizeGuide ? ' och storlek' : ''}`}
             action={
               <button type="button" className="pf-link" onClick={() => setShowMore((s) => !s)} aria-expanded={showMore} data-testid="button-toggle-more">
                 {showMore ? 'Dölj' : 'Visa'}
@@ -687,11 +684,7 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
               <p className="pf-help">
                 {type.food
                   ? 'Ingredienser, näringsvärde, användning och varningstexter. Ska stämma med förpackningen.'
-                  : form.productType === 'klader'
-                    ? 'Material, skötselråd och vilken storleksguide som visas.'
-                    : form.productType === 'kroppsvard'
-                      ? 'Innehållsförteckning (INCI), användning och varningstexter.'
-                      : 'Material, användning och fakta som mått och vikt.'}
+                  : 'Fälten som typen ' + type.label + ' har, och fakta som mått och vikt.'}
               </p>
             ) : (
               <>
@@ -704,14 +697,14 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
                       <textarea id="p-ingr" className="pf-input" rows={3} value={form.ingredients} onChange={(e) => set('ingredients', e.target.value)} />
                     </Field>
                     <div className="pf-row two">
-                      <Field id="p-allergens" label="Allergener" help="Tryck Enter eller komma efter varje. Visas i fetstil i ingredienserna.">
+                      {tf.allergens && <Field id="p-allergens" label="Allergener" help="Tryck Enter eller komma efter varje. Visas i fetstil i ingredienserna.">
                         <ChipInput id="p-allergens" values={form.allergens} onChange={(v) => set('allergens', v)} placeholder="T.ex. mjölk" testId="input-product-allergens" />
-                      </Field>
-                      <Field id="p-warn" label="Varningstexter" help="En per rad.">
+                      </Field>}
+                      {tf.warnings && <Field id="p-warn" label="Varningstexter" help="En per rad.">
                         <LinesInput id="p-warn" values={form.warnings} onChange={(v) => set('warnings', v)} />
-                      </Field>
+                      </Field>}
                     </div>
-                    <div className="pf-field">
+                    {tf.nutrition && <div className="pf-field">
                       <span className="pf-label">Näringsvärde</span>
                       {form.nutrition?.rows.length ? (
                         <div className="pf-table-wrap">
@@ -774,48 +767,36 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
                           </button>
                         )}
                       </div>
-                    </div>
+                    </div>}
                   </>
                 )}
-                {form.productType === 'klader' && (
+                {!type.food && (
                   <>
-                    <Field id="p-material" label="Material" help="T.ex. 88 % polyester, 12 % elastan.">
-                      <textarea id="p-material" className="pf-input" rows={2} value={form.ingredients} onChange={(e) => set('ingredients', e.target.value)} data-testid="input-product-material" />
-                    </Field>
-                    <Field id="p-care" label="Skötselråd" help="T.ex. Tvättas i 40 °C. Torktumla inte.">
-                      <textarea id="p-care" className="pf-input" rows={2} value={form.usage} onChange={(e) => set('usage', e.target.value)} data-testid="input-product-care" />
-                    </Field>
-                    <Field id="p-sizeguide" label="Storleksguide" help="Visas som en länk vid storleksvalet på produktsidan.">
-                      <select id="p-sizeguide" className="pf-input" value={form.sizeGuide ?? ''} onChange={(e) => set('sizeGuide', e.target.value as Form['sizeGuide'])} data-testid="select-product-sizeguide">
-                        <option value="">Ingen storleksguide</option>
-                        <option value="klader">Kläder (bröst, midja, höft)</option>
-                        <option value="skor">Skor (EU, UK, US, fotlängd)</option>
-                      </select>
-                    </Field>
+                    {tf.contents !== 'off' && (
+                      <Field id="p-contents" label={tf.contents === 'material' ? 'Material' : tf.contents === 'inci' ? 'Innehåll (INCI)' : 'Ingredienser'} help={tf.contents === 'material' ? 'T.ex. 88 % polyester, 12 % elastan.' : 'Skriv som på förpackningen.'}>
+                        <textarea id="p-contents" className="pf-input" rows={2} value={form.ingredients} onChange={(e) => set('ingredients', e.target.value)} data-testid="input-product-material" />
+                      </Field>
+                    )}
+                    {tf.usage !== 'off' && (
+                      <Field id="p-usage2" label={tf.usage === 'care' ? 'Skötselråd' : 'Användning'} help={tf.usage === 'care' ? 'T.ex. Tvättas i 40 °C. Torktumla inte.' : undefined}>
+                        <textarea id="p-usage2" className="pf-input" rows={2} value={form.usage} onChange={(e) => set('usage', e.target.value)} data-testid="input-product-care" />
+                      </Field>
+                    )}
+                    {tf.warnings && (
+                      <Field id="p-warn2" label="Varningstexter" help="En per rad.">
+                        <LinesInput id="p-warn2" values={form.warnings} onChange={(v) => set('warnings', v)} />
+                      </Field>
+                    )}
                   </>
                 )}
-                {form.productType === 'kroppsvard' && (
-                  <>
-                    <Field id="p-usage-body" label="Användning">
-                      <textarea id="p-usage-body" className="pf-input" rows={3} value={form.usage} onChange={(e) => set('usage', e.target.value)} />
-                    </Field>
-                    <Field id="p-inci" label="Innehåll (INCI)" help="Skriv som på förpackningen.">
-                      <textarea id="p-inci" className="pf-input" rows={3} value={form.ingredients} onChange={(e) => set('ingredients', e.target.value)} />
-                    </Field>
-                    <Field id="p-warn-body" label="Varningstexter" help="En per rad.">
-                      <LinesInput id="p-warn-body" values={form.warnings} onChange={(v) => set('warnings', v)} />
-                    </Field>
-                  </>
-                )}
-                {form.productType === 'redskap' && (
-                  <>
-                    <Field id="p-usage-gear" label="Användning">
-                      <textarea id="p-usage-gear" className="pf-input" rows={3} value={form.usage} onChange={(e) => set('usage', e.target.value)} />
-                    </Field>
-                    <Field id="p-material-gear" label="Material" help="T.ex. BPA-fri plast, naturgummi.">
-                      <textarea id="p-material-gear" className="pf-input" rows={2} value={form.ingredients} onChange={(e) => set('ingredients', e.target.value)} />
-                    </Field>
-                  </>
+                {tf.sizeGuide && (
+                  <Field id="p-sizeguide" label="Storleksguide" help="Visas som en länk vid storleksvalet på produktsidan.">
+                    <select id="p-sizeguide" className="pf-input" value={form.sizeGuide ?? ''} onChange={(e) => set('sizeGuide', e.target.value as Form['sizeGuide'])} data-testid="select-product-sizeguide">
+                      <option value="">Ingen storleksguide</option>
+                      <option value="klader">Kläder (bröst, midja, höft)</option>
+                      <option value="skor">Skor (EU, UK, US, fotlängd)</option>
+                    </select>
+                  </Field>
                 )}
                 <div className="pf-field">
                   <span className="pf-label">Fakta</span>
@@ -885,11 +866,11 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
             <div className="pf-field">
               <span className="pf-label">Moms</span>
               <p className="pf-vat" data-testid="text-product-vat">
-                {type.food ? 'Livsmedelsmoms (6 % till och med 2027, sedan 12 %)' : 'Normalmoms 25 %'}
+                {type.def.vat === 'vat-food' ? 'Livsmedelsmoms (6 % till och med 2027, sedan 12 %)' : 'Normalmoms 25 %'}
               </p>
               <p className="pf-help">Följer produkttypen automatiskt. Livsmedel, alkoholfria drycker och kosttillskott har lägre moms.</p>
             </div>
-            {form.productType === 'dryck' && (
+            {tf.deposit && (
               <label className="pf-toggle">
                 <input type="checkbox" checked={form.deposit} onChange={(e) => set('deposit', e.target.checked)} /> Pant, 1 kr per burk
               </label>

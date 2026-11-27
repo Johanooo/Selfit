@@ -8,6 +8,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { brands as codeBrands, categories as codeCategories, getSubcategory } from '../../../web/src/data/categories.ts';
 import { pwoFlavours } from '../../../web/src/data/products.ts';
+import { getProductType } from '../../../web/src/data/productTypes.ts';
 import type { Db } from '../db/client.ts';
 import * as s from '../db/schema.ts';
 import { logChange } from '../lib/audit.ts';
@@ -15,14 +16,12 @@ import { availableStock, currentPrices, today } from '../lib/pricing.ts';
 import type { ProductDisplay } from '../lib/storefront.ts';
 import { saveUpload } from './media.ts';
 
-const PRODUCT_TYPES = ['kosttillskott', 'livsmedel', 'dryck', 'kroppsvard', 'klader', 'redskap'] as const;
-
 /**
- * Momsen följer alltid produkttypen. Livsmedel, alkoholfria drycker och kosttillskott har
- * livsmedelsmoms (satsen och datumen ligger i vat_rates). Allt annat har normalmoms 25 %.
+ * Momsen följer alltid produkttypen. Typen anger om den har livsmedelsmoms (satsen och datumen
+ * ligger i vat_rates) eller normalmoms 25 %. Typerna ändras i Admin → Produkttyper och fält.
  */
 const FOOD_TYPES = new Set(['kosttillskott', 'livsmedel', 'dryck']);
-export const vatClassFor = (productType: string) => (FOOD_TYPES.has(productType) ? 'vat-food' : 'vat-standard');
+export const vatClassFor = (productType: string) => getProductType(productType)?.vat ?? (FOOD_TYPES.has(productType) ? 'vat-food' : 'vat-standard');
 
 const variantInput = z.object({
   id: z.string().optional(),
@@ -42,7 +41,7 @@ export const productInput = z.object({
   name: z.string().trim().min(1, 'Produkten behöver ett namn.').max(120),
   slug: z.string().trim().max(120).optional().default(''),
   brandId: z.string().trim().min(1, 'Välj varumärke.'),
-  productType: z.enum(PRODUCT_TYPES),
+  productType: z.string().trim().min(1).refine((v) => Boolean(getProductType(v)), 'Välj en produkttyp som finns.'),
   subcategory: z.string().trim().default(''),
   tagline: z.string().trim().max(200).default(''),
   description: z.string().max(20000).default(''),

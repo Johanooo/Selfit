@@ -10,6 +10,10 @@ export interface Category {
   /** Bild för kategorirutan. Saknas den används en produktbild. */
   image?: string;
   imageAlt?: string;
+  /** Produkttyp för produkter i kategorin (styr moms och fält). */
+  productType?: string;
+  /** Dold i butikens meny. */
+  hidden?: boolean;
 }
 
 /** Underkategori, t.ex. "Pre-workout" under Träning. */
@@ -18,10 +22,12 @@ export interface Subcategory {
   name: string;
   parent: CategorySlug;
   intro: string;
+  hidden?: boolean;
 }
 
 /** Produktens klassificering styr t.ex. vilka obligatoriska texter som visas. */
-export type ProductKind = 'dryck' | 'livsmedel' | 'kosttillskott' | 'kroppsvard' | 'klader' | 'redskap';
+/** Produkttypens id, t.ex. kosttillskott eller klader. Nya typer skapas i Admin. */
+export type ProductKind = string;
 
 /** Vilken storleksguide som visas på produktsidan. */
 export type SizeGuideKind = 'klader' | 'skor';

@@ -6,6 +6,8 @@ import { visibleCategories } from '@/data/taxonomy';
 import { sourceOptions } from '@/lib/homeContent';
 import { MediaPicker, uploadImage } from './mediaViews';
 import { SaveBar, useSettingsForm } from './storeSettingsViews';
+import { PolicyFieldsHelp, TextCheck, useSiteSettings } from './textCheck';
+import type { SiteSettings } from '@/data/siteDefaults';
 
 /**
  * Admin → Innehåll → Startsida och Topprad och meny.
@@ -72,11 +74,12 @@ function OrderButtons({ i, count, onMove, label }: { i: number; count: number; o
 }
 
 /** En lista med länkar (text + adress) som kan sorteras. */
-function LinkListEditor({ id, items, onChange, max, labelText = 'Text', addLabel = '＋ Lägg till' }: { id: string; items: LinkItem[]; onChange: (v: LinkItem[]) => void; max: number; labelText?: string; addLabel?: string }) {
+function LinkListEditor({ id, items, onChange, max, labelText = 'Text', addLabel = '＋ Lägg till', check }: { id: string; items: LinkItem[]; onChange: (v: LinkItem[]) => void; max: number; labelText?: string; addLabel?: string; check?: SiteSettings }) {
   return (
     <div className="home-links">
       {items.map((l, i) => (
-        <div className="home-link-row" key={i}>
+        <div className="home-link-item" key={i}>
+        <div className="home-link-row">
           <input className="admin-control" aria-label={`${labelText} ${i + 1}`} value={l.label} onChange={(e) => onChange(items.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} placeholder={labelText} data-testid={`input-${id}-${i}-label`} />
           <input className="admin-control" aria-label={`Länk ${i + 1}`} list="store-links" value={l.href} onChange={(e) => onChange(items.map((x, j) => (j === i ? { ...x, href: e.target.value } : x)))} placeholder="Länk, t.ex. /kategori/drycker (valfri)" data-testid={`input-${id}-${i}-href`} />
           <div className="admin-actions">
@@ -85,6 +88,8 @@ function LinkListEditor({ id, items, onChange, max, labelText = 'Text', addLabel
               ✕
             </button>
           </div>
+        </div>
+        {check && <TextCheck text={l.label} settings={check} />}
         </div>
       ))}
       {items.length < max ? (
@@ -102,6 +107,7 @@ const FIELDS_HELP = 'Fält som {leveranstid} och {öppet köp} fylls i automatis
 
 export function HomepageAdminView() {
   const form = useSettingsForm('home');
+  const site = useSiteSettings();
   const [pickerOpen, setPickerOpen] = useState<null | 'hero' | 'ig' | number>(null);
   const [uploading, setUploading] = useState(false);
   const [openRow, setOpenRow] = useState<string | null>(null);
@@ -220,10 +226,12 @@ export function HomepageAdminView() {
               <label htmlFor="hero-title">Rubrik</label>
               <textarea id="hero-title" className="admin-control" rows={2} value={hero.title} onChange={(e) => setHero({ title: e.target.value })} data-testid="input-hero-title" />
               <span className="admin-field-hint">Enter = ny rad. Visas i versaler.</span>
+              <TextCheck text={hero.title} settings={site} />
             </div>
             <div className="admin-field span-2">
               <label htmlFor="hero-lead">Text under rubriken</label>
               <textarea id="hero-lead" className="admin-control" rows={2} value={hero.lead} onChange={(e) => setHero({ lead: e.target.value })} data-testid="input-hero-lead" />
+              <TextCheck text={hero.lead} settings={site} />
             </div>
             <div className="admin-field">
               <label htmlFor="hero-p-label">Vit knapp</label>
@@ -397,6 +405,9 @@ export function HomepageAdminView() {
                           <button type="button" className="admin-btn small danger" onClick={() => form.set('services', home.services.filter((_, k) => k !== j))} aria-label={`Ta bort fördel ${j + 1}`}>
                             ✕
                           </button>
+                          <div className="home-service-check">
+                            <TextCheck text={`${sv.title} ${sv.text}`} settings={site} />
+                          </div>
                         </div>
                       ))}
                       {home.services.length < 4 && (
@@ -404,7 +415,8 @@ export function HomepageAdminView() {
                           ＋ Lägg till fördel
                         </button>
                       )}
-                      <p className="admin-field-hint">Max 4. {FIELDS_HELP} Länk i texten: [Till kundservice](/support).</p>
+                      <p className="admin-field-hint">Max 4. Länk i texten: [Till kundservice](/support).</p>
+                      <PolicyFieldsHelp settings={site} />
                     </div>
                   )}
                 </li>
@@ -460,6 +472,7 @@ export function HomepageAdminView() {
 
 export function NavigationAdminView() {
   const form = useSettingsForm('navigation');
+  const site = useSiteSettings();
   if (!form.loaded && form.status.kind !== 'error') return <p>Laddar …</p>;
   const nav = form.value;
   const setMenu = (next: MenuLink[]) => form.set('menuLinks', next);
@@ -476,8 +489,8 @@ export function NavigationAdminView() {
       {form.status.kind === 'error' && !form.loaded && <div className="admin-inline-message" role="alert">{form.status.text}</div>}
       <div className="admin-grid home-admin">
         <Panel title="Topprad" subtitle="Korta texter med en bock framför. På mobilen visas bara den första.">
-          <LinkListEditor id="topbar" items={nav.topbar} onChange={(v) => form.set('topbar', v)} max={5} addLabel="＋ Lägg till text" />
-          <p className="admin-field-hint">{FIELDS_HELP}</p>
+          <LinkListEditor id="topbar" items={nav.topbar} onChange={(v) => form.set('topbar', v)} max={5} addLabel="＋ Lägg till text" check={site} />
+          <PolicyFieldsHelp settings={site} />
         </Panel>
         <Panel title="Menylänkar" subtitle="Kategorierna läggs till automatiskt. Här väljer du länkarna före och efter dem.">
           <div className="home-links">

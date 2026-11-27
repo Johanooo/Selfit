@@ -123,8 +123,8 @@ export const defaultHome: HomeSettings = {
   ],
   categoriesTitle: 'Handla efter kategori',
   services: [
-    { icon: 'truck', title: 'Fri frakt', text: 'När du handlar för 499 kr eller mer' },
-    { icon: 'zap', title: 'Snabb leverans', text: 'Beställ före 14, skickas inom {leveranstid}' },
+    { icon: 'truck', title: 'Fri frakt', text: 'När du handlar för {fri frakt} eller mer' },
+    { icon: 'zap', title: 'Snabb leverans', text: 'Beställ före {beställ före}, skickas inom {leveranstid}' },
     { icon: 'rotate', title: '{öppet köp} dagars öppet köp', text: 'På oöppnade varor' },
     { icon: 'chat', title: 'Kundtjänst som svarar', text: '[Till kundservice](/support)' },
   ],
@@ -151,8 +151,8 @@ export const defaultHome: HomeSettings = {
 
 export const defaultNavigation: NavigationSettings = {
   topbar: [
-    { label: 'Fri frakt över 499 kr', href: '/support/frakt-och-leverans' },
-    { label: 'Beställ före 14 – skickas inom {leveranstid}', href: '' },
+    { label: 'Fri frakt över {fri frakt}', href: '/support/frakt-och-leverans' },
+    { label: 'Beställ före {beställ före} – skickas inom {leveranstid}', href: '' },
     { label: '{öppet köp} dagars öppet köp', href: '/support/retur-och-angerratt' },
     { label: 'Kundtjänst som svarar', href: '/support' },
   ],

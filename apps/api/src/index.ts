@@ -21,8 +21,10 @@ import { createDb, defaultDatabaseUrl } from './db/client.ts';
 import { buildStorefrontProducts } from './lib/storefront.ts';
 import { markDatabaseCreated } from './db/meta.ts';
 import { syncReferenceData, syncVatClasses } from './routes/adminProducts.ts';
+import { loadTaxonomy, syncTaxonomy } from './routes/taxonomy.ts';
 import { uploadsDir } from './lib/paths-data.ts';
 import { runMigrations } from './db/migrate.ts';
+import * as s from './db/schema.ts';
 import { isEmpty, seed } from './db/seed.ts';
 import { findDir, here } from './lib/paths.ts';
 
@@ -36,6 +38,8 @@ if (process.env.SEED_IF_EMPTY === 'true' && (await isEmpty(db))) {
 }
 // Nya kategorier och varumärken i koden läggs till i databasen (befintliga rörs inte).
 await syncReferenceData(db);
+// Produkttyper och underkategorier läggs in i databasen och läses in i minnet.
+await syncTaxonomy(db);
 // Momsen ska alltid följa produkttypen (livsmedel, dryck och kosttillskott har lägre moms).
 const vatFixed = await syncVatClasses(db);
 if (vatFixed) console.log(`Moms rättad på ${vatFixed} varianter.`);
@@ -96,9 +100,20 @@ if (webDir) {
   root.get('*', async (c) => {
     if (c.req.path.startsWith('/api/')) return c.notFound();
     const html = c.req.path === '/' ? homeHtml : indexHtml;
-    if (c.req.path.startsWith('/admin')) return c.html(html);
+    // Produkttyper och kategorier (från Admin) skickas med till alla sidor, även Admin.
+    const taxonomyJson = JSON.stringify(await loadTaxonomy(db)).replace(/</g, '\\u003c');
+    const taxonomyTag = `<script id="taxonomy-data" type="application/json">${taxonomyJson}</script>`;
+    if (c.req.path.startsWith('/admin')) return c.html(html.replace('</head>', `${taxonomyTag}\n  </head>`));
     const json = JSON.stringify(await buildStorefrontProducts(db)).replace(/</g, '\\u003c');
-    return c.html(html.replace('</head>', `<script id="catalog-data" type="application/json">${json}</script>\n  </head>`));
+    // Varumärkenas namn och beskrivning från Admin, för varumärkessidorna.
+    const brandRows = await db.select({ slug: s.brands.slug, name: s.brands.name, intro: s.brands.intro }).from(s.brands);
+    const brandJson = JSON.stringify(brandRows).replace(/</g, '\\u003c');
+    return c.html(
+      html.replace(
+        '</head>',
+        `<script id="catalog-data" type="application/json">${json}</script>\n  <script id="brand-data" type="application/json">${brandJson}</script>\n  ${taxonomyTag}\n  </head>`,
+      ),
+    );
   });
 }
 

@@ -64,6 +64,19 @@ export const categories = sqliteTable('categories', {
   image: text('image'),
   imageAlt: text('image_alt'),
   sortOrder: integer('sort_order').notNull().default(0),
+  /** Produkttyp för produkter i huvudkategorin (styr moms och fält). */
+  productType: text('product_type'),
+  hidden: integer('hidden', { mode: 'boolean' }).notNull().default(false),
+});
+
+/** Produkttyper: moms och vilka fält produkterna har. Standardtyperna läggs in när servern startar. */
+export const productTypes = sqliteTable('product_types', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  vatClassId: text('vat_class_id').notNull(),
+  fields: json<Record<string, unknown>>('fields').notNull(),
+  builtIn: integer('built_in', { mode: 'boolean' }).notNull().default(false),
+  sortOrder: integer('sort_order').notNull().default(0),
 });
 
 export const collections = sqliteTable('collections', {

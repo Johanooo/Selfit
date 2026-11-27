@@ -26,6 +26,8 @@ export interface Policies {
   uncollectedFee: number;
   ageLimit: number;
   dispatchDays: string;
+  /** Beställ före detta klockslag (TT:MM) för att paketet ska skickas samma dag. */
+  orderCutoff: string;
   /** Datum då villkoren senast ändrades (ÅÅÅÅ-MM-DD). */
   termsUpdated: string;
 }
@@ -55,6 +57,7 @@ export const defaultPolicies: Policies = {
   uncollectedFee: 149,
   ageLimit: 18,
   dispatchDays: '1–2 vardagar',
+  orderCutoff: '14:00',
   termsUpdated: '2026-11-25',
 };
 

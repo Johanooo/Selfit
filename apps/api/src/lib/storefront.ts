@@ -29,15 +29,6 @@ export interface ProductDisplay {
   sizeGuide?: 'klader' | 'skor';
 }
 
-const KIND: Record<string, Product['kind']> = {
-  dryck: 'dryck',
-  livsmedel: 'livsmedel',
-  kosttillskott: 'kosttillskott',
-  kroppsvard: 'kroppsvard',
-  redskap: 'redskap',
-  klader: 'klader',
-};
-
 type Status = 'draft' | 'published' | 'archived';
 
 /** Alla produkter med given status (butiken visar bara publicerade). */
@@ -119,7 +110,7 @@ export async function buildStorefrontProducts(db: Db, statuses: Status[] = ['pub
       category: d.category ?? base?.category ?? primaryCat ?? '',
       subcategory: d.subcategory ?? base?.subcategory,
       alsoIn: d.alsoIn ?? base?.alsoIn,
-      kind: KIND[f.productType] ?? base?.kind,
+      kind: f.productType || base?.kind,
       sizeGuide: d.sizeGuide ?? base?.sizeGuide,
       warnings: d.warnings ?? base?.warnings,
       collections: cols.filter((c) => c.familyId === f.id).map((c) => c.slug),

@@ -1,3 +1,5 @@
+import { kr } from '@/lib/format';
+import { FREE_SHIPPING_THRESHOLD } from '@/lib/cart-math';
 import { Fragment } from 'react';
 import { Link } from 'wouter';
 import { ArrowRight, ChevronRight, Gift, Heart, MessageCircle, RotateCcw, ShieldCheck, Star, Truck, Zap, type LucideIcon } from 'lucide-react';
@@ -28,7 +30,7 @@ export default function Home() {
   const f = (t: string) => fillFields(t, settings);
   usePageMeta(
     'SELFIT – Träning, hälsa och kroppsvård',
-    `Handla träning, hälsa och kroppsvård hos SELFIT. Tydliga priser, fri frakt över 499 kr och leverans inom ${policies.dispatchDays}. Prova PWO+, vår egen pre-workout.`,
+    `Handla träning, hälsa och kroppsvård hos SELFIT. Tydliga priser, fri frakt över ${kr(FREE_SHIPPING_THRESHOLD)} och leverans inom ${policies.dispatchDays}. Prova PWO+, vår egen pre-workout.`,
   );
   const cats = filledCategories();
   const { hero } = home;

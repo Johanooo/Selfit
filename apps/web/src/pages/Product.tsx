@@ -1,3 +1,4 @@
+import { FREE_SHIPPING_THRESHOLD } from '@/lib/cart-math';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams, useSearch } from 'wouter';
 import { Clock, Info, Plus, Truck, RotateCcw, AlertTriangle, Check, Maximize2, Ruler } from 'lucide-react';
@@ -22,7 +23,7 @@ import { parseBody } from '@/data/support';
 import { isHtml, sanitizeHtml } from '@/lib/richText';
 import { RichText } from '@/components/RichText';
 import { SizeGuideDialog } from '@/components/SizeGuideDialog';
-import { isFood, kindOf, sectionLabels } from '@/lib/productKind';
+import { isFood, kindOf, sectionLabels, typeOf } from '@/lib/productKind';
 import type { SizeGuideKind } from '@/data/types';
 
 /** Obligatorisk text för kosttillskott (LIVSFS 2003:9). */
@@ -119,8 +120,9 @@ function ProductView({ product }: { product: Product }) {
   const kind = kindOf(product);
   const food = isFood(kind);
   const labels = sectionLabels(kind);
+  const ptype = typeOf(product);
   const sizeGuide: SizeGuideKind | undefined =
-    product.sizeGuide ?? (kind === 'klader' ? (/sko/.test(product.subcategory ?? '') ? 'skor' : 'klader') : undefined);
+    product.sizeGuide ?? (ptype?.fields.sizeGuide ? (/sko/.test(product.subcategory ?? '') ? 'skor' : 'klader') : undefined);
   const isSizeOption = (name: string) => /storlek|size/i.test(name);
   /** Värden för ett alternativ i den ordning de först förekommer. */
   const valuesOf = (name: string) => uniq(product.variants.filter((v) => v.offered).map((v) => v.options?.[name]));
@@ -227,7 +229,7 @@ function ProductView({ product }: { product: Product }) {
   const st = stockState(variant);
   const sub = getSubcategory(product.subcategory);
   const warningTexts = [
-    ...(product.kind === 'kosttillskott' ? [SUPPLEMENT_WARNING] : []),
+    ...(typeOf(product)?.fields.supplementWarning ? [SUPPLEMENT_WARNING] : []),
     ...(product.warnings ?? []),
   ];
   const related = itemsForSlugs(product.related.length ? product.related : []);
@@ -505,7 +507,7 @@ function ProductView({ product }: { product: Product }) {
                 <Clock size={16} aria-hidden="true" /> Skickas inom {policies.dispatchDays}
               </li>
               <li>
-                <Truck size={16} aria-hidden="true" /> Fri frakt till ombud över 499 kr
+                <Truck size={16} aria-hidden="true" /> Fri frakt till ombud över {kr(FREE_SHIPPING_THRESHOLD)}
               </li>
               <li>
                 <RotateCcw size={16} aria-hidden="true" /> {policies.openPurchaseDays} dagars öppet köp på oöppnade varor
@@ -551,7 +553,7 @@ function ProductView({ product }: { product: Product }) {
               </div>
               )}
             </details>
-            {product.usage.trim() && (
+            {ptype?.fields.usage !== 'off' && product.usage.trim() && (
               <details className="details-item">
                 <summary>
                   {labels.usage} <Plus size={20} aria-hidden="true" />
@@ -561,7 +563,7 @@ function ProductView({ product }: { product: Product }) {
                 </div>
               </details>
             )}
-            {!food && product.ingredients.trim() && (
+            {!food && ptype?.fields.contents !== 'off' && product.ingredients.trim() && (
               <details className="details-item">
                 <summary>
                   {labels.ingredients} <Plus size={20} aria-hidden="true" />
@@ -584,7 +586,7 @@ function ProductView({ product }: { product: Product }) {
                 </div>
               </details>
             )}
-            {food && (
+            {food && ptype?.fields.contents !== 'off' && (
             <details className="details-item">
               <summary>
                 {labels.ingredients} <Plus size={20} aria-hidden="true" />
@@ -598,7 +600,7 @@ function ProductView({ product }: { product: Product }) {
                       ? 'Allergeninformation saknas i exempeldata. Kontrollera alltid förpackningen.'
                       : 'Innehåller inga av de 14 vanligaste allergenerna.'}
                 </p>
-                {product.nutrition && (
+                {product.nutrition && ptype?.fields.nutrition !== false && (
                   <table className="data-table">
                     <caption className="sr-only">Näringsvärde</caption>
                     <thead>

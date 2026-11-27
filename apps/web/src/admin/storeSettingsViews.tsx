@@ -221,7 +221,7 @@ export function PoliciesSettingsView() {
     <>
       <Heading
         title="Villkor och avgifter"
-        description="Används i köpvillkor, returvillkor, toppraden, produktsidor och kassan. Ändra här så uppdateras alla texter."
+        description="Ändra här så uppdateras alla texter som använder fälten, t.ex. {leveranstid} och {öppet köp}: köpvillkor, returvillkor, topprad, startsida, produktsidor och kassan."
       />
       <div className="admin-grid two">
         <Panel title="Retur och öppet köp">
@@ -266,7 +266,15 @@ export function PoliciesSettingsView() {
               value={p.dispatchDays}
               onChange={(v) => f.set('dispatchDays', v)}
               error={f.errors.dispatchDays}
-              hint="T.ex. 1–2 vardagar. Visas i toppraden och på produktsidor."
+              hint="T.ex. 1–2 vardagar. Fältet {leveranstid}. Visas på produktsidor, i varukorgen och i texter som använder fältet."
+            />
+            <Input
+              id="policies-orderCutoff"
+              label="Beställ före"
+              value={p.orderCutoff}
+              onChange={(v) => f.set('orderCutoff', v)}
+              error={f.errors.orderCutoff}
+              hint="Klockslag, t.ex. 14:00. Fältet {beställ före}."
             />
             <Input
               id="policies-ageLimit"

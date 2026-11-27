@@ -30,6 +30,7 @@ export const settingsSchemas = {
     uncollectedFee: z.number().int().min(0).max(2000),
     ageLimit: z.number().int().min(0).max(25),
     dispatchDays: text(40).min(1, 'Ange leveranstid.'),
+    orderCutoff: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Ange klockslag som TT:MM, t.ex. 14:00.').default('14:00'),
     termsUpdated: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Ange datum som ÅÅÅÅ-MM-DD.'),
   }),
   home: z.object({

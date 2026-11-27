@@ -9,8 +9,9 @@ import { runMigrations } from '../src/db/migrate.ts';
 import { seed } from '../src/db/seed.ts';
 import { markDatabaseCreated } from '../src/db/meta.ts';
 import { syncReferenceData, syncVatClasses } from '../src/routes/adminProducts.ts';
+import { syncTaxonomy } from '../src/routes/taxonomy.ts';
 import * as s from '../src/db/schema.ts';
-import { lowestPrice30Days } from '../src/lib/pricing.ts';
+import { depositRatesOn, lowestPrice30Days, today } from '../src/lib/pricing.ts';
 import { quoteCart } from '../src/routes/cart.ts';
 
 let db: Db;
@@ -23,6 +24,7 @@ beforeAll(async () => {
   await markDatabaseCreated(db);
   await seed(db);
   await syncReferenceData(db);
+  await syncTaxonomy(db);
   app = createApp(db);
 });
 
@@ -351,6 +353,77 @@ describe('Admin: varumärken', () => {
     expect((await send('DELETE', '/admin/brands/br_nike')).status).toBe(409);
     const list = (await get('/admin/brands')).body;
     expect(list.find((b: any) => b.id === 'br_nike').products).toBe(1);
+  });
+});
+
+describe('produkttyper och kategorier', () => {
+  const send = (method: string, path: string, body?: unknown) =>
+    app.request(`/api${path}`, { method, headers: { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+  const fields = { usage: 'usage', contents: 'ingredients', allergens: false, nutrition: false, warnings: true, sizeGuide: false, deposit: false, supplementWarning: false };
+
+  it('har standardtyperna och underkategorierna i databasen', async () => {
+    const t = (await get('/admin/taxonomy')).body;
+    expect(t.productTypes.map((x: any) => x.id)).toEqual(expect.arrayContaining(['kosttillskott', 'klader', 'redskap']));
+    expect(t.categories.find((c: any) => c.slug === 'traningsklader').productType).toBe('klader');
+    expect(t.subcategories.some((sc: any) => sc.slug === 'kreatin' && sc.parent === 'kosttillskott')).toBe(true);
+  });
+
+  it('skapar en ny produkttyp med normalmoms och en kategori som använder den', async () => {
+    const res = await send('POST', '/admin/product-types', { name: 'Receptfria läkemedel', vat: 'vat-standard', fields });
+    expect(res.status).toBe(200);
+    const { id } = (await res.json()) as any;
+    expect(id).toBe('receptfria-lakemedel');
+    const cat = await send('POST', '/admin/categories', { name: 'Apotek', productType: id });
+    expect(cat.status).toBe(200);
+    const sub = await send('POST', '/admin/categories', { name: 'Värk och feber', parent: 'apotek' });
+    expect(sub.status).toBe(200);
+    const prod = await send('POST', '/admin/products', { name: 'Testtablett', brandId: 'br_selfit', productType: id, subcategory: 'vark-och-feber', variants: [{ price: 49, stock: 5 }] });
+    expect(prod.status).toBe(200);
+    const pid = ((await prod.json()) as any).id;
+    const [v] = await db.select().from(s.variants).where(eq(s.variants.familyId, pid));
+    expect(v.vatClassId).toBe('vat-standard');
+    // Används typen går den inte att ta bort.
+    expect((await send('DELETE', `/admin/product-types/${id}`)).status).toBe(409);
+    // Kategorin med produkter går inte att ta bort.
+    expect((await send('DELETE', '/admin/categories/vark-och-feber')).status).toBe(409);
+  });
+
+  it('nekar att ta bort en standardtyp och kräver typ på huvudkategorier', async () => {
+    expect((await send('DELETE', '/admin/product-types/klader')).status).toBe(409);
+    expect((await send('POST', '/admin/categories', { name: 'Utan typ' })).status).toBe(400);
+  });
+
+  it('kan dölja en kategori', async () => {
+    const t = (await get('/admin/taxonomy')).body;
+    const cat = t.categories.find((c: any) => c.slug === 'halsokost');
+    expect((await send('PUT', '/admin/categories/halsokost', { ...cat, parent: null, hidden: true })).status).toBe(200);
+    expect((await get('/taxonomy')).body.categories.find((c: any) => c.slug === 'halsokost').hidden).toBe(true);
+    await send('PUT', '/admin/categories/halsokost', { ...cat, parent: null, hidden: false });
+  });
+});
+
+describe('moms och pant i admin', () => {
+  const send = (method: string, path: string, body?: unknown) =>
+    app.request(`/api${path}`, { method, headers: { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+
+  it('visar momssatser med datum och 6 % på livsmedel idag', async () => {
+    const tax = (await get('/admin/tax')).body;
+    const food = tax.vat.find((v: any) => v.id === 'vat-food');
+    const now = food.rates.find((r: any) => r.validFrom <= tax.today && (!r.validTo || r.validTo >= tax.today));
+    expect(now.rateBp).toBe(600);
+  });
+
+  it('ändrar pant från ett framtida datum och behåller dagens belopp till dess', async () => {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() + 10);
+    const from = d.toISOString().slice(0, 10);
+    expect((await send('POST', '/admin/deposits/pant-burk/rates', { amount: 2, validFrom: from })).status).toBe(200);
+    expect((await depositRatesOn(db, today())).get('pant-burk')).toBe(100);
+    expect((await depositRatesOn(db, from)).get('pant-burk')).toBe(200);
+  });
+
+  it('nekar ett datum bakåt i tiden', async () => {
+    expect((await send('POST', '/admin/deposits/pant-burk/rates', { amount: 3, validFrom: '2020-01-01' })).status).toBe(400);
   });
 });
 

@@ -14,6 +14,8 @@ import './index.css';
 import './styles/storefront.css';
 
 import { replaceProducts } from '@/data/products';
+import { replaceBrands, replaceCategories } from '@/data/categories';
+import { replaceProductTypes } from '@/data/productTypes';
 
 /**
  * Efter en ny publicering har sidans delar nya filnamn. En flik som var öppen sedan innan
@@ -45,6 +47,54 @@ import type { Product } from '@/data/types';
  * Under utveckling (Vite) hämtas de i stället från /api/storefront/products.
  * Svarar inte servern visas produkterna från kodfilerna.
  */
+/** Produkttyper och kategorier från Admin. Inbäddade i sidan av servern, annars hämtade (under utveckling). */
+async function loadTaxonomy() {
+  const apply = (d: { productTypes?: unknown; categories?: unknown; subcategories?: unknown }) => {
+    if (Array.isArray(d.productTypes)) replaceProductTypes(d.productTypes);
+    if (Array.isArray(d.categories) && Array.isArray(d.subcategories)) replaceCategories(d.categories, d.subcategories);
+  };
+  const inline = document.getElementById('taxonomy-data');
+  if (inline?.textContent) {
+    try {
+      apply(JSON.parse(inline.textContent));
+      return;
+    } catch {
+      /* faller tillbaka till hämtning */
+    }
+  }
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2500);
+    const res = await fetch(`${import.meta.env.BASE_URL.replace(/\/$/, '')}/api/taxonomy`, { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (res.ok) apply(await res.json());
+  } catch {
+    /* servern svarar inte – använd listorna från kodfilerna */
+  }
+}
+
+/** Varumärkenas namn och beskrivning från Admin. Hämtas samtidigt som produkterna och stoppar aldrig sidan. */
+async function loadBrands() {
+  const inline = document.getElementById('brand-data');
+  if (inline?.textContent) {
+    try {
+      replaceBrands(JSON.parse(inline.textContent));
+      return;
+    } catch {
+      /* faller tillbaka till hämtning */
+    }
+  }
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2500);
+    const res = await fetch(`${import.meta.env.BASE_URL.replace(/\/$/, '')}/api/brands`, { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (res.ok) replaceBrands(await res.json());
+  } catch {
+    /* servern svarar inte – använd varumärkena från kodfilerna */
+  }
+}
+
 async function loadCatalog() {
   const inline = document.getElementById('catalog-data');
   if (inline?.textContent) {
@@ -67,7 +117,7 @@ async function loadCatalog() {
   }
 }
 
-void loadCatalog().then(render);
+void Promise.all([loadTaxonomy(), loadCatalog(), location.pathname.includes('/admin') ? Promise.resolve() : loadBrands()]).then(render);
 
 function render() {
 createRoot(document.getElementById('root')!, {

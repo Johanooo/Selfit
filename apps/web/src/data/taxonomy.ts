@@ -17,12 +17,12 @@ export function productsIn(slug: string): Product[] {
 }
 
 export const visibleCategories = () =>
-  categories.filter((c) => SHOW_EMPTY_CATEGORIES || productsIn(c.slug).length > 0);
+  categories.filter((c) => !c.hidden && (SHOW_EMPTY_CATEGORIES || productsIn(c.slug).length > 0));
 
 export const visibleSubcategoriesOf = (parent: string) =>
-  subcategoriesOf(parent).filter((sc) => SHOW_EMPTY_CATEGORIES || productsIn(sc.slug).length > 0);
+  subcategoriesOf(parent).filter((sc) => !sc.hidden && (SHOW_EMPTY_CATEGORIES || productsIn(sc.slug).length > 0));
 
 /** Kategorier som faktiskt har produkter, t.ex. för rutorna på startsidan. */
-export const filledCategories = () => categories.filter((c) => productsIn(c.slug).length > 0);
+export const filledCategories = () => categories.filter((c) => !c.hidden && productsIn(c.slug).length > 0);
 export const filledSubcategoriesOf = (parent: string) =>
   subcategoriesOf(parent).filter((sc) => productsIn(sc.slug).length > 0);
