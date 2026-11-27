@@ -354,6 +354,35 @@ describe('Admin: varumärken', () => {
   });
 });
 
+describe('startsida och topprad', () => {
+  const send = (method: string, path: string, body?: unknown) =>
+    app.request(`/api${path}`, { method, headers: { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+
+  it('ger standardinnehåll när inget är sparat', async () => {
+    const s0 = (await get('/settings')).body;
+    expect(s0.home.hero.title).toBeTruthy();
+    expect(s0.navigation.topbar.length).toBeGreaterThan(0);
+  });
+
+  it('sparar startsidan och nekar en produktrad utan källa', async () => {
+    const current = (await get('/settings')).body.home;
+    const next = { ...current, hero: { ...current.hero, title: 'Ny rubrik' }, rows: [...current.rows, { id: 'row-x', title: 'Drycker', source: 'category:drycker', limit: 8, moreLabel: 'Se alla', moreHref: '/kategori/drycker', visible: true }], sections: [...current.sections, { kind: 'row', id: 'row-x' }] };
+    const ok = await send('PUT', '/admin/settings/home', next);
+    expect(ok.status).toBe(200);
+    const saved = (await get('/settings')).body.home;
+    expect(saved.hero.title).toBe('Ny rubrik');
+    expect(saved.rows.find((r: any) => r.id === 'row-x').source).toBe('category:drycker');
+    const bad = await send('PUT', '/admin/settings/home', { ...next, rows: [{ ...next.rows[0], source: 'hackat' }] });
+    expect(bad.status).toBe(400);
+  });
+
+  it('sparar topprad och menylänkar', async () => {
+    const nav = { topbar: [{ label: 'Fri frakt', href: '' }], menuLinks: [{ label: 'Rea', href: '/kollektion/kampanjer', position: 'before', highlight: true }] };
+    expect((await send('PUT', '/admin/settings/navigation', nav)).status).toBe(200);
+    expect((await get('/settings')).body.navigation).toEqual(nav);
+  });
+});
+
 describe('vanliga frågor', () => {
   const send = (method: string, path: string, body?: unknown) =>
     app.request(`/api${path}`, { method, headers: { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });

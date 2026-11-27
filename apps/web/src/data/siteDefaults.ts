@@ -3,6 +3,8 @@
  * De riktiga värdena ändras i Admin (Inställningar) och sparas i databasen.
  * Den här filen används bara när databasen saknar ett värde, och delas av butiken och servern.
  */
+import { defaultHome, defaultNavigation, type HomeSettings, type NavigationSettings } from './homeDefaults';
+
 export interface CompanyInfo {
   brand: string;
   legalName: string;
@@ -31,6 +33,8 @@ export interface Policies {
 export interface SiteSettings {
   company: CompanyInfo;
   policies: Policies;
+  home: HomeSettings;
+  navigation: NavigationSettings;
 }
 
 export const defaultCompany: CompanyInfo = {
@@ -54,7 +58,7 @@ export const defaultPolicies: Policies = {
   termsUpdated: '2026-11-25',
 };
 
-export const defaultSettings: SiteSettings = { company: defaultCompany, policies: defaultPolicies };
+export const defaultSettings: SiteSettings = { company: defaultCompany, policies: defaultPolicies, home: defaultHome, navigation: defaultNavigation };
 
 /** Är värdet fortfarande en platshållare som behöver fyllas i? */
 export const isPlaceholder = (v: string) => v.trim() === '' || v.startsWith('[FYLL');

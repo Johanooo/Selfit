@@ -8,9 +8,12 @@ import { useCart } from '@/state/cart';
 import { useCartDrawer } from '@/state/cartDrawer';
 import { useSettings } from '@/state/settings';
 import { visibleCategories, visibleSubcategoriesOf } from '@/data/taxonomy';
+import { fillFields } from '@/data/support';
 
 export function Header() {
-  const { policies } = useSettings();
+  const settings = useSettings();
+  const { navigation } = settings;
+  const f = (t: string) => fillFields(t, settings);
   const [location, navigate] = useLocation();
   const search = useSearch();
   const { count, ready } = useCart();
@@ -55,24 +58,18 @@ export function Header() {
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   };
 
-  const isActive = (href: string) => location === href || location.startsWith(`${href}/`);
+  const isActive = (href: string) => Boolean(href) && (location === href || location.startsWith(`${href}/`));
 
   return (
     <>
       <div className="usp-bar">
         <ul className="container" aria-label="Fördelar">
-          <li>
-            <Check size={14} aria-hidden="true" /> Fri frakt över 499 kr
-          </li>
-          <li>
-            <Check size={14} aria-hidden="true" /> Beställ före 14 – skickas inom {policies.dispatchDays}
-          </li>
-          <li>
-            <Check size={14} aria-hidden="true" /> {policies.openPurchaseDays} dagars öppet köp
-          </li>
-          <li>
-            <Check size={14} aria-hidden="true" /> Kundtjänst som svarar
-          </li>
+          {navigation.topbar.map((t, i) => (
+            <li key={i}>
+              <Check size={14} aria-hidden="true" />{' '}
+              {t.href ? <Link href={t.href}>{f(t.label)}</Link> : f(t.label)}
+            </li>
+          ))}
         </ul>
       </div>
       <header className="site-header">
@@ -169,11 +166,15 @@ export function Header() {
         </div>
         <nav className="main-nav" aria-label="Kategorier">
           <ul className="container main-nav-list">
-            <li>
-              <Link href="/kollektion/kampanjer" className="main-nav-link main-nav-link--sale" aria-current={isActive('/kollektion/kampanjer') ? 'page' : undefined}>
-                Kampanjer
-              </Link>
-            </li>
+            {navigation.menuLinks
+              .filter((l) => l.position === 'before')
+              .map((l, i) => (
+                <li key={`b${i}`}>
+                  <Link href={l.href || '/'} className={`main-nav-link${l.highlight ? ' main-nav-link--sale' : ''}`} aria-current={isActive(l.href) ? 'page' : undefined}>
+                    {f(l.label)}
+                  </Link>
+                </li>
+              ))}
             {visibleCategories().map((c) => {
               const subs = visibleSubcategoriesOf(c.slug);
               const href = `/kategori/${c.slug}`;
@@ -210,16 +211,15 @@ export function Header() {
                 </li>
               );
             })}
-            <li>
-              <Link href="/kollektion/nyheter" className="main-nav-link" aria-current={isActive('/kollektion/nyheter') ? 'page' : undefined}>
-                Nyheter
-              </Link>
-            </li>
-            <li>
-              <Link href="/kollektion/pwo-plus" className="main-nav-link" aria-current={isActive('/kollektion/pwo-plus') ? 'page' : undefined}>
-                PWO+
-              </Link>
-            </li>
+            {navigation.menuLinks
+              .filter((l) => l.position === 'after')
+              .map((l, i) => (
+                <li key={`a${i}`}>
+                  <Link href={l.href || '/'} className={`main-nav-link${l.highlight ? ' main-nav-link--sale' : ''}`} aria-current={isActive(l.href) ? 'page' : undefined}>
+                    {f(l.label)}
+                  </Link>
+                </li>
+              ))}
           </ul>
         </nav>
       </header>

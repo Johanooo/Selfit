@@ -99,7 +99,7 @@ function Input({
 type Status = { kind: 'idle' | 'saving' | 'saved' | 'error'; text?: string };
 
 /** Läser inställningarna från servern och sparar en del (company eller policies). */
-function useSettingsForm<K extends keyof SiteSettings>(key: K) {
+export function useSettingsForm<K extends keyof SiteSettings>(key: K) {
   const [value, setValue] = useState<SiteSettings[K]>(defaultSettings[key]);
   const [saved, setSaved] = useState<SiteSettings[K]>(defaultSettings[key]);
   const [loaded, setLoaded] = useState(false);
@@ -110,8 +110,8 @@ function useSettingsForm<K extends keyof SiteSettings>(key: K) {
     fetch(api('/settings'))
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((data: SiteSettings) => {
-        setValue(data[key]);
-        setSaved(data[key]);
+        setValue(data[key] ?? defaultSettings[key]);
+        setSaved(data[key] ?? defaultSettings[key]);
         setLoaded(true);
       })
       .catch(() => setStatus({ kind: 'error', text: 'Kunde inte hämta inställningarna. Kontrollera att servern är igång.' }));
@@ -150,7 +150,7 @@ function useSettingsForm<K extends keyof SiteSettings>(key: K) {
   return { value, set, save, dirty, loaded, errors, status, reset: () => setValue(saved) };
 }
 
-function SaveBar({ dirty, status, onSave, onReset }: { dirty: boolean; status: Status; onSave: () => void; onReset: () => void }) {
+export function SaveBar({ dirty, status, onSave, onReset }: { dirty: boolean; status: Status; onSave: () => void; onReset: () => void }) {
   return (
     <div className="admin-savebar">
       <p role="status" className={`admin-savebar-msg ${status.kind}`}>

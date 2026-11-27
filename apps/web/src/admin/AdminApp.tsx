@@ -37,6 +37,7 @@ import { StockView, PurchasingView, BatchView, TransfersView, CountsView } from 
 import { CompanySettingsView, ComingSoonView, PoliciesSettingsView } from './storeSettingsViews';
 import { PageEditorView, PagesListView } from './pagesViews';
 import { FaqAdminView } from './faqView';
+import { HomepageAdminView, NavigationAdminView } from './homeAdminView';
 import { AuditLogView } from './auditLogView';
 import { ProductFormView, ProductsListView } from './productAdminViews';
 import { MediaLibraryPage } from './mediaViews';
@@ -604,8 +605,8 @@ function AdminWorkspace() {
   else if (route === '/admin/innehall/sidor') page = <PagesListView go={go} />;
   else if (route.startsWith('/admin/innehall/sidor/')) page = <PageEditorView key={route} slug={route.split('/').pop() ?? ''} go={go} onTitleChange={(value) => setDetailTitles((titles) => titles[route] === value ? titles : { ...titles, [route]: value })} />;
   else if (route === '/admin/innehall/fragor') page = <FaqAdminView />;
-  else if (route === '/admin/innehall/startsida') page = <ComingSoonView group="Innehåll" title="Startsida" items={['Rubrik, text och bild högst upp', 'Välja vilka produkter, kampanjer och kategorier som visas']} />;
-  else if (route === '/admin/innehall/topprad') page = <ComingSoonView group="Innehåll" title="Topprad och meny" items={['Texterna i den lila raden högst upp', 'Snabblänkarna överst i menyn (Populärt)']} />;
+  else if (route === '/admin/innehall/startsida') page = <HomepageAdminView />;
+  else if (route === '/admin/innehall/topprad') page = <NavigationAdminView />;
   else if (route === '/admin/installningar' || settingsSection) page = <Settings section={settingsSection?.[1]} notify={notify} go={go} />;
   else page = <Dashboard go={go} notice={notice} setNotice={notify} />;
   const detailLabel = ({ '/admin/order/ny': 'Ny manuell order', '/admin/inkop/ny': 'Ny inköpsorder', '/admin/flyttar/ny': 'Ny lagerflytt', '/admin/inventering/ny': 'Starta inventering' } as Record<string, string>)[route] ?? detailTitles[route]

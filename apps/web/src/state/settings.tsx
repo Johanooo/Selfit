@@ -23,7 +23,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     fetch(`${base}/settings`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data: SiteSettings | null) => {
-        if (!cancelled && data?.company && data?.policies) setSettings(data);
+        if (!cancelled && data?.company && data?.policies) setSettings({ ...defaultSettings, ...data });
       })
       .catch(() => undefined);
     fetch(`${base}/pages`)

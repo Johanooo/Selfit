@@ -433,3 +433,36 @@
 .admin-root .faq-admin-preview details { border-bottom: 1px solid #e6e6e6; padding: 10px 0; }
 .admin-root .faq-admin-preview summary { font-weight: 600; cursor: pointer; }
 .admin-root .faq-admin-preview details p { margin-top: 6px; color: #444; }
+
+/* Startsida och topprad */
+.admin-root .home-admin { gap: var(--space-4); padding-bottom: 80px; }
+.admin-root .home-hero-editor { display: grid; gap: var(--space-3); margin-bottom: var(--space-4); }
+.admin-root .home-hero-preview { position: relative; aspect-ratio: 16 / 6; border-radius: 8px; background-size: cover; background-position: center 35%; display: flex; align-items: center; padding: 20px 24px; color: #fff; overflow: hidden; }
+.admin-root .home-hero-preview::before { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgb(0 0 0 / 0.7), rgb(0 0 0 / 0.1)); }
+.admin-root .home-hero-preview > div { position: relative; display: grid; gap: 6px; }
+.admin-root .home-hero-preview strong { display: grid; font-size: 22px; line-height: 1.05; text-transform: uppercase; font-weight: 800; }
+.admin-root .home-hero-tag { justify-self: start; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; background: #111; padding: 3px 6px; }
+.admin-root .home-links { display: grid; gap: var(--space-2); justify-items: start; }
+.admin-root .home-link-row { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto; gap: var(--space-2); align-items: center; }
+.admin-root .home-link-row--menu { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) 170px auto auto; }
+.admin-root .home-blocks { list-style: none; margin: 0 0 var(--space-3); padding: 0; display: grid; gap: var(--space-2); }
+.admin-root .home-block { border: 1px solid #e3e3e3; border-radius: 8px; background: #fff; }
+.admin-root .home-block.is-open { box-shadow: 0 0 0 1px #111; border-color: #111; }
+.admin-root .home-block.is-hidden .home-block-name { color: #8a8a8a; }
+.admin-root .home-block-row { display: flex; align-items: center; gap: var(--space-3); padding: 10px 12px; }
+.admin-root .home-block-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; border: none; background: none; padding: 0; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.admin-root .home-block-kind { flex: none; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #777; width: 84px; }
+.admin-root .home-block-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-root .home-block-body { padding: 0 12px 14px; }
+.admin-root .home-services { display: grid; gap: var(--space-2); }
+.admin-root .home-service { display: grid; grid-template-columns: 190px minmax(0, 1fr) minmax(0, 1.4fr) auto; gap: var(--space-2); align-items: center; }
+.admin-root .home-add-block { display: flex; gap: var(--space-2); align-items: center; max-width: 420px; }
+.admin-root .home-reset { display: flex; gap: var(--space-3); align-items: center; }
+@media (max-width: 900px) {
+  .admin-root .home-link-row, .admin-root .home-link-row--menu, .admin-root .home-service { grid-template-columns: 1fr; }
+}
+.admin-root .home-admin .admin-field { align-content: start; }
+.admin-root .home-hero-preview { max-height: 240px; aspect-ratio: auto; height: 240px; }
+.admin-root .ig-admin-grid { list-style: none; margin: var(--space-3) 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-3); }
+.admin-root .ig-admin-grid li { display: grid; gap: 6px; }
+.admin-root .ig-admin-grid img { width: 100%; aspect-ratio: 9 / 13; object-fit: cover; border-radius: 10px; background: #eee; }
