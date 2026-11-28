@@ -19,6 +19,7 @@ import * as s from '../db/schema.ts';
 import { logChange } from '../lib/audit.ts';
 import { familyTargets, publicCampaigns } from '../lib/campaigns.ts';
 import { currentPrices, today } from '../lib/pricing.ts';
+import { moveToTrash } from '../lib/trash.ts';
 
 const dateRe = /^\d{4}-\d{2}-\d{2}$/;
 const slugRe = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -305,8 +306,9 @@ export function campaignRoutes(db: Db) {
     const [row] = await db.select().from(s.campaigns).where(eq(s.campaigns.id, c.req.param('id')));
     if (!row) return c.json({ error: 'Kampanjen finns inte.' }, 404);
     if (row.enabled && row.startsOn < today()) return c.json({ error: 'Kampanjen har redan visats i butiken och finns i prishistoriken. Den kan inte tas bort.' }, 409);
+    await moveToTrash(db, { kind: 'campaign', objectId: row.id, label: row.title, detail: describeCampaign(row), parts: [['campaigns', [row]]] });
     await db.delete(s.campaigns).where(eq(s.campaigns.id, row.id));
-    await logChange(db, { action: 'Kampanj borttagen', object: `Kampanj: ${row.title}` });
+    await logChange(db, { action: 'Kampanj borttagen', object: `Kampanj: ${row.title}`, details: [{ field: 'Till', from: '', to: 'Papperskorgen' }] });
     return c.json({ ok: true });
   });
 

@@ -17,6 +17,7 @@ import type { Category, Subcategory, Tone } from '../../../web/src/data/types.ts
 import type { Db } from '../db/client.ts';
 import * as s from '../db/schema.ts';
 import { logChange } from '../lib/audit.ts';
+import { moveToTrash } from '../lib/trash.ts';
 
 export interface TaxonomyPayload {
   productTypes: ProductTypeDef[];
@@ -189,8 +190,9 @@ export function taxonomyRoutes(db: Db, onChange: () => Promise<unknown> = async 
     if (byType.get(id)) return c.json({ error: `Typen används av ${byType.get(id)} produkter. Byt typ på dem först.` }, 409);
     const cats = await db.select({ name: s.categories.name }).from(s.categories).where(eq(s.categories.productType, id));
     if (cats.length) return c.json({ error: `Typen används av kategorin ${cats.map((x) => x.name).join(', ')}. Byt typ där först.` }, 409);
+    await moveToTrash(db, { kind: 'productType', objectId: id, label: row.name, parts: [['productTypes', [row]]] });
     await db.delete(s.productTypes).where(eq(s.productTypes.id, id));
-    await logChange(db, { action: 'Produkttyp borttagen', object: `Produkttyp: ${row.name}` });
+    await logChange(db, { action: 'Produkttyp borttagen', object: `Produkttyp: ${row.name}`, details: [{ field: 'Till', from: '', to: 'Papperskorgen' }] });
     await changed();
     return c.json({ ok: true });
   });
@@ -285,9 +287,11 @@ export function taxonomyRoutes(db: Db, onChange: () => Promise<unknown> = async 
     if (children.length) return c.json({ error: 'Ta bort eller flytta underkategorierna först.' }, 409);
     const { byCat } = await usage(db);
     if (byCat.get(slug)) return c.json({ error: `Kategorin har ${byCat.get(slug)} produkter. Flytta dem först, eller dölj kategorin.` }, 409);
+    const links = await db.select().from(s.productCategories).where(eq(s.productCategories.categoryId, row.id));
+    await moveToTrash(db, { kind: 'category', objectId: row.id, label: row.name, detail: row.parentId ? 'Underkategori' : 'Huvudkategori', parts: [['categories', [row]], ['productCategories', links]] });
     await db.delete(s.productCategories).where(eq(s.productCategories.categoryId, row.id));
     await db.delete(s.categories).where(eq(s.categories.id, row.id));
-    await logChange(db, { action: 'Kategori borttagen', object: `Kategori: ${row.name}` });
+    await logChange(db, { action: 'Kategori borttagen', object: `Kategori: ${row.name}`, details: [{ field: 'Till', from: '', to: 'Papperskorgen' }] });
     await changed();
     return c.json({ ok: true });
   });

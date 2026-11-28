@@ -85,7 +85,7 @@ export function TaxSettingsView() {
     setConfirmDelete(null);
     try {
       await send('DELETE', `/admin/deposits/${id}`);
-      setMsg({ kind: 'saved', text: `${name} är borttagen.` });
+      setMsg({ kind: 'saved', text: `${name} är flyttad till papperskorgen.` });
       load();
     } catch (e) {
       setMsg({ kind: 'error', text: (e as Error).message });
@@ -232,7 +232,7 @@ export function TaxSettingsView() {
                     title={d.products ? 'Byt pant på produkterna först' : undefined}
                     data-testid={`button-delete-deposit-${d.id}`}
                   >
-                    {confirmDelete === d.id ? 'Klicka igen' : 'Ta bort'}
+                    {confirmDelete === d.id ? 'Klicka igen för att flytta till papperskorgen' : 'Ta bort'}
                   </button>
                 </div>
               )}

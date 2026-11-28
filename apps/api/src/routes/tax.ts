@@ -10,6 +10,7 @@ import type { Db } from '../db/client.ts';
 import * as s from '../db/schema.ts';
 import { logChange } from '../lib/audit.ts';
 import { today } from '../lib/pricing.ts';
+import { moveToTrash } from '../lib/trash.ts';
 
 const dayBefore = (iso: string) => {
   const d = new Date(`${iso}T12:00:00Z`);
@@ -107,6 +108,8 @@ export function taxRoutes(db: Db) {
     const n = (await usageByClass(db)).get(id) ?? 0;
     if (n) return c.json({ error: `${n} ${n === 1 ? 'produkt använder' : 'produkter använder'} den här panten. Byt pant på ${n === 1 ? 'den' : 'dem'} först.` }, 409);
     await db.transaction(async (tx) => {
+      const rates = await tx.select().from(s.depositRates).where(eq(s.depositRates.depositClassId, id));
+      await moveToTrash(tx as unknown as Db, { kind: 'deposit', objectId: id, label: cls.name, parts: [['depositClasses', [cls]], ['depositRates', rates]] });
       await tx.delete(s.depositRates).where(eq(s.depositRates.depositClassId, id));
       await tx.delete(s.depositClasses).where(eq(s.depositClasses.id, id));
     });

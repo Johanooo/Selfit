@@ -198,7 +198,7 @@ export function ProductTypesAdminView({ go }: { go: (path: string) => void }) {
     if (confirmDelete !== t.id) return setConfirmDelete(t.id);
     try {
       await call('DELETE', `/admin/product-types/${t.id}`);
-      setMsg({ kind: 'ok', text: `${t.name} borttagen.` });
+      setMsg({ kind: 'ok', text: `${t.name} flyttad till papperskorgen.` });
       await reload();
     } catch (e) {
       setMsg({ kind: 'error', text: (e as Error).message });
@@ -261,7 +261,7 @@ export function ProductTypesAdminView({ go }: { go: (path: string) => void }) {
                 </button>
                 {!t.builtIn && (
                   <button type="button" className="admin-btn small danger" onClick={() => remove(t)} data-testid={`button-delete-type-${t.id}`}>
-                    {confirmDelete === t.id ? 'Klicka igen' : 'Ta bort'}
+                    {confirmDelete === t.id ? 'Klicka igen för att flytta till papperskorgen' : 'Ta bort'}
                   </button>
                 )}
               </div>
@@ -415,7 +415,7 @@ export function CategoriesAdminView({ go }: { go: (path: string) => void }) {
   };
   const remove = (slug: string, name: string) => {
     if (confirmDelete !== slug) return setConfirmDelete(slug);
-    run(() => call('DELETE', `/admin/categories/${slug}`), `${name} borttagen.`);
+    run(() => call('DELETE', `/admin/categories/${slug}`), `${name} flyttad till papperskorgen. Du kan lägga tillbaka den under Rapporter → Papperskorg.`);
   };
   const formFor = (c?: CatRow | SubRow, parent: string | null = null): CatForm => ({
     name: c?.name ?? '',
@@ -485,7 +485,7 @@ export function CategoriesAdminView({ go }: { go: (path: string) => void }) {
                     Ändra
                   </button>
                   <button type="button" className="admin-btn small danger" onClick={() => remove(c.slug, c.name)}>
-                    {confirmDelete === c.slug ? 'Klicka igen' : '✕'}
+                    {confirmDelete === c.slug ? 'Klicka igen för att flytta till papperskorgen' : '✕'}
                   </button>
                 </div>
               </div>
@@ -516,7 +516,7 @@ export function CategoriesAdminView({ go }: { go: (path: string) => void }) {
                               Ändra
                             </button>
                             <button type="button" className="admin-btn small danger" onClick={() => remove(sc.slug, sc.name)}>
-                              {confirmDelete === sc.slug ? 'Klicka igen' : '✕'}
+                              {confirmDelete === sc.slug ? 'Klicka igen för att flytta till papperskorgen' : '✕'}
                             </button>
                           </div>
                         </div>

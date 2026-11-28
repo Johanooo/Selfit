@@ -614,7 +614,7 @@ function CampaignForm({ id, go, onTitleChange }: { id: string; go: (path: string
                 <p className="pf-help">Kampanjen finns i prishistoriken och kan inte tas bort.</p>
               ) : (
                 <button type="button" className={`pf-link danger${confirm === 'delete' ? ' confirm' : ''}`} onClick={remove} data-testid="button-delete-campaign">
-                  {confirm === 'delete' ? 'Klicka igen för att ta bort för gott' : 'Ta bort kampanjen'}
+                  {confirm === 'delete' ? 'Klicka igen för att flytta till papperskorgen' : 'Ta bort kampanjen'}
                 </button>
               )}
             </Card>

@@ -362,7 +362,7 @@ export function MediaLibraryPage() {
                 )}
                 {active.id && (
                   <button type="button" className={`admin-btn ${confirmDelete ? 'danger' : ''}`} onClick={remove} data-testid="button-media-delete">
-                    {confirmDelete ? 'Klicka igen för att ta bort' : 'Ta bort'}
+                    {confirmDelete ? 'Klicka igen för att flytta till papperskorgen' : 'Ta bort'}
                   </button>
                 )}
                 <button type="button" className="admin-btn" onClick={() => setActive(null)}>

@@ -3,7 +3,7 @@
  * och ladda upp bilder. Allt som ändras skrivs i ändringsloggen.
  */
 import { randomBytes } from 'node:crypto';
-import { and, asc, eq, inArray, ne } from 'drizzle-orm';
+import { and, asc, eq, inArray, ne, or } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { brands as codeBrands, categories as codeCategories, getSubcategory } from '../../../web/src/data/categories.ts';
@@ -15,6 +15,7 @@ import { logChange } from '../lib/audit.ts';
 import { availableStock, currentPrices, today } from '../lib/pricing.ts';
 import type { ProductDisplay } from '../lib/storefront.ts';
 import { saveUpload } from './media.ts';
+import { moveToTrash, type TrashTable } from '../lib/trash.ts';
 
 /**
  * Momsen följer alltid produkttypen. Typen anger om den har livsmedelsmoms (satsen och datumen
@@ -328,6 +329,27 @@ async function writeProduct(db: Db, input: ProductInput, existingId?: string) {
   return { id, slug };
 }
 
+/** Kopia av allt som hör till produkten, för papperskorgen (förälder först). */
+async function productSnapshot(db: Db, id: string): Promise<[TrashTable, Record<string, unknown>[]][]> {
+  const vars = await db.select().from(s.variants).where(eq(s.variants.familyId, id));
+  const ids = vars.map((v) => v.id);
+  const byVariant = async <T extends typeof s.prices | typeof s.purchaseCosts | typeof s.stockLevels | typeof s.stockLedger | typeof s.batches | typeof s.warehouseItemRefs>(t: T) =>
+    ids.length ? ((await db.select().from(t as typeof s.prices).where(inArray((t as typeof s.prices).variantId, ids))) as Record<string, unknown>[]) : [];
+  return [
+    ['productFamilies', await db.select().from(s.productFamilies).where(eq(s.productFamilies.id, id))],
+    ['variants', vars],
+    ['prices', await byVariant(s.prices)],
+    ['purchaseCosts', await byVariant(s.purchaseCosts)],
+    ['stockLevels', await byVariant(s.stockLevels)],
+    ['stockLedger', await byVariant(s.stockLedger)],
+    ['batches', await byVariant(s.batches)],
+    ['warehouseItemRefs', await byVariant(s.warehouseItemRefs)],
+    ['productCategories', await db.select().from(s.productCategories).where(eq(s.productCategories.familyId, id))],
+    ['productCollections', await db.select().from(s.productCollections).where(eq(s.productCollections.familyId, id))],
+    ['productRelations', await db.select().from(s.productRelations).where(or(eq(s.productRelations.familyId, id), eq(s.productRelations.relatedFamilyId, id)))],
+  ];
+}
+
 async function deleteProduct(db: Db, id: string) {
   const vars = await db.select({ id: s.variants.id }).from(s.variants).where(eq(s.variants.familyId, id));
   const ids = vars.map((v) => v.id);
@@ -497,8 +519,14 @@ export function adminProductRoutes(db: Db) {
     if (!p) return c.json({ error: 'Produkten finns inte.' }, 404);
     if (p.status === 'published') return c.json({ error: 'Avpublicera eller arkivera produkten innan du tar bort den.' }, 409);
     if (p.hasOrders) return c.json({ error: 'Produkten finns på ordrar och kan inte tas bort. Arkivera den i stället.' }, 409);
-    await db.transaction(async (tx) => deleteProduct(tx as unknown as Db, p.id));
-    await logChange(db, { action: 'Produkt borttagen', object: `Produkt: ${p.name}`, details: [{ field: 'Status', from: STATUS_NAME[p.status], to: 'Borttagen' }] });
+    await db.transaction(async (tx) => {
+      const t = tx as unknown as Db;
+      const parts = await productSnapshot(t, p.id);
+      const n = parts.find(([k]) => k === 'variants')?.[1].length ?? 0;
+      await moveToTrash(t, { kind: 'product', objectId: p.id, label: p.name, detail: `${n} ${n === 1 ? 'variant' : 'varianter'}`, parts });
+      await deleteProduct(t, p.id);
+    });
+    await logChange(db, { action: 'Produkt borttagen', object: `Produkt: ${p.name}`, details: [{ field: 'Status', from: STATUS_NAME[p.status], to: 'Papperskorgen' }] });
     return c.json({ ok: true });
   });
 

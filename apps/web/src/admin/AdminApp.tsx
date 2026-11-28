@@ -31,6 +31,7 @@ import {
 import { AdminNavigationContext, announcePrototypeAction, NavigableRows, readRowDetail, recordRowProps, RowDetailView, useAdminListState } from './adminInteractions';
 import { DiscountsView } from './discountViews';
 import { CampaignsView } from './campaignViews';
+import { TrashView } from './trashView';
 import { MediaLibraryView } from './mediaLibraryView';
 import { OperationsProvider, useOperations, balance, batchStatus, money } from './operationsModel';
 import { OperationalOrders, OperationalOrderDetail, OperationalReturns, ManualOrderForm, PickPackView } from './operationsOrders';
@@ -601,6 +602,7 @@ function AdminWorkspace() {
   else if (route === '/admin/rabatter' || detailDiscount) page = <DiscountsView id={detailDiscount?.[1]} go={go} notify={notify} onTitleChange={(value) => setDetailTitles((titles) => titles[route] === value ? titles : { ...titles, [route]: value })} />;
   else if (route === '/admin/mejlmallar' || detailEmail) page = <EmailTemplatesView id={detailEmail?.[1]} go={go} />;
   else if (route === '/admin/omdirigeringar' || detailRedirect) page = <RedirectsView id={detailRedirect?.[1]} go={go} rows={redirectRows} onRowsChange={setRedirectRows} />;
+  else if (route === '/admin/papperskorg') page = <TrashView go={go} />;
   else if (route === '/admin/andringslogg' || route === '/admin/installningar/logg') page = <AuditLogView />;
   else if (route === '/admin/installningar/foretag') page = <CompanySettingsView />;
   else if (route === '/admin/installningar/villkor') page = <PoliciesSettingsView />;

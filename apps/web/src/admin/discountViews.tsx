@@ -773,7 +773,7 @@ function DiscountForm({ id, go, onTitleChange }: { id: string; go: (path: string
                 <p className="pf-help">Rabatten har använts och kan inte tas bort. Stäng av den i stället.</p>
               ) : (
                 <button type="button" className={`pf-link danger${confirmDelete ? ' confirm' : ''}`} onClick={remove} data-testid="button-delete-discount">
-                  {confirmDelete ? 'Klicka igen för att ta bort för gott' : 'Ta bort rabatten'}
+                  {confirmDelete ? 'Klicka igen för att flytta till papperskorgen' : 'Ta bort rabatten'}
                 </button>
               )}
             </Card>

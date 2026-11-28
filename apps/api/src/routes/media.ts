@@ -3,7 +3,7 @@
  */
 import { randomBytes } from 'node:crypto';
 import { readdirSync, statSync } from 'node:fs';
-import { unlink, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { desc, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
@@ -13,6 +13,7 @@ import { logChange } from '../lib/audit.ts';
 import { uploadsDir } from '../lib/paths-data.ts';
 import { findDir, here } from '../lib/paths.ts';
 import type { ProductDisplay } from '../lib/storefront.ts';
+import { moveToTrash } from '../lib/trash.ts';
 
 const TYPES: Record<string, string> = { 'image/webp': 'webp', 'image/jpeg': 'jpg', 'image/png': 'png' };
 
@@ -100,9 +101,10 @@ export function mediaRoutes(db: Db) {
     if (!row) return c.json({ error: 'Bilden finns inte.' }, 404);
     const usedBy = (await usage(db)).get(row.src) ?? [];
     if (usedBy.length) return c.json({ error: `Bilden används av ${usedBy.join(', ')}. Ta bort den från produkten först.` }, 409);
+    // Filen ligger kvar så att bilden kan läggas tillbaka. Den tas bort när papperskorgen töms.
+    await moveToTrash(db, { kind: 'media', objectId: row.id, label: row.name, parts: [['media', [row]]] });
     await db.delete(s.media).where(eq(s.media.id, row.id));
-    await unlink(join(uploadsDir(), row.src.replace('/uploads/', ''))).catch(() => undefined);
-    await logChange(db, { action: 'Bild borttagen', object: `Mediebibliotek: ${row.name}` });
+    await logChange(db, { action: 'Bild borttagen', object: `Mediebibliotek: ${row.name}`, details: [{ field: 'Till', from: '', to: 'Papperskorgen' }] });
     return c.json({ ok: true });
   });
 

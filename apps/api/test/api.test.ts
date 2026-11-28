@@ -777,3 +777,75 @@ describe('kampanjer', () => {
     expect((await get('/campaigns')).body).toEqual([]);
   });
 });
+
+describe('papperskorg', () => {
+  const send = (method: string, path: string, body?: unknown) =>
+    app.request(`/api${path}`, { method, headers: { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+  const json = async (res: Response) => (await res.json()) as any;
+  const entry = async (label: string) => ((await get('/admin/trash')).body as any[]).find((e) => e.label === label);
+  const product = { name: 'Papperströja', brandId: 'br_papper', productType: 'klader', subcategory: 't-shirts-och-linnen', vat: 'vat-standard', variants: [{ options: {}, price: 199, stock: 4 }] };
+  let pid = '';
+
+  it('en borttagen produkt hamnar i papperskorgen och kan läggas tillbaka med pris och saldo', async () => {
+    expect((await send('POST', '/admin/brands', { name: 'Papper' })).status).toBe(200);
+    pid = (await json(await send('POST', '/admin/products', product))).id;
+    expect((await send('DELETE', `/admin/products/${pid}`)).status).toBe(200);
+    expect((await send('GET', `/admin/products/${pid}`)).status).toBe(404);
+
+    const e = await entry('Papperströja');
+    expect(e).toMatchObject({ kind: 'product', kindName: 'Produkt', detail: '1 variant' });
+    expect(e.payload).toBeUndefined(); // kopian skickas inte till Admin-listan
+    expect(new Date(e.expiresAt).getTime() - new Date(e.deletedAt).getTime()).toBe(30 * 864e5);
+
+    const res = await send('POST', `/admin/trash/${e.id}/restore`);
+    expect(res.status).toBe(200);
+    const back = await json(await send('GET', `/admin/products/${pid}`));
+    expect(back.name).toBe('Papperströja');
+    expect(back.variants[0]).toMatchObject({ price: 199, stock: 4 });
+    expect(await entry('Papperströja')).toBeUndefined();
+  });
+
+  it('säger till när varumärket saknas, och när adressen redan används', async () => {
+    expect((await send('DELETE', `/admin/products/${pid}`)).status).toBe(200);
+    expect((await send('DELETE', '/admin/brands/br_papper')).status).toBe(200);
+    const p = await entry('Papperströja');
+    const missing = await send('POST', `/admin/trash/${p.id}/restore`);
+    expect(missing.status).toBe(409);
+    expect((await json(missing)).error).toMatch(/varumärke/);
+
+    expect((await send('POST', `/admin/trash/${(await entry('Papper')).id}/restore`)).status).toBe(200);
+    const twin = await json(await send('POST', '/admin/products', product)); // ny produkt med samma namn och adress
+    const taken = await send('POST', `/admin/trash/${p.id}/restore`);
+    expect(taken.status).toBe(409);
+    expect((await json(taken)).error).toMatch(/samma adress/);
+    expect((await send('DELETE', `/admin/products/${twin.id}`)).status).toBe(200);
+  });
+
+  it('kategorier, rabatter och kampanjer går också att lägga tillbaka', async () => {
+    expect((await send('POST', '/admin/categories', { name: 'Papperskategori', productType: 'redskap' })).status).toBe(200);
+    expect((await send('DELETE', '/admin/categories/papperskategori')).status).toBe(200);
+    expect((await get('/admin/taxonomy')).body.categories.some((c: any) => c.slug === 'papperskategori')).toBe(false);
+    expect((await send('POST', `/admin/trash/${(await entry('Papperskategori')).id}/restore`)).status).toBe(200);
+    expect((await get('/admin/taxonomy')).body.categories.some((c: any) => c.slug === 'papperskategori')).toBe(true);
+
+    const d = await json(await send('POST', '/admin/discounts', { method: 'code', code: 'PAPPER', kind: 'order', valueType: 'percent', value: 5, startsAt: '2026-01-01T00:00:00.000Z' }));
+    expect((await send('DELETE', `/admin/discounts/${d.id}`)).status).toBe(200);
+    expect((await send('POST', `/admin/trash/${(await entry('PAPPER')).id}/restore`)).status).toBe(200);
+    expect((await json(await send('POST', '/discounts/check', { code: 'PAPPER' }))).ok).toBe(true);
+  });
+
+  it('raderar för gott, tömmer och rensar bort det som är äldre än 30 dagar', async () => {
+    const twins = ((await get('/admin/trash')).body as any[]).filter((e) => e.label === 'Papperströja');
+    expect(twins).toHaveLength(2); // originalet och tvillingen från förra testet
+    for (const t of twins) expect((await send('DELETE', `/admin/trash/${t.id}`)).status).toBe(200);
+    expect(await entry('Papperströja')).toBeUndefined();
+
+    await db.insert(s.trash).values({ id: 'tr_old', kind: 'brand', objectId: 'br_gammal', label: 'Gammalt', payload: [], deletedAt: new Date(Date.now() - 31 * 864e5).toISOString() });
+    expect(await entry('Gammalt')).toBeUndefined(); // listan rensar bort det automatiskt
+    expect(await db.select().from(s.trash).where(eq(s.trash.id, 'tr_old'))).toEqual([]);
+
+    const res = await json(await send('DELETE', '/admin/trash'));
+    expect(res.deleted).toBeGreaterThan(0);
+    expect((await get('/admin/trash')).body).toEqual([]);
+  });
+});

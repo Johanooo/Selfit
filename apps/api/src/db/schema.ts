@@ -475,3 +475,24 @@ export const campaigns = sqliteTable('campaigns', {
   updatedAt: text('updated_at'),
   createdAt: createdAt(),
 });
+
+// ---------- Papperskorg ----------
+
+/**
+ * Det som tagits bort i Admin. payload är en kopia av alla rader som hörde till (t.ex. en produkt
+ * med varianter, priser och saldo), i den ordning de ska läggas tillbaka. Töms efter 30 dagar.
+ */
+export const trash = sqliteTable(
+  'trash',
+  {
+    id: text('id').primaryKey(),
+    kind: text('kind').notNull(),
+    objectId: text('object_id').notNull(),
+    label: text('label').notNull(),
+    detail: text('detail').notNull().default(''),
+    payload: json<[string, Record<string, unknown>[]][]>('payload').notNull(),
+    deletedAt: text('deleted_at').notNull(),
+    deletedBy: text('deleted_by').notNull().default('Admin'),
+  },
+  (t) => [index('trash_deleted_idx').on(t.deletedAt)],
+);

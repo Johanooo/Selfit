@@ -925,7 +925,7 @@ export function ProductFormView({ id, go, onTitleChange }: { id?: string; go: (p
                 </button>
                 {savedStatus !== 'published' && !form.hasOrders && (
                   <button type="button" className={`pf-link danger${confirmDelete ? ' confirm' : ''}`} onClick={remove} data-testid="button-delete-product">
-                    {confirmDelete ? 'Klicka igen för att ta bort för gott' : 'Ta bort produkten'}
+                    {confirmDelete ? 'Klicka igen för att flytta till papperskorgen' : 'Ta bort produkten'}
                   </button>
                 )}
                 {savedStatus === 'published' && <p className="pf-help">En aktiv produkt måste göras till utkast eller arkiveras innan den kan tas bort.</p>}

@@ -9,6 +9,7 @@ import { z } from 'zod';
 import type { Db } from '../db/client.ts';
 import * as s from '../db/schema.ts';
 import { logChange } from '../lib/audit.ts';
+import { moveToTrash } from '../lib/trash.ts';
 
 const codeRe = /^[A-Z0-9ÅÄÖ_-]{3,32}$/;
 
@@ -220,8 +221,9 @@ export function discountRoutes(db: Db) {
     if (!row) return c.json({ error: 'Rabatten finns inte.' }, 404);
     const n = row.code ? ((await usage(db, [row.code])).get(row.code) ?? 0) : 0;
     if (n > 0) return c.json({ error: 'Rabatten har använts på ordrar. Stäng av den i stället, så finns historiken kvar.' }, 409);
+    await moveToTrash(db, { kind: 'discount', objectId: row.id, label: row.title, detail: describe(row), parts: [['discounts', [row]]] });
     await db.delete(s.discounts).where(eq(s.discounts.id, row.id));
-    await logChange(db, { action: 'Rabatt borttagen', object: `Rabatt: ${row.title}` });
+    await logChange(db, { action: 'Rabatt borttagen', object: `Rabatt: ${row.title}`, details: [{ field: 'Till', from: '', to: 'Papperskorgen' }] });
     return c.json({ ok: true });
   });
 

@@ -175,7 +175,7 @@ export function BrandsView() {
                     </button>
                     {b.products === 0 ? (
                       <button type="button" className={`pf-link danger${confirm === b.id ? ' confirm' : ''}`} onClick={() => remove(b)} aria-label={`Ta bort ${b.name}`}>
-                        {confirm === b.id ? 'Klicka igen för att ta bort' : 'Ta bort'}
+                        {confirm === b.id ? 'Klicka igen för att flytta till papperskorgen' : 'Ta bort'}
                       </button>
                     ) : (
                       <span className="pf-sub" title="Varumärken som används av produkter kan inte tas bort.">

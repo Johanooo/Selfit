@@ -111,7 +111,7 @@ export function ProductsListView({ go }: { go: (path: string) => void }) {
         errors.push(`${name}: ${(e as Error).message}`);
       }
     }
-    const verb = { published: 'publicerades', draft: 'avpublicerades', archived: 'arkiverades', delete: 'togs bort', duplicate: 'kopierades' }[action];
+    const verb = { published: 'publicerades', draft: 'avpublicerades', archived: 'arkiverades', delete: 'flyttades till papperskorgen', duplicate: 'kopierades' }[action];
     setMessage([ok ? `${ok} ${ok === 1 ? 'produkt' : 'produkter'} ${verb}.` : '', ...errors].filter(Boolean).join(' '));
     setConfirmDelete(null);
     setSelected(new Set());
@@ -196,7 +196,7 @@ export function ProductsListView({ go }: { go: (path: string) => void }) {
             Arkivera
           </button>
           <button type="button" className={`admin-btn small ${confirmDelete === 'bulk' ? 'danger' : ''}`} onClick={() => (confirmDelete === 'bulk' ? act(sel, 'delete') : setConfirmDelete('bulk'))}>
-            {confirmDelete === 'bulk' ? 'Klicka igen för att ta bort' : 'Ta bort'}
+            {confirmDelete === 'bulk' ? 'Klicka igen för att flytta till papperskorgen' : 'Ta bort'}
           </button>
           <button type="button" className="admin-btn small quiet" onClick={() => setSelected(new Set())}>
             Avmarkera
@@ -308,7 +308,7 @@ export function ProductsListView({ go }: { go: (path: string) => void }) {
                           )}
                           {r.status !== 'published' && (
                             <button type="button" className="danger" onClick={() => (confirmDelete === r.id ? act([r.id], 'delete') : setConfirmDelete(r.id))} data-testid={`button-delete-${r.slug}`}>
-                              {confirmDelete === r.id ? 'Klicka igen för att ta bort' : 'Ta bort'}
+                              {confirmDelete === r.id ? 'Klicka igen för att flytta till papperskorgen' : 'Ta bort'}
                             </button>
                           )}
                         </div>

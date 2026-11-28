@@ -7,6 +7,7 @@ import { z } from 'zod';
 import type { Db } from '../db/client.ts';
 import * as s from '../db/schema.ts';
 import { logChange } from '../lib/audit.ts';
+import { moveToTrash } from '../lib/trash.ts';
 
 const brandInput = z.object({
   name: z.string().trim().min(1, 'Ange namn på varumärket.').max(60),
@@ -72,8 +73,9 @@ export function brandRoutes(db: Db) {
     if (!row) return c.json({ error: 'Varumärket finns inte.' }, 404);
     const [used] = await db.select({ n: count() }).from(s.productFamilies).where(eq(s.productFamilies.brandId, row.id));
     if (Number(used?.n ?? 0) > 0) return c.json({ error: `${row.name} används av ${used.n} produkter och kan inte tas bort.` }, 409);
+    await moveToTrash(db, { kind: 'brand', objectId: row.id, label: row.name, parts: [['brands', [row]]] });
     await db.delete(s.brands).where(eq(s.brands.id, row.id));
-    await logChange(db, { action: 'Varumärke borttaget', object: `Varumärke: ${row.name}` });
+    await logChange(db, { action: 'Varumärke borttaget', object: `Varumärke: ${row.name}`, details: [{ field: 'Till', from: '', to: 'Papperskorgen' }] });
     return c.json({ ok: true });
   });
 
