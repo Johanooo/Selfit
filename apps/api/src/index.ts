@@ -19,6 +19,8 @@ import { compress } from 'hono/compress';
 import { createApp } from './app.ts';
 import { createDb, defaultDatabaseUrl } from './db/client.ts';
 import { buildStorefrontProducts } from './lib/storefront.ts';
+import { publicCampaigns } from './lib/campaigns.ts';
+import { today } from './lib/pricing.ts';
 import { markDatabaseCreated } from './db/meta.ts';
 import { syncReferenceData, syncVatClasses } from './routes/adminProducts.ts';
 import { loadTaxonomy, syncTaxonomy } from './routes/taxonomy.ts';
@@ -112,10 +114,12 @@ if (webDir) {
     // Varumärkenas namn och beskrivning från Admin, för varumärkessidorna.
     const brandRows = await db.select({ slug: s.brands.slug, name: s.brands.name, intro: s.brands.intro }).from(s.brands);
     const brandJson = JSON.stringify(brandRows).replace(/</g, '\\u003c');
+    // Kampanjer som pågår (banner och kampanjsida).
+    const campaignJson = JSON.stringify(await publicCampaigns(db, today())).replace(/</g, '\\u003c');
     return c.html(
       html.replace(
         '</head>',
-        `<script id="catalog-data" type="application/json">${json}</script>\n  <script id="brand-data" type="application/json">${brandJson}</script>\n  ${taxonomyTag}\n  </head>`,
+        `<script id="catalog-data" type="application/json">${json}</script>\n  <script id="brand-data" type="application/json">${brandJson}</script>\n  <script id="campaign-data" type="application/json">${campaignJson}</script>\n  ${taxonomyTag}\n  </head>`,
       ),
     );
   });

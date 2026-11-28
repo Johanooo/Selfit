@@ -11,7 +11,7 @@ import { freeShippingPhrase, shipping } from '@/data/shipping';
 const api = (path: string) => `${import.meta.env.BASE_URL.replace(/\/$/, '')}/api${path}`;
 const fmt = (n: number) => new Intl.NumberFormat('sv-SE', { maximumFractionDigits: 2 }).format(n);
 
-async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
+export async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(api(path), {
     method,
     headers: body === undefined ? undefined : { 'content-type': 'application/json' },
@@ -48,6 +48,7 @@ interface Discount {
   startsAt: string;
   endsAt: string | null;
   enabled: boolean;
+  combineWithCampaigns: boolean;
   used?: number;
   state?: State;
   label?: string;
@@ -99,6 +100,7 @@ const emptyDiscount = (kind: Kind): Discount => ({
   startsAt: new Date().toISOString(),
   endsAt: null,
   enabled: true,
+  combineWithCampaigns: false,
 });
 
 const valueText = (d: Pick<Discount, 'kind' | 'valueType' | 'value'>) =>
@@ -120,12 +122,13 @@ function details(d: Discount, productNames: Map<string, string>, catNames: Map<s
   const limits = [d.usageLimit ? `Kan användas ${d.usageLimit} gånger totalt` : '', d.oncePerCustomer ? 'En gång per kund' : ''].filter(Boolean);
   out.push(limits.length ? limits.join(' · ') : 'Inga begränsningar för användning');
   out.push('Kan inte kombineras med andra rabatter');
+  if (d.kind !== 'shipping') out.push(d.combineWithCampaigns ? 'Gäller även varor med kampanjpris' : 'Gäller inte varor med kampanjpris');
   const start = new Date(d.startsAt) <= new Date() ? 'Gäller från i dag' : `Gäller från ${showDate(d.startsAt)}`;
   out.push(d.endsAt ? `${start} till ${showDate(d.endsAt)}` : start);
   return out;
 }
 
-function Card({ title, children, action }: { title?: string; children: ReactNode; action?: ReactNode }) {
+export function Card({ title, children, action }: { title?: string; children: ReactNode; action?: ReactNode }) {
   return (
     <section className="pf-card">
       {(title || action) && (
@@ -139,7 +142,7 @@ function Card({ title, children, action }: { title?: string; children: ReactNode
   );
 }
 
-function Radio({ name, checked, onChange, children, testId }: { name: string; checked: boolean; onChange: () => void; children: ReactNode; testId?: string }) {
+export function Radio({ name, checked, onChange, children, testId }: { name: string; checked: boolean; onChange: () => void; children: ReactNode; testId?: string }) {
   return (
     <label className="pf-radio">
       <input type="radio" name={name} checked={checked} onChange={onChange} data-testid={testId} />
@@ -385,7 +388,7 @@ function CustomerPicker({ selected, onChange }: { selected: Customer[]; onChange
   );
 }
 
-function ChecklistPicker({ id, label, options, selected, onChange, placeholder }: { id: string; label: string; options: { value: string; label: string; group?: string }[]; selected: string[]; onChange: (v: string[]) => void; placeholder: string }) {
+export function ChecklistPicker({ id, label, options, selected, onChange, placeholder }: { id: string; label: string; options: { value: string; label: string; group?: string }[]; selected: string[]; onChange: (v: string[]) => void; placeholder: string }) {
   const [q, setQ] = useState('');
   const set = new Set(selected);
   const shown = options.filter((o) => o.label.toLowerCase().includes(q.trim().toLowerCase()));
@@ -616,6 +619,10 @@ function DiscountForm({ id, go, onTitleChange }: { id: string; go: (path: string
                 </>
               )}
               {d.valueType === 'fixed' && <p className="pf-help">Ett fast belopp dras en gång per order, aldrig mer än varorna kostar.</p>}
+              <label className="pf-toggle">
+                <input type="checkbox" checked={d.combineWithCampaigns} onChange={(e) => set({ combineWithCampaigns: e.target.checked })} data-testid="check-discount-campaigns" /> Gäller även varor som redan har kampanjpris
+              </label>
+              <p className="pf-help">Av som standard: varor med kampanjpris (Marknadsföring → Kampanjer) får då ingen extra rabatt.</p>
             </Card>
           )}
 

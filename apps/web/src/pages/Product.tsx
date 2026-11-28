@@ -452,6 +452,11 @@ function ProductView({ product }: { product: Product }) {
           <section className="buy-box" aria-label="Köp">
             <div className="stack-2">
               <p className={`buy-price${low30 !== null ? ' price--sale' : ''}`} data-testid="text-product-price">
+                {variant.campaign && (
+                  <span className="badge badge--sale buy-price-tag" data-testid="badge-product-sale">
+                    REA
+                  </span>
+                )}
                 {kr(variant.price)}
                 {low30 !== null && <span className="price-was">{kr(low30)}</span>}
               </p>

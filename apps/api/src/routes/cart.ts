@@ -4,7 +4,8 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import type { Db } from '../db/client.ts';
 import * as s from '../db/schema.ts';
-import { availableStock, currentPrices, depositRatesOn, today, vatIncluded, vatRatesOn } from '../lib/pricing.ts';
+import { availableStock, depositRatesOn, today, vatIncluded, vatRatesOn } from '../lib/pricing.ts';
+import { shopPrices } from '../lib/campaigns.ts';
 
 export const quoteInput = z.object({
   lines: z.array(z.object({ variantId: z.string().min(1), quantity: z.number().int().min(1).max(99) })).max(50),
@@ -27,8 +28,8 @@ export async function quoteCart(db: Db, input: z.infer<typeof quoteInput>, date 
         .where(inArray(s.variants.id, ids))
     : [];
   const byId = new Map(vs.map((r) => [r.v.id, r]));
-  const [prices, stock, vat, deposits, depositClasses] = await Promise.all([
-    currentPrices(db, ids, date),
+  const [shop, stock, vat, deposits, depositClasses] = await Promise.all([
+    shopPrices(db, ids, date),
     availableStock(db, ids),
     vatRatesOn(db, date),
     depositRatesOn(db, date),
@@ -41,7 +42,8 @@ export async function quoteCart(db: Db, input: z.infer<typeof quoteInput>, date 
   let vatOre = 0;
   const lines = input.lines.map((l) => {
     const row = byId.get(l.variantId);
-    const priceOre = prices.get(l.variantId);
+    // Kampanjpris om en kampanj pågår, annars ordinarie pris.
+    const priceOre = shop.get(l.variantId)?.ore;
     const available = stock.get(l.variantId) ?? 0;
     let problem: LineProblem | null = null;
     if (!row) problem = 'not_found';
@@ -70,6 +72,7 @@ export async function quoteCart(db: Db, input: z.infer<typeof quoteInput>, date 
       sku: row.v.sku,
       name: row.name,
       unitPriceOre: priceOre,
+      campaign: shop.get(l.variantId)?.campaign ?? null,
       lineTotalOre: lineOre,
       depositOre: lineDepositOre,
       vatRateBp: rateBp,

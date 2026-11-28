@@ -1704,3 +1704,13 @@
 .app-shell .listing-intro {
   --intro-bg: #f3f3f3;
 }
+
+/* ---------- Kampanjer ---------- */
+.app-shell .campaign-banner { background: var(--c-sale); color: #fff; }
+.app-shell .campaign-banner .container { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 24px; padding-block: 8px; }
+.app-shell .campaign-banner-link { display: inline-flex; align-items: center; gap: 8px; color: inherit; font-weight: 650; font-size: 0.875rem; text-decoration: none; }
+.app-shell .campaign-banner-link:hover span:nth-child(2) { text-decoration: underline; }
+.app-shell .campaign-banner-tag { padding: 1px 6px; border-radius: var(--radius-xs); background: #fff; color: var(--c-sale); font-size: 0.6875rem; font-weight: 800; letter-spacing: 0.04em; }
+.app-shell .campaign-banner--home .container { padding-block: 12px; }
+.app-shell .campaign-banner--home .campaign-banner-link { font-size: 1rem; }
+.app-shell .buy-price-tag { margin-right: 8px; vertical-align: middle; }

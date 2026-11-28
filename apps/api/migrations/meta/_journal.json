@@ -57,6 +57,13 @@
       "when": 1795784400000,
       "tag": "0007_product_types",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1795870800000,
+      "tag": "0008_campaigns",
+      "breakpoints": true
     }
   ]
 }

@@ -17,6 +17,7 @@ import { replaceProducts } from '@/data/products';
 import { replaceBrands, replaceCategories } from '@/data/categories';
 import { replaceProductTypes } from '@/data/productTypes';
 import { replaceShipping } from '@/data/shipping';
+import { replaceCampaigns } from '@/data/campaigns';
 
 /**
  * Efter en ny publicering har sidans delar nya filnamn. En flik som var öppen sedan innan
@@ -118,6 +119,28 @@ async function loadShipping() {
   }
 }
 
+/** Kampanjer som pågår (banner och kampanjsida). Inbäddade i sidan, annars hämtade. Stoppar aldrig sidan. */
+async function loadCampaigns() {
+  const inline = document.getElementById('campaign-data');
+  if (inline?.textContent) {
+    try {
+      replaceCampaigns(JSON.parse(inline.textContent));
+      return;
+    } catch {
+      /* faller tillbaka till hämtning */
+    }
+  }
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2500);
+    const res = await fetch(`${import.meta.env.BASE_URL.replace(/\/$/, '')}/api/campaigns`, { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (res.ok) replaceCampaigns(await res.json());
+  } catch {
+    /* servern svarar inte – inga kampanjbanners */
+  }
+}
+
 async function loadCatalog() {
   const inline = document.getElementById('catalog-data');
   if (inline?.textContent) {
@@ -140,7 +163,7 @@ async function loadCatalog() {
   }
 }
 
-void Promise.all([loadTaxonomy(), loadCatalog(), loadShipping(), location.pathname.includes('/admin') ? Promise.resolve() : loadBrands()]).then(render);
+void Promise.all([loadTaxonomy(), loadCatalog(), loadShipping(), location.pathname.includes('/admin') ? Promise.resolve() : loadBrands(), location.pathname.includes('/admin') ? Promise.resolve() : loadCampaigns()]).then(render);
 
 function render() {
 createRoot(document.getElementById('root')!, {

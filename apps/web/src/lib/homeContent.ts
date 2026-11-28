@@ -3,7 +3,7 @@ import type { RowSource } from '@/data/homeDefaults';
 import { products } from '@/data/products';
 import { productsIn, visibleCategories } from '@/data/taxonomy';
 import { allItems, sortItems, toItems, type ListingItem } from '@/lib/catalog';
-import { lowestPrice30Days } from '@/lib/price-history';
+import { isOnSale } from '@/lib/price-history';
 
 const EMPTY = { packs: [], flavours: [], prices: [] };
 
@@ -11,7 +11,7 @@ const EMPTY = { packs: [], flavours: [], prices: [] };
 export function itemsForSource(source: RowSource, limit: number): ListingItem[] {
   const popular = (list: ListingItem[]) => sortItems(list, 'popularitet', EMPTY);
   let items: ListingItem[];
-  if (source === 'sale') items = allItems().filter((i) => i.variants.some((v) => lowestPrice30Days(v.priceHistory) !== null));
+  if (source === 'sale') items = allItems().filter((i) => i.variants.some((v) => isOnSale(v)));
   else if (source === 'new') items = allItems().filter((i) => i.product.isNew);
   else if (source === 'popular') items = allItems();
   else if (source.startsWith('category:')) items = toItems(productsIn(source.slice(9)));

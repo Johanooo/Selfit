@@ -10,6 +10,7 @@ import { pwoFlavours, PWO_RECIPE } from '@/data/products';
 import { PwoCan } from '@/components/art/PwoCan';
 import { ProductRail } from '@/components/ProductRail';
 import { RichText } from '@/components/RichText';
+import { CampaignBanner } from '@/components/CampaignBanner';
 import type { ServiceIcon } from '@/data/homeDefaults';
 import { fillFields } from '@/data/support';
 import { itemsForSource } from '@/lib/homeContent';
@@ -193,6 +194,7 @@ export default function Home() {
 
   return (
     <>
+      <CampaignBanner where="home" />
       <section className="hero-banner" aria-labelledby="hero-title">
         <img
           className="hero-banner-img"

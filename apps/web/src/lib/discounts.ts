@@ -18,12 +18,16 @@ export interface DiscountRule {
   minValue: number;
   /** Koden gäller vissa kunder. Kontrolleras igen i kassan med e-postadressen. */
   needsEmail: boolean;
+  /** Får rabatten dras på varor som redan har kampanjpris? Saknas = nej. */
+  combineWithCampaigns?: boolean;
 }
 
 interface LineLike {
   qty: number;
   lineTotal: number;
   product: { slug: string; category: string; subcategory?: string; alsoIn?: string[] };
+  /** campaign = varianten har kampanjpris just nu. */
+  variant?: { campaign?: string };
 }
 
 export interface DiscountResult {
@@ -39,7 +43,11 @@ export interface DiscountResult {
 const kr = (n: number) => `${new Intl.NumberFormat('sv-SE', { maximumFractionDigits: 2 }).format(n)} kr`;
 const round = (n: number) => Math.round(n * 100) / 100;
 
+/** Varor med kampanjpris får ingen extra rabatt, om inte rabatten är inställd på det (fri frakt gäller alltid). */
+const campaignBlocked = (rule: DiscountRule, line: LineLike) => rule.kind !== 'shipping' && !rule.combineWithCampaigns && Boolean(line.variant?.campaign);
+
 export function lineMatches(rule: DiscountRule, line: LineLike) {
+  if (campaignBlocked(rule, line)) return false;
   if (rule.kind !== 'products' || rule.appliesTo.type === 'all') return true;
   const p = line.product;
   if (rule.appliesTo.type === 'products') return rule.appliesTo.products.includes(p.slug);
@@ -55,7 +63,10 @@ export function applyDiscount(rule: DiscountRule, lines: LineLike[]): DiscountRe
   const scope = rule.kind === 'products' && rule.appliesTo.type !== 'all' ? ' av de utvalda produkterna' : '';
   if (rule.minType === 'amount' && base < rule.minValue) return { ...none, unmet: `Handla${scope} för ${kr(round(rule.minValue - base))} till för att få ${rule.label.toLowerCase()}.` };
   if (rule.minType === 'quantity' && qty < rule.minValue) return { ...none, unmet: `Lägg till ${rule.minValue - qty} st till${scope} för att få ${rule.label.toLowerCase()}.` };
-  if (base <= 0) return { ...none, unmet: rule.kind === 'products' ? 'Rabatten gäller inte varorna i din varukorg.' : null };
+  if (base <= 0) {
+    if (lines.length && lines.every((l) => campaignBlocked(rule, l))) return { ...none, unmet: 'Rabatten gäller inte varor som redan har kampanjpris.' };
+    return { ...none, unmet: rule.kind === 'products' ? 'Rabatten gäller inte varorna i din varukorg.' : null };
+  }
   if (rule.kind === 'shipping') return { ...none, freeShipping: true, unmet: null };
   const amount = round(Math.min(base, rule.valueType === 'percent' ? (base * rule.value) / 100 : rule.value));
   const perLine = lines.map((l, i) => (matches[i] ? (amount * l.lineTotal) / base : 0));

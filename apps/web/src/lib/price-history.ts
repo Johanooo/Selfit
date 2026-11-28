@@ -62,3 +62,8 @@ export function changesInPeriod(history: PricePoint[], today = todayIso(), days 
     .map((p) => ({ ...p, from: p.from < start ? start : p.from }))
     .reverse();
 }
+
+/** Är varianten nedsatt just nu? Kampanjpris (Admin → Kampanjer) eller en annan prissänkning de senaste 30 dagarna. */
+export function isOnSale(v: { campaign?: string; priceHistory?: PricePoint[] }, today = todayIso()) {
+  return Boolean(v.campaign) || lowestPrice30Days(v.priceHistory, today) !== null;
+}

@@ -73,6 +73,8 @@ export interface Variant {
   options?: Record<string, string>;
   /** Prisändringar, äldst först. Sista posten är dagens pris. */
   priceHistory?: PricePoint[];
+  /** Kampanjens slug om varianten har kampanjpris just nu. */
+  campaign?: string;
 }
 
 export interface NutritionRow {

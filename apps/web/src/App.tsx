@@ -12,6 +12,7 @@ const AdminApp = lazy(() => import('@/admin/AdminApp').then((m) => ({ default: m
 const CategoryPage = lazy(() => import('@/pages/ListingPages').then((m) => ({ default: m.CategoryPage })));
 const BrandPage = lazy(() => import('@/pages/ListingPages').then((m) => ({ default: m.BrandPage })));
 const CollectionPage = lazy(() => import('@/pages/ListingPages').then((m) => ({ default: m.CollectionPage })));
+const CampaignPage = lazy(() => import('@/pages/ListingPages').then((m) => ({ default: m.CampaignPage })));
 const SearchPage = lazy(() => import('@/pages/Search'));
 const ProductPage = lazy(() => import('@/pages/Product'));
 const CartPage = lazy(() => import('@/pages/Cart'));
@@ -37,6 +38,7 @@ function Routes() {
         <Route path="/kategori/:slug" component={CategoryPage} />
         <Route path="/varumarke/:slug" component={BrandPage} />
         <Route path="/kollektion/:slug" component={CollectionPage} />
+        <Route path="/kampanj/:slug" component={CampaignPage} />
         <Route path="/sok" component={SearchPage} />
         <Route path="/produkt/:slug" component={ProductPage} />
         <Route path="/varukorg" component={CartPage} />

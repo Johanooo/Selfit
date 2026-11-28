@@ -30,11 +30,12 @@ import {
 } from './businessAdminViews';
 import { AdminNavigationContext, announcePrototypeAction, NavigableRows, readRowDetail, recordRowProps, RowDetailView, useAdminListState } from './adminInteractions';
 import { DiscountsView } from './discountViews';
+import { CampaignsView } from './campaignViews';
 import { MediaLibraryView } from './mediaLibraryView';
 import { OperationsProvider, useOperations, balance, batchStatus, money } from './operationsModel';
 import { OperationalOrders, OperationalOrderDetail, OperationalReturns, ManualOrderForm, PickPackView } from './operationsOrders';
 import { StockView, PurchasingView, BatchView, TransfersView, CountsView } from './warehouseViews';
-import { CompanySettingsView, ComingSoonView, PoliciesSettingsView, ShippingSettingsView } from './storeSettingsViews';
+import { CompanySettingsView, PoliciesSettingsView, ShippingSettingsView } from './storeSettingsViews';
 import { PageEditorView, PagesListView } from './pagesViews';
 import { FaqAdminView } from './faqView';
 import { TaxSettingsView } from './taxView';
@@ -555,6 +556,7 @@ function AdminWorkspace() {
   const detailProduct = route.match(/^\/admin\/produkter\/(.+)$/);
   const detailMedia = route.match(/^\/admin\/media\/([^/]+)$/);
   const detailDiscount = route.match(/^\/admin\/rabatter\/([^/]+)$/);
+  const detailCampaign = route.match(/^\/admin\/kampanjer\/([^/]+)$/);
   const detailEmail = route.match(/^\/admin\/mejlmallar\/([^/]+)$/);
   const detailType = route.match(/^\/admin\/produkttyper\/([^/]+)$/);
   const detailRedirect = route.match(/^\/admin\/omdirigeringar\/([^/]+)$/);
@@ -603,7 +605,7 @@ function AdminWorkspace() {
   else if (route === '/admin/installningar/foretag') page = <CompanySettingsView />;
   else if (route === '/admin/installningar/villkor') page = <PoliciesSettingsView />;
   else if (route === '/admin/installningar/frakt') page = <ShippingSettingsView />;
-  else if (route === '/admin/kampanjer') page = <ComingSoonView group="Marknadsföring" title="Kampanjer" items={['Sätta kampanjpris på produkter, kategorier eller varumärken', 'Start- och slutdatum som slår på och av automatiskt', 'Lägsta pris senaste 30 dagarna räknas ut och visas automatiskt']} />;
+  else if (route === '/admin/kampanjer' || detailCampaign) page = <CampaignsView id={detailCampaign?.[1]} go={go} onTitleChange={(value) => setDetailTitles((titles) => titles[route] === value ? titles : { ...titles, [route]: value })} />;
   else if (route === '/admin/varumarken') page = <BrandsView />;
   else if (route === '/admin/innehall/sidor') page = <PagesListView go={go} />;
   else if (route.startsWith('/admin/innehall/sidor/')) page = <PageEditorView key={route} slug={route.split('/').pop() ?? ''} go={go} onTitleChange={(value) => setDetailTitles((titles) => titles[route] === value ? titles : { ...titles, [route]: value })} />;
@@ -637,7 +639,7 @@ function AdminWorkspace() {
         </div>}
       </form>
       <div className="admin-topbar-right"><label className="ops-role">Visningsroll (demo)<select className="admin-control" aria-label="Visningsroll (demo)" value={operations.role} onChange={(e) => commit((d) => { d.role = e.target.value; })}>{['Admin', 'Ekonomi', 'Katalog', 'Kundservice'].map((role) => <option key={role}>{role}</option>)}</select></label><span className="admin-user-chip" aria-label="Användare Ella Svensson" data-testid="text-admin-user">ES</span></div>
-    </header><main className="admin-content">{detailParent && !route.startsWith('/admin/produkter/') && !route.startsWith('/admin/rabatter/') && <div className="admin-detail-navigation"><button type="button" className="admin-btn" onClick={back} data-testid="button-detail-back">← Tillbaka</button><nav aria-label="Brödsmulor"><a href={backPath} onClick={(event) => { event.preventDefault(); back(); }}>{parentLabel}</a><span aria-hidden="true"> / </span><span aria-current="page">{detailLabel}</span></nav></div>}{notice && <div className="admin-inline-message" role="status" data-testid="status-global-notice">{notice}</div>}{page}</main></div>
+    </header><main className="admin-content">{detailParent && !route.startsWith('/admin/produkter/') && !route.startsWith('/admin/rabatter/') && !route.startsWith('/admin/kampanjer/') && <div className="admin-detail-navigation"><button type="button" className="admin-btn" onClick={back} data-testid="button-detail-back">← Tillbaka</button><nav aria-label="Brödsmulor"><a href={backPath} onClick={(event) => { event.preventDefault(); back(); }}>{parentLabel}</a><span aria-hidden="true"> / </span><span aria-current="page">{detailLabel}</span></nav></div>}{notice && <div className="admin-inline-message" role="status" data-testid="status-global-notice">{notice}</div>}{page}</main></div>
   </div></div></AdminNavigationContext.Provider>;
 }
 

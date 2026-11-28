@@ -12,6 +12,7 @@ import { auditRoutes } from './routes/audit.ts';
 import { mediaRoutes } from './routes/media.ts';
 import { brandRoutes } from './routes/brands.ts';
 import { discountRoutes } from './routes/discounts.ts';
+import { campaignRoutes } from './routes/campaigns.ts';
 import { pageRoutes } from './routes/pages.ts';
 import { settingsRoutes } from './routes/settings.ts';
 import { taxRoutes } from './routes/tax.ts';
@@ -35,6 +36,7 @@ export function createApp(db: Db) {
   app.route('/', mediaRoutes(db));
   app.route('/', brandRoutes(db));
   app.route('/', discountRoutes(db));
+  app.route('/', campaignRoutes(db));
   app.route('/', taxRoutes(db));
   // Ändras momsen på en produkttyp rättas varianterna direkt.
   app.route('/', taxonomyRoutes(db, () => syncVatClasses(db)));

@@ -39,6 +39,8 @@ const discountInput = z
     startsAt: z.string().min(10),
     endsAt: z.string().nullable().default(null),
     enabled: z.boolean().default(true),
+    /** Får rabatten dras på varor som redan har kampanjpris? */
+    combineWithCampaigns: z.boolean().default(false),
   })
   .superRefine((d, ctx) => {
     const issue = (message: string, path: string) => ctx.addIssue({ code: 'custom', message, path: [path] });
@@ -95,6 +97,7 @@ const toRow = (d: Input) => ({
   startsAt: d.startsAt,
   endsAt: d.endsAt,
   enabled: d.enabled,
+  combineWithCampaigns: d.kind === 'shipping' ? true : d.combineWithCampaigns,
 });
 
 /** Det butiken behöver för att räkna ut rabatten. Belopp i kronor. */
@@ -111,6 +114,7 @@ function publicRule(d: Row, needsEmail = false) {
     minType: d.minType,
     minValue: d.minType === 'amount' ? d.minValue / 100 : d.minValue,
     needsEmail,
+    combineWithCampaigns: d.combineWithCampaigns,
   };
 }
 
@@ -152,6 +156,7 @@ const LABELS: Partial<Record<keyof Input, string>> = {
   startsAt: 'Start',
   endsAt: 'Slut',
   enabled: 'På/av',
+  combineWithCampaigns: 'Gäller även kampanjvaror',
 };
 
 export function discountRoutes(db: Db) {

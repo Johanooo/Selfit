@@ -7,7 +7,8 @@ import type { Product, Variant } from '../../../web/src/data/types.ts';
 import { products as codeProducts } from '../../../web/src/data/products.ts';
 import type { Db } from '../db/client.ts';
 import * as s from '../db/schema.ts';
-import { availableStock, currentPrices, depositRatesOn, today, vatRatesOn } from './pricing.ts';
+import { availableStock, depositRatesOn, today, vatRatesOn } from './pricing.ts';
+import { loadCampaigns, shopHistories, shopPrices } from './campaigns.ts';
 
 /** Visningsdata som sparas i product_families.display. */
 export interface ProductDisplay {
@@ -64,20 +65,11 @@ export async function buildStorefrontProducts(db: Db, statuses: Status[] = ['pub
     depositRatesOn(db, date),
   ]);
   const varIds = vars.map((v) => v.id);
-  const [price, stock, history] = await Promise.all([
-    currentPrices(db, varIds, date),
-    availableStock(db, varIds),
-    varIds.length
-      ? db.select().from(s.prices).where(inArray(s.prices.variantId, varIds)).orderBy(asc(s.prices.validFrom))
-      : Promise.resolve([]),
-  ]);
+  // Kampanjpriset läggs ovanpå det ordinarie priset, även i prishistoriken (för 30-dagarsregeln).
+  const rules = await loadCampaigns(db);
+  const [price, stock, history] = await Promise.all([shopPrices(db, varIds, date, rules), availableStock(db, varIds), shopHistories(db, varIds, date, rules)]);
   const historyBy = new Map<string, { from: string; price: number }[]>();
-  for (const h of history) {
-    if (h.validFrom > date) continue;
-    const list = historyBy.get(h.variantId) ?? [];
-    list.push({ from: h.validFrom, price: h.amountOre / 100 });
-    historyBy.set(h.variantId, list);
-  }
+  for (const [id, list] of history) historyBy.set(id, list.map((h) => ({ from: h.from, price: h.ore / 100 })));
   const code = new Map(codeProducts.map((p) => [p.slug, p]));
 
   return fams.map(({ f, brandName, brandSlug }) => {
@@ -91,7 +83,8 @@ export async function buildStorefrontProducts(db: Db, statuses: Status[] = ['pub
       ...(v.flavourSlug ? { flavour: v.flavourSlug } : {}),
       ...(v.packSize ? { pack: v.packSize } : {}),
       ...(v.options && Object.keys(v.options).length ? { options: v.options } : {}),
-      price: (price.get(v.id) ?? 0) / 100,
+      price: (price.get(v.id)?.ore ?? 0) / 100,
+      ...(price.get(v.id)?.campaign ? { campaign: price.get(v.id)!.campaign! } : {}),
       depositPerUnit: v.depositClassId && v.depositUnits > 0 ? (deposit.get(v.depositClassId) ?? 0) / 100 : 0,
       stock: stock.get(v.id) ?? 0,
       offered: v.status !== 'not_offered',

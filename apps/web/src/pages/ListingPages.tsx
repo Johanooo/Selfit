@@ -10,7 +10,8 @@ import { EmptyState } from '@/components/EmptyState';
 import { PackageOpen } from 'lucide-react';
 import { products } from '@/data/products';
 import { toItems } from '@/lib/catalog';
-import { lowestPrice30Days } from '@/lib/price-history';
+import { isOnSale } from '@/lib/price-history';
+import { getCampaign } from '@/data/campaigns';
 import type { Tone } from '@/data/types';
 import NotFound from './not-found';
 
@@ -136,9 +137,40 @@ export function CollectionPage() {
       crumbs={[{ label: c.name }]}
       items={
         c.slug === 'kampanjer'
-          ? toItems(products).filter((item) => item.variants.some((v) => lowestPrice30Days(v.priceHistory) !== null))
+          ? toItems(products).filter((item) => item.variants.some((v) => isOnSale(v)))
           : toItems(products.filter((p) => p.collections.includes(c.slug)))
       }
+    />
+  );
+}
+
+/** Kampanjsidan, t.ex. /kampanj/black-week. Listar produkterna som har kampanjens pris just nu. */
+export function CampaignPage() {
+  const { slug } = useParams<{ slug: string }>();
+  const c = getCampaign(slug);
+  usePageMeta(c ? `${c.title} hos SELFIT` : 'Kampanjen är slut', c?.intro || 'Kampanjen är slut. Se våra andra kampanjer.');
+  const end = c?.endsOn ? new Date(`${c.endsOn}T12:00:00`).toLocaleDateString('sv-SE', { day: 'numeric', month: 'long' }) : null;
+  if (!c) {
+    // Gamla länkar till en kampanj som slutat visar de kampanjer som pågår nu.
+    return (
+      <Listing
+        eyebrow="Kampanj"
+        title="Kampanjen är slut"
+        intro="Den här kampanjen pågår inte längre. Här är det som är nedsatt just nu."
+        tone="lavender"
+        crumbs={[{ label: 'Kampanjer', href: '/kollektion/kampanjer' }, { label: 'Kampanjen är slut' }]}
+        items={toItems(products).filter((item) => item.variants.some((v) => isOnSale(v)))}
+      />
+    );
+  }
+  return (
+    <Listing
+      eyebrow={end ? `Kampanj · t.o.m. ${end}` : 'Kampanj'}
+      title={c.title}
+      intro={c.intro}
+      tone="lavender"
+      crumbs={[{ label: 'Kampanjer', href: '/kollektion/kampanjer' }, { label: c.title }]}
+      items={toItems(products).filter((item) => item.variants.some((v) => v.campaign === c.slug))}
     />
   );
 }

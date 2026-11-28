@@ -5,7 +5,7 @@ import { ProductImage } from '@/components/art/ProductImage';
 import { getCategory } from '@/data/categories';
 import { clearVariant, displayVariant, productHref, type Filters, type ListingItem } from '@/lib/catalog';
 import { comparison, depositTotal, isBuyable, kr, packLabel, stockState } from '@/lib/format';
-import { lowestPrice30Days } from '@/lib/price-history';
+import { isOnSale, lowestPrice30Days } from '@/lib/price-history';
 import { useCart } from '@/state/cart';
 
 export function ProductCard({ item, filters, index = 0 }: { item: ListingItem; filters?: Filters; index?: number }) {
@@ -23,7 +23,7 @@ export function ProductCard({ item, filters, index = 0 }: { item: ListingItem; f
   const cmp = comparison(v);
   const low30 = lowestPrice30Days(v.priceHistory);
   // En annan förpackning än den som visas kan vara på kampanj.
-  const otherSale = low30 === null ? item.variants.find((x) => isBuyable(x) && lowestPrice30Days(x.priceHistory) !== null) : undefined;
+  const otherSale = !isOnSale(v) ? item.variants.find((x) => isBuyable(x) && isOnSale(x)) : undefined;
   const testId = item.key;
 
   useEffect(() => {
@@ -39,8 +39,8 @@ export function ProductCard({ item, filters, index = 0 }: { item: ListingItem; f
         <div className="product-card-badge">
           {allOut ? (
             <span className="badge badge--out">Slutsåld</span>
-          ) : low30 !== null || otherSale ? (
-            <span className="badge badge--sale">Kampanj</span>
+          ) : isOnSale(v) || otherSale ? (
+            <span className="badge badge--sale">REA</span>
           ) : product.isNew ? (
             <span className="badge badge--new">Nyhet</span>
           ) : low ? (

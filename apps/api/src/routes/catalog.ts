@@ -2,7 +2,8 @@ import { and, asc, eq, inArray, like, or } from 'drizzle-orm';
 import { Hono } from 'hono';
 import type { Db } from '../db/client.ts';
 import * as s from '../db/schema.ts';
-import { availableStock, currentPrices, lowestPrice30Days, today, vatRatesOn } from '../lib/pricing.ts';
+import { availableStock, lowest30, today, vatRatesOn } from '../lib/pricing.ts';
+import { shopHistories, shopPrices } from '../lib/campaigns.ts';
 import { buildStorefrontProducts } from '../lib/storefront.ts';
 
 /** Jämförpris i öre per enhet (kr/l, kr/kg, kr/st). */
@@ -62,7 +63,8 @@ export function catalogRoutes(db: Db) {
       ? await db.select().from(s.variants).where(and(inArray(s.variants.familyId, families.map((f) => f.id)), eq(s.variants.status, 'active')))
       : [];
     const date = today();
-    const prices = await currentPrices(db, vs.map((v) => v.id), date);
+    const shop = await shopPrices(db, vs.map((v) => v.id), date);
+    const prices = new Map([...shop].map(([id, p]) => [id, p.ore]));
     const stock = await availableStock(db, vs.map((v) => v.id));
 
     return c.json(
@@ -90,7 +92,7 @@ export function catalogRoutes(db: Db) {
     const date = today();
     const vs = await db.select().from(s.variants).where(eq(s.variants.familyId, family.family.id));
     const ids = vs.map((v) => v.id);
-    const [prices, stock, vat] = await Promise.all([currentPrices(db, ids, date), availableStock(db, ids), vatRatesOn(db, date)]);
+    const [shop, stock, vat, histories] = await Promise.all([shopPrices(db, ids, date), availableStock(db, ids), vatRatesOn(db, date), shopHistories(db, ids, date)]);
     const categories = await db
       .select({ slug: s.categories.slug, name: s.categories.name, isPrimary: s.productCategories.isPrimary })
       .from(s.productCategories)
@@ -105,7 +107,7 @@ export function catalogRoutes(db: Db) {
 
     const variants = await Promise.all(
       vs.map(async (v) => {
-        const priceOre = prices.get(v.id) ?? null;
+        const priceOre = shop.get(v.id)?.ore ?? null;
         return {
           id: v.id,
           sku: v.sku,
@@ -119,7 +121,9 @@ export function catalogRoutes(db: Db) {
           status: v.status,
           priceOre,
           comparePriceOre: priceOre === null ? null : comparePrice(priceOre, v.netAmount),
-          lowestPrice30DaysOre: await lowestPrice30Days(db, v.id, date),
+          ordinaryPriceOre: shop.get(v.id)?.ordinaryOre ?? null,
+          campaign: shop.get(v.id)?.campaign ?? null,
+          lowestPrice30DaysOre: lowest30(histories.get(v.id) ?? [], date),
           vatRateBp: vat.get(v.vatClassId) ?? null,
           depositUnits: v.depositUnits,
           available: v.status === 'active' ? (stock.get(v.id) ?? 0) : 0,

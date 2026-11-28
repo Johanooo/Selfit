@@ -3,6 +3,7 @@ import { Link, useLocation, useSearch } from 'wouter';
 import { Check, ChevronDown, LifeBuoy, Menu, Search, ShoppingBag } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { MobileMenu } from './MobileMenu';
+import { CampaignBanner } from '@/components/CampaignBanner';
 import { SearchSuggest } from './SearchSuggest';
 import { useCart } from '@/state/cart';
 import { useCartDrawer } from '@/state/cartDrawer';
@@ -62,6 +63,7 @@ export function Header() {
 
   return (
     <>
+      <CampaignBanner where="topbar" />
       <div className="usp-bar">
         <ul className="container" aria-label="Fördelar">
           {navigation.topbar.map((t, i) => (

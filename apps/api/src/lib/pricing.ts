@@ -52,23 +52,29 @@ const addDays = (date: string, days: number) => {
 /**
  * Prisinformationslagen: vid en prissänkning visas lägsta pris under de 30 dagarna
  * före sänkningen. Returnerar null om dagens pris inte är en sänkning de senaste 30 dagarna.
+ * rows: prishistorik (öre, äldst först) där varje rad gäller tills nästa börjar.
  */
-export async function lowestPrice30Days(db: Db, variantId: string, date: string): Promise<number | null> {
-  const rows = await db
-    .select({ amountOre: s.prices.amountOre, validFrom: s.prices.validFrom })
-    .from(s.prices)
-    .where(and(eq(s.prices.variantId, variantId), lte(s.prices.validFrom, date)))
-    .orderBy(s.prices.validFrom);
-  // Varje rad gäller tills nästa rad börjar.
-  const periods = rows.map((r, i) => ({ ...r, until: rows[i + 1]?.validFrom ?? null }));
+export function lowest30(rows: { from: string; ore: number }[], date: string): number | null {
+  const past = rows.filter((r) => r.from <= date);
+  const periods = past.map((r, i) => ({ ...r, until: past[i + 1]?.from ?? null }));
   const current = periods.at(-1);
   const previous = periods.at(-2);
   if (!current || !previous) return null;
-  if (current.validFrom < addDays(date, -30)) return null; // ingen sänkning nyligen
-  if (current.amountOre >= previous.amountOre) return null; // inte en sänkning
-  const windowStart = addDays(current.validFrom, -30);
+  if (current.from < addDays(date, -30)) return null; // ingen sänkning nyligen
+  if (current.ore >= previous.ore) return null; // inte en sänkning
+  const windowStart = addDays(current.from, -30);
   const before = periods.filter((p) => p !== current && (p.until === null || p.until > windowStart));
-  return Math.min(...before.map((p) => p.amountOre));
+  return Math.min(...before.map((p) => p.ore));
+}
+
+/** Samma regel, för en variants ordinarie prishistorik i databasen. */
+export async function lowestPrice30Days(db: Db, variantId: string, date: string): Promise<number | null> {
+  const rows = await db
+    .select({ ore: s.prices.amountOre, from: s.prices.validFrom })
+    .from(s.prices)
+    .where(and(eq(s.prices.variantId, variantId), lte(s.prices.validFrom, date)))
+    .orderBy(s.prices.validFrom);
+  return lowest30(rows, date);
 }
 
 /** Säljbart saldo per variant: summan över aktiva lager av (i lager − reserverat − spärrat). */

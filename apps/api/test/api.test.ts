@@ -11,7 +11,8 @@ import { markDatabaseCreated } from '../src/db/meta.ts';
 import { syncReferenceData, syncVatClasses } from '../src/routes/adminProducts.ts';
 import { syncTaxonomy } from '../src/routes/taxonomy.ts';
 import * as s from '../src/db/schema.ts';
-import { depositRatesOn, lowestPrice30Days, today } from '../src/lib/pricing.ts';
+import { depositRatesOn, lowest30, lowestPrice30Days, today } from '../src/lib/pricing.ts';
+import { campaignPrice, withCampaigns } from '../../web/src/data/campaigns.ts';
 import { quoteCart } from '../src/routes/cart.ts';
 
 let db: Db;
@@ -636,5 +637,112 @@ describe('Admin: frakt', () => {
     expect((await put(odd)).status).toBe(400);
 
     expect((await put(before)).status).toBe(200);
+  });
+});
+
+describe('kampanjer', () => {
+  const send = (method: string, path: string, body?: unknown) =>
+    app.request(`/api${path}`, { method, headers: { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+  const json = async (res: Response) => (await res.json()) as any;
+  const day = (offset: number) => {
+    const d = new Date(`${today()}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + offset);
+    return d.toISOString().slice(0, 10);
+  };
+  const base = {
+    title: 'Black Week',
+    slug: 'black-week',
+    intro: 'Veckans bästa priser.',
+    valueType: 'percent',
+    value: 20,
+    appliesTo: { type: 'products', products: ['pwo-plus'] },
+    startsOn: day(0),
+    endsOn: day(7),
+    banner: { text: 'Black Week – 20 % på PWO+', placement: 'both' },
+  };
+  let id = '';
+
+  it('räknar kampanjpris och lägger det i prishistoriken', () => {
+    expect(campaignPrice({ valueType: 'percent', value: 20 }, 34900)).toBe(27900); // 279,20 kr avrundas till 279 kr
+    expect(campaignPrice({ valueType: 'amount', value: 5000 }, 34900)).toBe(29900);
+    expect(campaignPrice({ valueType: 'price', value: 40000 }, 34900)).toBeNull(); // högre än ordinarie: ingen kampanj
+    const rule = { id: 'x', slug: 'x', title: 'X', valueType: 'percent' as const, value: 20, appliesTo: { type: 'all' as const, categories: [], brands: [], products: [] }, startsOn: '2026-11-20', endsOn: '2026-11-26', enabled: true };
+    const t = { slug: 'p', brand: 'b', categories: [] };
+    const h = withCampaigns([{ from: '2026-01-01', ore: 34900 }], [rule], t, '2026-11-30');
+    expect(h).toEqual([
+      { from: '2026-01-01', ore: 34900 },
+      { from: '2026-11-20', ore: 27900 },
+      { from: '2026-11-27', ore: 34900 },
+    ]);
+    expect(lowest30(h, '2026-11-22')).toBe(34900); // under kampanjen
+    expect(lowest30(h, '2026-11-30')).toBeNull(); // efter kampanjen är det ingen sänkning
+  });
+
+  it('skapar en kampanj som syns i butik, produkt-API och varukorg', async () => {
+    const res = await send('POST', '/admin/campaigns', base);
+    expect(res.status).toBe(200);
+    const c = await json(res);
+    id = c.id;
+    expect(c.state).toBe('active');
+    expect(c.label).toBe('20 % på utvalda produkter');
+
+    const product = (await get('/products/pwo-plus')).body;
+    const six = product.variants.find((v: any) => v.id === 'pwo-plus-blueberry-6');
+    expect(six.ordinaryPriceOre).toBe(14900);
+    expect(six.priceOre).toBe(11900); // 149 kr − 20 % = 119,20 → 119 kr
+    expect(six.campaign).toBe('black-week');
+    expect(six.lowestPrice30DaysOre).not.toBeNull();
+
+    const quote = await quoteCart(db, { lines: [{ variantId: 'pwo-plus-blueberry-6', quantity: 2 }] });
+    expect(quote.lines[0]).toMatchObject({ unitPriceOre: 11900, lineTotalOre: 23800, campaign: 'black-week' });
+
+    const list = (await get('/storefront/products')).body;
+    const sv = list.find((p: any) => p.slug === 'pwo-plus').variants.find((v: any) => v.id === 'pwo-plus-blueberry-6');
+    expect(sv).toMatchObject({ price: 119, campaign: 'black-week' });
+    expect(sv.priceHistory.at(-1)).toEqual({ from: today(), price: 119 });
+
+    const pub = (await get('/campaigns')).body;
+    expect(pub).toEqual([{ slug: 'black-week', title: 'Black Week', intro: 'Veckans bästa priser.', endsOn: day(7), banner: base.banner }]);
+  });
+
+  it('förhandsvisar vilka produkter som får kampanjpris', async () => {
+    const rows = await json(await send('POST', '/admin/campaigns/preview', { valueType: 'percent', value: 20, appliesTo: base.appliesTo }));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ slug: 'pwo-plus', ordinaryFrom: 149, campaignFrom: 119 });
+  });
+
+  it('validerar fälten', async () => {
+    const bad = async (body: unknown) => (await json(await send('POST', '/admin/campaigns', body))).error;
+    expect(await bad({ ...base, slug: 'Black Week' })).toMatch(/a–z/);
+    expect(await bad({ ...base, slug: 'ny', value: 100 })).toMatch(/mindre än 100/);
+    expect(await bad({ ...base, slug: 'ny', valueType: 'price', appliesTo: { type: 'all' } })).toMatch(/utvalda produkter/);
+    expect(await bad({ ...base, slug: 'ny', endsOn: day(-1) })).toMatch(/före startdatum/);
+    expect(await bad({ ...base, slug: 'ny', banner: { text: '', placement: 'home' } })).toMatch(/text till bannern/);
+    expect((await send('POST', '/admin/campaigns', base)).status).toBe(409); // adressen finns redan
+  });
+
+  it('låser pris och produkter när kampanjen har börjat, och kan avslutas', async () => {
+    const started = await json(await send('POST', '/admin/campaigns', { ...base, slug: 'host', title: 'Höst', value: 10, startsOn: day(-3), banner: { text: '', placement: 'none' } }));
+    expect(started.locked).toBe(true);
+    expect((await send('PUT', `/admin/campaigns/${started.id}`, { ...base, slug: 'host', title: 'Höst', value: 15, startsOn: day(-3) })).status).toBe(409);
+    expect((await send('DELETE', `/admin/campaigns/${started.id}`)).status).toBe(409);
+    const renamed = await send('PUT', `/admin/campaigns/${started.id}`, { ...base, slug: 'host', title: 'Höstrea', value: 10, startsOn: day(-3), banner: { text: '', placement: 'none' } });
+    expect(renamed.status).toBe(200); // namn och text går att ändra
+    const ended = await json(await send('POST', `/admin/campaigns/${started.id}/end`));
+    expect(ended.endsOn).toBe(day(-1));
+    expect(ended.state).toBe('expired');
+  });
+
+  it('rabatter får ett val för kampanjvaror', async () => {
+    const res = await send('POST', '/admin/discounts', { method: 'code', code: 'KAMPANJOK', kind: 'order', valueType: 'percent', value: 10, startsAt: '2026-01-01T00:00:00.000Z', combineWithCampaigns: true });
+    expect((await json(res)).combineWithCampaigns).toBe(true);
+    expect((await json(await send('POST', '/discounts/check', { code: 'KAMPANJOK' }))).discount.combineWithCampaigns).toBe(true);
+  });
+
+  it('en kampanj som började i dag kan tas bort, och priset blir ordinarie igen', async () => {
+    expect((await send('DELETE', `/admin/campaigns/${id}`)).status).toBe(200);
+    const six = (await get('/products/pwo-plus')).body.variants.find((v: any) => v.id === 'pwo-plus-blueberry-6');
+    expect(six).toMatchObject({ priceOre: 14900, campaign: null });
+    expect((await get('/campaigns')).body).toEqual([]);
   });
 });

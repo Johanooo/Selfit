@@ -261,3 +261,7 @@
   font-size: var(--fs-sm, 0.8125rem);
   font-weight: 600;
 }
+
+/* Kampanjer: fast text före fältet, t.ex. "/kampanj/". */
+.admin-root .pf-affix--before .pf-input { padding-right: 12px; padding-left: 78px; }
+.admin-root .pf-affix--before span { right: auto; left: 10px; }
