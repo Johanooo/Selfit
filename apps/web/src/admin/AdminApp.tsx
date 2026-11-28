@@ -32,6 +32,7 @@ import { AdminNavigationContext, announcePrototypeAction, NavigableRows, readRow
 import { DiscountsView } from './discountViews';
 import { CampaignsView } from './campaignViews';
 import { TrashView } from './trashView';
+import { BackupView } from './backupView';
 import { MediaLibraryView } from './mediaLibraryView';
 import { OperationsProvider, useOperations, balance, batchStatus, money } from './operationsModel';
 import { OperationalOrders, OperationalOrderDetail, OperationalReturns, ManualOrderForm, PickPackView } from './operationsOrders';
@@ -603,6 +604,7 @@ function AdminWorkspace() {
   else if (route === '/admin/mejlmallar' || detailEmail) page = <EmailTemplatesView id={detailEmail?.[1]} go={go} />;
   else if (route === '/admin/omdirigeringar' || detailRedirect) page = <RedirectsView id={detailRedirect?.[1]} go={go} rows={redirectRows} onRowsChange={setRedirectRows} />;
   else if (route === '/admin/papperskorg') page = <TrashView go={go} />;
+  else if (route === '/admin/installningar/backup') page = <BackupView />;
   else if (route === '/admin/andringslogg' || route === '/admin/installningar/logg') page = <AuditLogView />;
   else if (route === '/admin/installningar/foretag') page = <CompanySettingsView />;
   else if (route === '/admin/installningar/villkor') page = <PoliciesSettingsView />;

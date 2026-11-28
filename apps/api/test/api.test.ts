@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { mkdtempSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -847,5 +848,29 @@ describe('papperskorg', () => {
     const res = await json(await send('DELETE', '/admin/trash'));
     expect(res.deleted).toBeGreaterThan(0);
     expect((await get('/admin/trash')).body).toEqual([]);
+  });
+});
+
+describe('backup', () => {
+  it('laddar ner databas och bilder som en .tar.gz och visar senaste backup', async () => {
+    const before = (await get('/admin/backup/info')).body;
+    expect(before.lastBackup).toBeNull();
+    expect(before.databaseBytes).toBeGreaterThan(0);
+
+    const res = await app.request('/api/admin/backup');
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-disposition')).toMatch(/attachment; filename="selfit-backup-\d{4}-\d{2}-\d{2}-\d{4}\.tar\.gz"/);
+    const tar = gunzipSync(Buffer.from(await res.arrayBuffer()));
+    // Första filen i arkivet är LASMIG.txt, sedan databasen.
+    expect(tar.subarray(0, 10).toString()).toBe('LASMIG.txt');
+    expect(tar.includes(Buffer.from('ustar'))).toBe(true);
+    const dbStart = tar.indexOf(Buffer.from('selfit.db\0'));
+    expect(dbStart).toBeGreaterThan(0);
+    expect(tar.subarray(dbStart + 512, dbStart + 512 + 15).toString()).toBe('SQLite format 3');
+
+    const small = await app.request('/api/admin/backup?bilder=0');
+    expect(small.headers.get('content-disposition')).toMatch(/-databas\.tar\.gz"/);
+    const after = (await get('/admin/backup/info')).body;
+    expect(after.lastBackup).not.toBeNull();
   });
 });
