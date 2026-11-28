@@ -874,3 +874,21 @@ describe('backup', () => {
     expect(after.lastBackup).not.toBeNull();
   });
 });
+
+describe('PWO+ bilder', () => {
+  it('en variant som skapas på nytt i Admin får samma burkbild som smaken', async () => {
+    const send = (method: string, path: string, body?: unknown) =>
+      app.request(`/api${path}`, { method, headers: { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
+    const p = (await (await send('GET', '/admin/products/pf_pwo-plus')).json()) as any;
+    const i = p.variants.findIndex((v: any) => v.flavour === 'mango-passion' && v.pack === 12);
+    // Som när varianterna genereras om: samma smak, men utan id.
+    p.variants[i] = { ...p.variants[i], id: undefined, sku: 'PWO-MANGO-12-NY' };
+    const res = await send('PUT', '/admin/products/pf_pwo-plus', p);
+    expect(res.status).toBe(200);
+    const fresh = await db.select().from(s.variants).where(eq(s.variants.sku, 'PWO-MANGO-12-NY'));
+    expect(fresh[0].image).toBe('can:mango-passion');
+    const shop = (await get('/storefront/products')).body.find((x: any) => x.slug === 'pwo-plus');
+    // Alla smaker har sin burkbild (testvarianten utan smak från ett tidigare test räknas inte).
+    expect(shop.variants.filter((v: any) => v.flavour).every((v: any) => v.image === `can:${v.flavour}`)).toBe(true);
+  });
+});

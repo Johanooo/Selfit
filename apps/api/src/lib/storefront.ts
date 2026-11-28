@@ -78,6 +78,8 @@ export async function buildStorefrontProducts(db: Db, statuses: Status[] = ['pub
     const fv = vars.filter((v) => v.familyId === f.id);
     const primaryCat = cats.find((c) => c.familyId === f.id && c.isPrimary)?.slug;
     const firstImage = d.images?.[0]?.src ?? d.primaryImage ?? base?.primaryImage;
+    // En variant utan egen bild lånar bilden från en annan variant med samma smak.
+    const sameFlavour = (v: (typeof fv)[number]) => (v.flavourSlug ? fv.find((o) => o.flavourSlug === v.flavourSlug && o.image)?.image : undefined);
     const variants: Variant[] = fv.map((v) => ({
       id: v.id,
       ...(v.flavourSlug ? { flavour: v.flavourSlug } : {}),
@@ -89,7 +91,7 @@ export async function buildStorefrontProducts(db: Db, statuses: Status[] = ['pub
       stock: stock.get(v.id) ?? 0,
       offered: v.status !== 'not_offered',
       ean: v.gtin ?? '',
-      image: v.image ?? (firstImage ? `photo:${firstImage}` : 'art'),
+      image: v.image ?? sameFlavour(v) ?? (firstImage ? `photo:${firstImage}` : 'art'),
       ...(v.netAmount && v.netUnit ? { measure: { amount: v.netAmount / 1000, unit: v.netUnit } } : {}),
       priceHistory: historyBy.get(v.id) ?? [],
     }));

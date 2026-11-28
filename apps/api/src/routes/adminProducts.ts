@@ -274,6 +274,17 @@ async function writeProduct(db: Db, input: ProductInput, existingId?: string) {
   }
   const curPrice = await currentPrices(db, input.variants.map((v) => v.id ?? ''), date);
   const curStock = await availableStock(db, input.variants.map((v) => v.id ?? ''));
+  // Burkbilden (can:smak) hör till varianten. En ny variant (t.ex. när varianterna genereras om)
+  // får samma bild som en tidigare variant med samma smak, så att ingen smak blir utan bild.
+  const usesCans = oldVars.some((o) => o.image?.startsWith('can:'));
+  const imageFor = (v: (typeof input.variants)[number]) => {
+    const own = oldVars.find((o) => o.id === v.id)?.image;
+    if (own) return own;
+    const values = Object.values(v.options).map((x) => x.trim().toLowerCase());
+    const flavour = v.flavour ?? pwoFlavours.find((f) => values.includes(f.name.toLowerCase()) || values.includes(f.slug))?.slug ?? null;
+    if (!flavour) return null;
+    return oldVars.find((o) => o.flavourSlug === flavour && o.image)?.image ?? (usesCans ? `can:${flavour}` : null);
+  };
   for (const [i, v] of input.variants.entries()) {
     const vid = v.id && oldVars.some((o) => o.id === v.id) ? v.id : newId('v');
     const label = input.optionNames.map((n) => v.options[n]).filter(Boolean).join(' ');
@@ -291,6 +302,7 @@ async function writeProduct(db: Db, input: ProductInput, existingId?: string) {
       depositClassId: depositClass,
       depositUnits: depositClass ? (v.pack ?? 1) : 0,
       options: Object.keys(v.options).length ? v.options : null,
+      image: imageFor(v),
       sortOrder: i,
     };
     if (vid === v.id) {
