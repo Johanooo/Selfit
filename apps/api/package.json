@@ -19,7 +19,7 @@
     "@hono/zod-validator": "^0.7.0",
     "@libsql/client": "^0.15.0",
     "drizzle-orm": "^0.45.2",
-    "hono": "^4.9.0",
+    "hono": "^4.13.23",
     "zod": "catalog:"
   },
   "devDependencies": {
