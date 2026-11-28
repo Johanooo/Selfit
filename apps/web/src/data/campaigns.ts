@@ -16,14 +16,20 @@ export interface CampaignAppliesTo {
   products: string[];
 }
 
-/** Det som behövs för att räkna ut priset. value: procent (1–99) eller öre. */
+/** En rad i en kampanj: en prissänkning för ett urval. value: procent (1–99) eller öre. */
+export interface CampaignLine {
+  id: string;
+  valueType: CampaignValueType;
+  value: number;
+  appliesTo: CampaignAppliesTo;
+}
+
+/** Det som behövs för att räkna ut priset. Alla rader delar datum, banner och kampanjsida. */
 export interface CampaignRule {
   id: string;
   slug: string;
   title: string;
-  valueType: CampaignValueType;
-  value: number;
-  appliesTo: CampaignAppliesTo;
+  lines: CampaignLine[];
   /** Första dagen, "ÅÅÅÅ-MM-DD" (svensk tid). */
   startsOn: string;
   /** Sista dagen (gäller hela dagen), eller null = tills vidare. */
@@ -71,36 +77,68 @@ export function campaignState(c: Pick<CampaignRule, 'enabled' | 'startsOn' | 'en
   return 'active' as const;
 }
 
-export function campaignMatches(c: Pick<CampaignRule, 'appliesTo'>, t: CampaignTarget) {
-  const a = c.appliesTo;
+/** Hur specifik en rad är: produkt före varumärke före kategori före allt. */
+export const SPECIFICITY: Record<CampaignAppliesTo['type'], number> = { products: 3, brands: 2, categories: 1, all: 0 };
+
+export function lineMatches(l: Pick<CampaignLine, 'appliesTo'>, t: CampaignTarget) {
+  const a = l.appliesTo;
   if (a.type === 'all') return true;
   if (a.type === 'products') return a.products.includes(t.slug);
   if (a.type === 'brands') return a.brands.includes(t.brand);
   return t.categories.some((cat) => a.categories.includes(cat));
 }
 
+/** Gäller kampanjen produkten (någon rad)? */
+export function campaignMatches(c: Pick<CampaignRule, 'lines'>, t: CampaignTarget) {
+  return c.lines.some((l) => lineMatches(l, t));
+}
+
 /**
- * Kampanjpriset i öre, eller null om kampanjen inte sänker priset.
+ * Kampanjpriset i öre, eller null om raden inte sänker priset.
  * Procent avrundas till hela kronor, så att priset blir snyggt (t.ex. 279 kr i stället för 279,20 kr).
  */
-export function campaignPrice(c: Pick<CampaignRule, 'valueType' | 'value'>, baseOre: number): number | null {
+export function campaignPrice(l: Pick<CampaignLine, 'valueType' | 'value'>, baseOre: number): number | null {
   let ore: number;
-  if (c.valueType === 'percent') ore = Math.round((baseOre * (100 - c.value)) / 100 / 100) * 100;
-  else if (c.valueType === 'amount') ore = baseOre - c.value;
-  else ore = c.value;
+  if (l.valueType === 'percent') ore = Math.round((baseOre * (100 - l.value)) / 100 / 100) * 100;
+  else if (l.valueType === 'amount') ore = baseOre - l.value;
+  else ore = l.value;
   ore = Math.max(0, ore);
   return ore < baseOre ? ore : null;
 }
 
-/** Den kampanj som ger lägst pris en viss dag. Flera kampanjer på samma vara: kunden får det bästa priset. */
-export function bestCampaign<C extends CampaignRule>(list: C[], t: CampaignTarget, baseOre: number, date: string): { campaign: C; ore: number } | null {
-  let best: { campaign: C; ore: number } | null = null;
-  for (const c of list) {
-    if (!campaignActiveOn(c, date) || !campaignMatches(c, t)) continue;
-    const ore = campaignPrice(c, baseOre);
-    if (ore !== null && (best === null || ore < best.ore)) best = { campaign: c, ore };
+/**
+ * Raden som gäller en produkt i en kampanj: den mest specifika (produkt före varumärke före kategori).
+ * Aldrig dubbel rabatt. Matchar flera rader på samma nivå gäller den som ger lägst pris.
+ */
+export function lineFor<L extends CampaignLine>(lines: L[], t: CampaignTarget, baseOre: number): { line: L; ore: number | null } | null {
+  const hits = lines.filter((l) => lineMatches(l, t));
+  if (!hits.length) return null;
+  const top = Math.max(...hits.map((l) => SPECIFICITY[l.appliesTo.type]));
+  let best: { line: L; ore: number | null } | null = null;
+  for (const line of hits.filter((l) => SPECIFICITY[l.appliesTo.type] === top)) {
+    const ore = campaignPrice(line, baseOre);
+    if (best === null || (ore !== null && (best.ore === null || ore < best.ore))) best = { line, ore };
   }
   return best;
+}
+
+/**
+ * Det bästa kampanjpriset en viss dag. Pågår flera kampanjer för samma produkt
+ * gäller det lägsta priset (Admin varnar för sådana krockar).
+ */
+export function bestCampaign<C extends CampaignRule>(list: C[], t: CampaignTarget, baseOre: number, date: string): { campaign: C; line: CampaignLine; ore: number } | null {
+  let best: { campaign: C; line: CampaignLine; ore: number } | null = null;
+  for (const c of list) {
+    if (!campaignActiveOn(c, date)) continue;
+    const hit = lineFor(c.lines, t, baseOre);
+    if (hit?.ore != null && (best === null || hit.ore < best.ore)) best = { campaign: c, line: hit.line, ore: hit.ore };
+  }
+  return best;
+}
+
+/** Krockar två kampanjers perioder (minst en dag gemensam)? */
+export function periodsOverlap(a: Pick<CampaignRule, 'startsOn' | 'endsOn'>, b: Pick<CampaignRule, 'startsOn' | 'endsOn'>) {
+  return (a.endsOn === null || a.endsOn >= b.startsOn) && (b.endsOn === null || b.endsOn >= a.startsOn);
 }
 
 /**

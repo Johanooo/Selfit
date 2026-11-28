@@ -1,22 +1,36 @@
 import { useEffect, useMemo, useState } from 'react';
 import { categories, subcategoriesOf } from '@/data/categories';
 import { CAMPAIGN_VALUE_LABELS, type CampaignAppliesTo, type CampaignPlacement, type CampaignValueType } from '@/data/campaigns';
+import type { ReactNode } from 'react';
 import { call, Card, ChecklistPicker, Radio } from './discountViews';
 
 /**
  * Admin → Marknadsföring → Kampanjer. Ett kampanjpris syns direkt i butiken (REA, överstruket pris),
  * till skillnad från en rabatt som dras i varukorgen.
+ * En kampanj har en eller flera rader (t.ex. PWO+ 20 %, Träningskläder 30 %) som delar datum, banner och sida.
  */
 
 type State = 'active' | 'scheduled' | 'expired' | 'disabled';
+interface Line {
+  id?: string;
+  valueType: CampaignValueType;
+  value: number;
+  appliesTo: CampaignAppliesTo;
+}
+interface Overlap {
+  id: string;
+  title: string;
+  startsOn: string;
+  endsOn: string | null;
+  count: number;
+  products: string[];
+}
 interface Campaign {
   id?: string;
   title: string;
   slug: string;
   intro: string;
-  valueType: CampaignValueType;
-  value: number;
-  appliesTo: CampaignAppliesTo;
+  lines: Line[];
   startsOn: string;
   endsOn: string | null;
   enabled: boolean;
@@ -24,6 +38,7 @@ interface Campaign {
   label?: string;
   state?: State;
   locked?: boolean;
+  overlaps?: Overlap[];
 }
 interface Affected {
   slug: string;
@@ -32,6 +47,8 @@ interface Affected {
   ordinaryFrom: number | null;
   campaignFrom: number | null;
   notLowered: number;
+  line: number | null;
+  matchingLines: number;
 }
 
 const STATE: Record<State, string> = { active: 'Pågår', scheduled: 'Schemalagd', expired: 'Avslutad', disabled: 'Avstängd' };
@@ -55,23 +72,49 @@ export const slugify = (t: string) =>
     .replace(/^-+|-+$/g, '')
     .slice(0, 60);
 
+const emptyLine = (): Line => ({ valueType: 'percent', value: 0, appliesTo: { type: 'all', categories: [], brands: [], products: [] } });
+
 const emptyCampaign = (): Campaign => ({
   title: '',
   slug: '',
   intro: '',
-  valueType: 'percent',
-  value: 0,
-  appliesTo: { type: 'all', categories: [], brands: [], products: [] },
+  lines: [emptyLine()],
   startsOn: todayIso(),
   endsOn: null,
   enabled: true,
   banner: { text: '', placement: 'none' },
 });
 
-const valueText = (c: Pick<Campaign, 'valueType' | 'value'>) =>
+const valueText = (c: Pick<Line, 'valueType' | 'value'>) =>
   !(c.value > 0) ? '–' : c.valueType === 'percent' ? `${fmt(c.value)} % rabatt` : c.valueType === 'amount' ? `${fmt(c.value)} kr av priset` : `Kampanjpris ${fmt(c.value)} kr`;
 
 const badgeClass = (s?: State) => (s === 'active' ? 'published' : s === 'scheduled' ? '' : 'archived');
+
+/** Varning: andra kampanjer som pågår samtidigt för samma produkter. */
+function OverlapWarning({ list, go }: { list: Overlap[]; go: (path: string) => void }) {
+  if (!list.length) return null;
+  return (
+    <div className="pf-error cp-overlap" role="note" data-testid="warning-campaign-overlap">
+      <strong>Krockar med {list.length === 1 ? 'en annan kampanj' : `${list.length} andra kampanjer`}</strong>
+      {list.map((o) => (
+        <p key={o.id}>
+          <a
+            href={`/admin/kampanjer/${o.id}`}
+            onClick={(e) => {
+              e.preventDefault();
+              go(`/admin/kampanjer/${o.id}`);
+            }}
+          >
+            {o.title}
+          </a>{' '}
+          ({period(o)}) gäller också {o.count} {o.count === 1 ? 'produkt' : 'produkter'}: {o.products.join(', ')}
+          {o.count > o.products.length ? ' …' : ''}.
+        </p>
+      ))}
+      <p>Kunden får det lägsta priset, aldrig båda rabatterna. Ändra datum eller urval om det inte är meningen.</p>
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------- Lista
 
@@ -134,6 +177,7 @@ function CampaignList({ go }: { go: (path: string) => void }) {
                       <strong>{r.title}</strong>
                     </a>
                     <span className="pf-sub">{r.label}</span>
+                    {r.overlaps && r.overlaps.length > 0 && <span className="pf-sub cp-overlap-flag">⚠ Krockar med {r.overlaps.map((o) => o.title).join(', ')}</span>}
                   </th>
                   <td>
                     <span className={`pf-badge ${badgeClass(r.state)}`}>{STATE[r.state!]}</span>
@@ -152,6 +196,23 @@ function CampaignList({ go }: { go: (path: string) => void }) {
 
 // ---------------------------------------------------------------- Formulär
 
+function LineCard({ title, index, count, locked, onRemove, children }: { title: string; index: number; count: number; locked: boolean; onRemove: () => void; children: ReactNode }) {
+  return (
+    <Card
+      title={title}
+      action={
+        count > 1 && !locked ? (
+          <button type="button" className="pf-icon" onClick={onRemove} aria-label={`Ta bort rad ${index + 1}`} data-testid={`button-campaign-remove-line-${index}`}>
+            ✕
+          </button>
+        ) : undefined
+      }
+    >
+      {children}
+    </Card>
+  );
+}
+
 function CampaignForm({ id, go, onTitleChange }: { id: string; go: (path: string) => void; onTitleChange: (t: string) => void }) {
   const isNew = id === 'ny';
   const [c, setC] = useState<Campaign | null>(isNew ? emptyCampaign() : null);
@@ -165,6 +226,7 @@ function CampaignForm({ id, go, onTitleChange }: { id: string; go: (path: string
   const [products, setProducts] = useState<{ slug: string; name: string }[]>([]);
   const [brands, setBrands] = useState<{ slug: string; name: string }[]>([]);
   const [affected, setAffected] = useState<Affected[] | null>(null);
+  const [overlaps, setOverlaps] = useState<Overlap[]>([]);
   const [confirm, setConfirm] = useState<'' | 'delete' | 'end'>('');
 
   useEffect(() => {
@@ -188,12 +250,20 @@ function CampaignForm({ id, go, onTitleChange }: { id: string; go: (path: string
   }, [c?.title]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Förhandsvisning: vilka produkter som får kampanjpris med nuvarande val.
-  const previewKey = c ? JSON.stringify([c.valueType, c.value, c.appliesTo]) : '';
+  const previewKey = c ? JSON.stringify([c.lines, c.startsOn, c.endsOn]) : '';
   useEffect(() => {
     if (!c) return;
     const t = window.setTimeout(() => {
-      call<Affected[]>('POST', '/admin/campaigns/preview', { valueType: c.valueType, value: c.value || 0, appliesTo: c.appliesTo })
-        .then(setAffected)
+      call<{ products: Affected[]; overlaps: Overlap[] }>('POST', '/admin/campaigns/preview', {
+        id: c.id,
+        lines: c.lines.map((l) => ({ ...l, value: l.value || 0 })),
+        startsOn: c.startsOn,
+        endsOn: c.endsOn,
+      })
+        .then((r) => {
+          setAffected(r.products);
+          setOverlaps(r.overlaps);
+        })
         .catch(() => setAffected(null));
     }, 300);
     return () => window.clearTimeout(t);
@@ -207,13 +277,25 @@ function CampaignForm({ id, go, onTitleChange }: { id: string; go: (path: string
   if (!c) return <p>{status.text ?? 'Laddar …'}</p>;
 
   const dirty = JSON.stringify(c) !== base;
+  const productNames = new Map(products.map((p) => [p.slug, p.name]));
   const locked = Boolean(c.locked);
   const set = (patch: Partial<Campaign>) => {
     setC({ ...c, ...patch });
     if (status.kind !== 'saving') setStatus({ kind: 'idle' });
     setConfirm('');
   };
-  const setApplies = (patch: Partial<CampaignAppliesTo>) => set({ appliesTo: { ...c.appliesTo, ...patch } });
+  const setLine = (i: number, patch: Partial<Line>) => set({ lines: c.lines.map((l, j) => (j === i ? { ...l, ...patch } : l)) });
+  const setApplies = (i: number, patch: Partial<CampaignAppliesTo>) => setLine(i, { appliesTo: { ...c.lines[i].appliesTo, ...patch } });
+  const brandNames = new Map(brands.map((b) => [b.slug, b.name]));
+  const catNames = new Map(catOptions.map((o) => [o.value, o.label.replace(/^Allt i /, '')]));
+  const lineTarget = (l: Line) =>
+    l.appliesTo.type === 'products' && l.appliesTo.products.length
+      ? l.appliesTo.products.map((p) => productNames.get(p) ?? p).join(', ')
+      : l.appliesTo.type === 'brands' && l.appliesTo.brands.length
+        ? l.appliesTo.brands.map((b) => brandNames.get(b) ?? b).join(', ')
+        : l.appliesTo.type === 'categories' && l.appliesTo.categories.length
+          ? l.appliesTo.categories.map((x) => catNames.get(x) ?? x).join(', ')
+          : APPLIES[l.appliesTo.type];
 
   const save = async () => {
     setStatus({ kind: 'saving' });
@@ -258,7 +340,6 @@ function CampaignForm({ id, go, onTitleChange }: { id: string; go: (path: string
     }
   };
 
-  const productNames = new Map(products.map((p) => [p.slug, p.name]));
   const notLowered = (affected ?? []).reduce((n, a) => n + a.notLowered, 0);
   const showBanner = c.banner.placement !== 'none';
 
@@ -312,75 +393,99 @@ function CampaignForm({ id, go, onTitleChange }: { id: string; go: (path: string
             </div>
           </Card>
 
-          <Card title="Kampanjpris">
-            {locked && <p className="pf-help">Kampanjen har redan börjat. Pris och produkter kan inte ändras, eftersom de finns i prishistoriken.</p>}
-            <div className="dc-value-row">
-              <select
-                className="pf-input"
-                aria-label="Typ av prissänkning"
-                value={c.valueType}
-                disabled={locked}
-                onChange={(e) => {
-                  const valueType = e.target.value as CampaignValueType;
-                  set({ valueType, appliesTo: valueType === 'price' ? { ...c.appliesTo, type: 'products' } : c.appliesTo });
-                }}
-                data-testid="select-campaign-value-type"
-              >
-                {(Object.keys(CAMPAIGN_VALUE_LABELS) as CampaignValueType[]).map((k) => (
-                  <option key={k} value={k}>
-                    {CAMPAIGN_VALUE_LABELS[k]}
-                  </option>
-                ))}
-              </select>
-              <div className="pf-affix">
-                <input
+          {c.lines.map((l, i) => (
+            <LineCard
+              key={l.id ?? `ny-${i}`}
+              index={i}
+              count={c.lines.length}
+              title={c.lines.length > 1 ? `Rad ${i + 1}` : 'Kampanjpris'}
+              locked={locked}
+              onRemove={() => set({ lines: c.lines.filter((_, j) => j !== i) })}
+            >
+              <div className="dc-value-row">
+                <select
                   className="pf-input"
-                  type="number"
-                  min={0}
-                  max={c.valueType === 'percent' ? 99 : undefined}
-                  inputMode="decimal"
-                  aria-label={c.valueType === 'percent' ? 'Procent' : 'Kronor'}
-                  value={c.value || ''}
-                  placeholder="0"
+                  aria-label="Typ av prissänkning"
+                  value={l.valueType}
                   disabled={locked}
-                  onChange={(e) => set({ value: Number(e.target.value) })}
-                  data-testid="input-campaign-value"
-                />
-                <span>{c.valueType === 'percent' ? '%' : 'kr'}</span>
+                  onChange={(e) => {
+                    const valueType = e.target.value as CampaignValueType;
+                    setLine(i, { valueType, appliesTo: valueType === 'price' ? { ...l.appliesTo, type: 'products' } : l.appliesTo });
+                  }}
+                  data-testid={`select-campaign-value-type-${i}`}
+                >
+                  {(Object.keys(CAMPAIGN_VALUE_LABELS) as CampaignValueType[]).map((k) => (
+                    <option key={k} value={k}>
+                      {CAMPAIGN_VALUE_LABELS[k]}
+                    </option>
+                  ))}
+                </select>
+                <div className="pf-affix">
+                  <input
+                    className="pf-input"
+                    type="number"
+                    min={0}
+                    max={l.valueType === 'percent' ? 99 : undefined}
+                    inputMode="decimal"
+                    aria-label={l.valueType === 'percent' ? 'Procent' : 'Kronor'}
+                    value={l.value || ''}
+                    placeholder="0"
+                    disabled={locked}
+                    onChange={(e) => setLine(i, { value: Number(e.target.value) })}
+                    data-testid={`input-campaign-value-${i}`}
+                  />
+                  <span>{l.valueType === 'percent' ? '%' : 'kr'}</span>
+                </div>
               </div>
+              <p className="pf-help">
+                {l.valueType === 'percent'
+                  ? 'Priset avrundas till hela kronor, t.ex. 349 kr − 20 % = 279 kr.'
+                  : l.valueType === 'amount'
+                    ? 'Beloppet dras från priset på varje vara, t.ex. 349 kr − 50 kr = 299 kr.'
+                    : 'Alla valda produkter får samma pris. Passar bäst när du väljer en enda produkt.'}
+              </p>
+              <div className="pf-field">
+                <label htmlFor={`cp-applies-${i}`}>Gäller för</label>
+                <select
+                  id={`cp-applies-${i}`}
+                  className="pf-input"
+                  value={l.appliesTo.type}
+                  disabled={locked || l.valueType === 'price'}
+                  onChange={(e) => setApplies(i, { type: e.target.value as CampaignAppliesTo['type'] })}
+                  data-testid={`select-campaign-applies-${i}`}
+                >
+                  {(Object.keys(APPLIES) as CampaignAppliesTo['type'][]).map((k) => (
+                    <option key={k} value={k}>
+                      {APPLIES[k]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {locked ? (
+                <p className="pf-help">{lineTarget(l)}</p>
+              ) : (
+                <>
+                  {l.appliesTo.type === 'categories' && <ChecklistPicker id={`cp-cats-${i}`} label="Kategorier" placeholder="Sök kategori" options={catOptions} selected={l.appliesTo.categories} onChange={(v) => setApplies(i, { categories: v })} />}
+                  {l.appliesTo.type === 'brands' && (
+                    <ChecklistPicker id={`cp-brands-${i}`} label="Varumärken" placeholder="Sök varumärke" options={brands.map((b) => ({ value: b.slug, label: b.name }))} selected={l.appliesTo.brands} onChange={(v) => setApplies(i, { brands: v })} />
+                  )}
+                  {l.appliesTo.type === 'products' && (
+                    <ChecklistPicker id={`cp-products-${i}`} label="Produkter" placeholder="Sök produkt" options={products.map((p) => ({ value: p.slug, label: p.name }))} selected={l.appliesTo.products} onChange={(v) => setApplies(i, { products: v })} />
+                  )}
+                </>
+              )}
+            </LineCard>
+          ))}
+          {locked ? (
+            <p className="pf-help">Kampanjen har redan börjat. Rader kan inte ändras, eftersom de finns i prishistoriken.</p>
+          ) : (
+            <div className="cp-add-line">
+              <button type="button" className="pf-add" onClick={() => set({ lines: [...c.lines, emptyLine()] })} data-testid="button-campaign-add-line">
+                ＋ Lägg till rad
+              </button>
+              {c.lines.length > 1 && <p className="pf-help">Hamnar en produkt på flera rader gäller den mest specifika: produkt före varumärke före kategori. Aldrig dubbel rabatt.</p>}
             </div>
-            <p className="pf-help">
-              {c.valueType === 'percent'
-                ? 'Priset avrundas till hela kronor, t.ex. 349 kr − 20 % = 279 kr.'
-                : c.valueType === 'amount'
-                  ? 'Beloppet dras från priset på varje vara, t.ex. 349 kr − 50 kr = 299 kr.'
-                  : 'Alla valda produkter får samma pris. Passar bäst när du väljer en enda produkt.'}
-            </p>
-            <div className="pf-field">
-              <label htmlFor="cp-applies">Gäller för</label>
-              <select
-                id="cp-applies"
-                className="pf-input"
-                value={c.appliesTo.type}
-                disabled={locked || c.valueType === 'price'}
-                onChange={(e) => setApplies({ type: e.target.value as CampaignAppliesTo['type'] })}
-                data-testid="select-campaign-applies"
-              >
-                {(Object.keys(APPLIES) as CampaignAppliesTo['type'][]).map((k) => (
-                  <option key={k} value={k}>
-                    {APPLIES[k]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {!locked && c.appliesTo.type === 'categories' && <ChecklistPicker id="cp-cats" label="Kategorier" placeholder="Sök kategori" options={catOptions} selected={c.appliesTo.categories} onChange={(v) => setApplies({ categories: v })} />}
-            {!locked && c.appliesTo.type === 'brands' && (
-              <ChecklistPicker id="cp-brands" label="Varumärken" placeholder="Sök varumärke" options={brands.map((b) => ({ value: b.slug, label: b.name }))} selected={c.appliesTo.brands} onChange={(v) => setApplies({ brands: v })} />
-            )}
-            {!locked && c.appliesTo.type === 'products' && (
-              <ChecklistPicker id="cp-products" label="Produkter" placeholder="Sök produkt" options={products.map((p) => ({ value: p.slug, label: p.name }))} selected={c.appliesTo.products} onChange={(v) => setApplies({ products: v })} />
-            )}
-          </Card>
+          )}
 
           <Card title={`Produkter i kampanjen${affected ? ` (${affected.length})` : ''}`}>
             {affected === null ? (
@@ -389,6 +494,7 @@ function CampaignForm({ id, go, onTitleChange }: { id: string; go: (path: string
               <p className="pf-help">Inga produkter än. Välj vad kampanjen gäller ovan.</p>
             ) : (
               <>
+                <OverlapWarning list={overlaps} go={go} />
                 {notLowered > 0 && (
                   <p className="pf-error" role="note" data-testid="warning-campaign-not-lowered">
                     {notLowered} {notLowered === 1 ? 'variant kostar' : 'varianter kostar'} redan mindre än kampanjpriset och får ingen kampanj.
@@ -400,6 +506,7 @@ function CampaignForm({ id, go, onTitleChange }: { id: string; go: (path: string
                       <th scope="col">Produkt</th>
                       <th scope="col">Ordinarie från</th>
                       <th scope="col">Kampanjpris från</th>
+                      {c.lines.length > 1 && <th scope="col">Rad</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -415,6 +522,12 @@ function CampaignForm({ id, go, onTitleChange }: { id: string; go: (path: string
                         <td>
                           <strong>{a.campaignFrom === null ? '–' : `${fmt(a.campaignFrom)} kr`}</strong>
                         </td>
+                        {c.lines.length > 1 && (
+                          <td className="pf-sub">
+                            {a.line ? `Rad ${a.line}` : '–'}
+                            {a.matchingLines > 1 ? ` (finns på ${a.matchingLines} rader, den mest specifika gäller)` : ''}
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -463,12 +576,11 @@ function CampaignForm({ id, go, onTitleChange }: { id: string; go: (path: string
               <p className="pf-sub">/kampanj/{c.slug || '…'}</p>
               <h3>Detaljer</h3>
               <ul data-testid="list-campaign-summary">
-                <li>{valueText(c)}</li>
-                <li>
-                  {c.appliesTo.type === 'products' && c.appliesTo.products.length
-                    ? c.appliesTo.products.map((p) => productNames.get(p) ?? p).join(', ')
-                    : APPLIES[c.appliesTo.type]}
-                </li>
+                {c.lines.map((l, i) => (
+                  <li key={l.id ?? i}>
+                    {valueText(l)} – {lineTarget(l)}
+                  </li>
+                ))}
                 <li>{period(c)}</li>
                 <li>{showBanner ? `Banner: ${PLACEMENT[c.banner.placement]}` : 'Ingen banner'}</li>
                 <li>Lägsta pris 30 dagar visas automatiskt</li>

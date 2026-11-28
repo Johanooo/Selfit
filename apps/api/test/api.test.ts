@@ -12,7 +12,7 @@ import { syncReferenceData, syncVatClasses } from '../src/routes/adminProducts.t
 import { syncTaxonomy } from '../src/routes/taxonomy.ts';
 import * as s from '../src/db/schema.ts';
 import { depositRatesOn, lowest30, lowestPrice30Days, today } from '../src/lib/pricing.ts';
-import { campaignPrice, withCampaigns } from '../../web/src/data/campaigns.ts';
+import { campaignPrice, lineFor, withCampaigns } from '../../web/src/data/campaigns.ts';
 import { quoteCart } from '../src/routes/cart.ts';
 
 let db: Db;
@@ -649,24 +649,27 @@ describe('kampanjer', () => {
     d.setUTCDate(d.getUTCDate() + offset);
     return d.toISOString().slice(0, 10);
   };
+  const pwo20 = { valueType: 'percent', value: 20, appliesTo: { type: 'products', products: ['pwo-plus'] } };
   const base = {
     title: 'Black Week',
     slug: 'black-week',
     intro: 'Veckans bästa priser.',
-    valueType: 'percent',
-    value: 20,
-    appliesTo: { type: 'products', products: ['pwo-plus'] },
+    lines: [pwo20],
     startsOn: day(0),
     endsOn: day(7),
     banner: { text: 'Black Week – 20 % på PWO+', placement: 'both' },
   };
+  const variant = async (id: string) => (await get('/products/pwo-plus')).body.variants.find((v: any) => v.id === id);
   let id = '';
 
   it('räknar kampanjpris och lägger det i prishistoriken', () => {
     expect(campaignPrice({ valueType: 'percent', value: 20 }, 34900)).toBe(27900); // 279,20 kr avrundas till 279 kr
     expect(campaignPrice({ valueType: 'amount', value: 5000 }, 34900)).toBe(29900);
     expect(campaignPrice({ valueType: 'price', value: 40000 }, 34900)).toBeNull(); // högre än ordinarie: ingen kampanj
-    const rule = { id: 'x', slug: 'x', title: 'X', valueType: 'percent' as const, value: 20, appliesTo: { type: 'all' as const, categories: [], brands: [], products: [] }, startsOn: '2026-11-20', endsOn: '2026-11-26', enabled: true };
+    const rule = {
+      id: 'x', slug: 'x', title: 'X', startsOn: '2026-11-20', endsOn: '2026-11-26', enabled: true,
+      lines: [{ id: 'a', valueType: 'percent' as const, value: 20, appliesTo: { type: 'all' as const, categories: [], brands: [], products: [] } }],
+    };
     const t = { slug: 'p', brand: 'b', categories: [] };
     const h = withCampaigns([{ from: '2026-01-01', ore: 34900 }], [rule], t, '2026-11-30');
     expect(h).toEqual([
@@ -678,6 +681,16 @@ describe('kampanjer', () => {
     expect(lowest30(h, '2026-11-30')).toBeNull(); // efter kampanjen är det ingen sänkning
   });
 
+  it('den mest specifika raden gäller: produkt före varumärke före kategori, aldrig dubbel rabatt', () => {
+    const line = (id: string, value: number, appliesTo: any) => ({ id, valueType: 'percent' as const, value, appliesTo: { categories: [], brands: [], products: [], ...appliesTo } });
+    const lines = [line('kat', 30, { type: 'categories', categories: ['drycker'] }), line('mark', 25, { type: 'brands', brands: ['selfit'] }), line('prod', 10, { type: 'products', products: ['pwo-plus'] })];
+    const pwo = { slug: 'pwo-plus', brand: 'selfit', categories: ['drycker'] };
+    expect(lineFor(lines, pwo, 10000)).toMatchObject({ line: { id: 'prod' }, ore: 9000 }); // 10 %, inte 30 %
+    expect(lineFor(lines, { slug: 'annan', brand: 'selfit', categories: ['drycker'] }, 10000)).toMatchObject({ line: { id: 'mark' }, ore: 7500 });
+    expect(lineFor(lines, { slug: 'annan', brand: 'annat', categories: ['drycker'] }, 10000)).toMatchObject({ line: { id: 'kat' }, ore: 7000 });
+    expect(lineFor(lines, { slug: 'annan', brand: 'annat', categories: ['klader'] }, 10000)).toBeNull();
+  });
+
   it('skapar en kampanj som syns i butik, produkt-API och varukorg', async () => {
     const res = await send('POST', '/admin/campaigns', base);
     expect(res.status).toBe(200);
@@ -685,9 +698,9 @@ describe('kampanjer', () => {
     id = c.id;
     expect(c.state).toBe('active');
     expect(c.label).toBe('20 % på utvalda produkter');
+    expect(c.lines[0].id).toBeTruthy();
 
-    const product = (await get('/products/pwo-plus')).body;
-    const six = product.variants.find((v: any) => v.id === 'pwo-plus-blueberry-6');
+    const six = await variant('pwo-plus-blueberry-6');
     expect(six.ordinaryPriceOre).toBe(14900);
     expect(six.priceOre).toBe(11900); // 149 kr − 20 % = 119,20 → 119 kr
     expect(six.campaign).toBe('black-week');
@@ -705,28 +718,47 @@ describe('kampanjer', () => {
     expect(pub).toEqual([{ slug: 'black-week', title: 'Black Week', intro: 'Veckans bästa priser.', endsOn: day(7), banner: base.banner }]);
   });
 
-  it('förhandsvisar vilka produkter som får kampanjpris', async () => {
-    const rows = await json(await send('POST', '/admin/campaigns/preview', { valueType: 'percent', value: 20, appliesTo: base.appliesTo }));
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ slug: 'pwo-plus', ordinaryFrom: 149, campaignFrom: 119 });
+  it('flera rader i samma kampanj: produktraden vinner över kategoriraden', async () => {
+    const lines = [pwo20, { valueType: 'percent', value: 30, appliesTo: { type: 'categories', categories: ['drycker'] } }];
+    const res = await send('PUT', `/admin/campaigns/${id}`, { ...base, lines });
+    expect(res.status).toBe(200);
+    expect((await json(res)).label).toBe('2 rader med olika rabatt');
+    expect((await variant('pwo-plus-blueberry-6')).priceOre).toBe(11900); // fortfarande 20 %, inte 30 % och inte 20 + 30
+    const preview = await json(await send('POST', '/admin/campaigns/preview', { id, lines, startsOn: day(0), endsOn: day(7) }));
+    expect(preview.products.find((p: any) => p.slug === 'pwo-plus')).toMatchObject({ line: 1, matchingLines: 2, campaignFrom: 119 });
+    expect(preview.overlaps).toEqual([]);
+  });
+
+  it('två kampanjer samtidigt: lägsta priset gäller och Admin varnar', async () => {
+    const other = await json(await send('POST', '/admin/campaigns', { ...base, slug: 'helg', title: 'Helgrea', lines: [{ valueType: 'percent', value: 40, appliesTo: { type: 'products', products: ['pwo-plus'] } }], banner: { text: '', placement: 'none' } }));
+    expect(other.overlaps).toMatchObject([{ id, title: 'Black Week', products: ['PWO+ Pre-workout'] }]);
+    const six = await variant('pwo-plus-blueberry-6');
+    expect(six).toMatchObject({ priceOre: 8900, campaign: 'helg' }); // 149 − 40 % = 89,40 → 89 kr
+    const list = await json(await send('GET', '/admin/campaigns'));
+    expect(list.find((c: any) => c.id === id).overlaps[0].title).toBe('Helgrea');
+    expect((await send('DELETE', `/admin/campaigns/${other.id}`)).status).toBe(200);
+    expect((await variant('pwo-plus-blueberry-6')).priceOre).toBe(11900);
   });
 
   it('validerar fälten', async () => {
     const bad = async (body: unknown) => (await json(await send('POST', '/admin/campaigns', body))).error;
     expect(await bad({ ...base, slug: 'Black Week' })).toMatch(/a–z/);
-    expect(await bad({ ...base, slug: 'ny', value: 100 })).toMatch(/mindre än 100/);
-    expect(await bad({ ...base, slug: 'ny', valueType: 'price', appliesTo: { type: 'all' } })).toMatch(/utvalda produkter/);
+    expect(await bad({ ...base, slug: 'ny', lines: [] })).toMatch(/minst en rad/);
+    expect(await bad({ ...base, slug: 'ny', lines: [{ ...pwo20, value: 100 }] })).toMatch(/mindre än 100/);
+    expect(await bad({ ...base, slug: 'ny', lines: [pwo20, { valueType: 'price', value: 49, appliesTo: { type: 'all' } }] })).toMatch(/Rad 2: Fast kampanjpris/);
     expect(await bad({ ...base, slug: 'ny', endsOn: day(-1) })).toMatch(/före startdatum/);
     expect(await bad({ ...base, slug: 'ny', banner: { text: '', placement: 'home' } })).toMatch(/text till bannern/);
     expect((await send('POST', '/admin/campaigns', base)).status).toBe(409); // adressen finns redan
   });
 
-  it('låser pris och produkter när kampanjen har börjat, och kan avslutas', async () => {
-    const started = await json(await send('POST', '/admin/campaigns', { ...base, slug: 'host', title: 'Höst', value: 10, startsOn: day(-3), banner: { text: '', placement: 'none' } }));
+  it('låser raderna när kampanjen har börjat, och kan avslutas', async () => {
+    const host = { ...base, slug: 'host', title: 'Höst', lines: [{ ...pwo20, value: 10 }], startsOn: day(-3), banner: { text: '', placement: 'none' } };
+    const started = await json(await send('POST', '/admin/campaigns', host));
     expect(started.locked).toBe(true);
-    expect((await send('PUT', `/admin/campaigns/${started.id}`, { ...base, slug: 'host', title: 'Höst', value: 15, startsOn: day(-3) })).status).toBe(409);
+    expect((await send('PUT', `/admin/campaigns/${started.id}`, { ...host, lines: [{ ...pwo20, value: 15 }] })).status).toBe(409);
+    expect((await send('PUT', `/admin/campaigns/${started.id}`, { ...host, lines: [...host.lines, pwo20] })).status).toBe(409);
     expect((await send('DELETE', `/admin/campaigns/${started.id}`)).status).toBe(409);
-    const renamed = await send('PUT', `/admin/campaigns/${started.id}`, { ...base, slug: 'host', title: 'Höstrea', value: 10, startsOn: day(-3), banner: { text: '', placement: 'none' } });
+    const renamed = await send('PUT', `/admin/campaigns/${started.id}`, { ...host, title: 'Höstrea', lines: started.lines });
     expect(renamed.status).toBe(200); // namn och text går att ändra
     const ended = await json(await send('POST', `/admin/campaigns/${started.id}/end`));
     expect(ended.endsOn).toBe(day(-1));
@@ -741,8 +773,7 @@ describe('kampanjer', () => {
 
   it('en kampanj som började i dag kan tas bort, och priset blir ordinarie igen', async () => {
     expect((await send('DELETE', `/admin/campaigns/${id}`)).status).toBe(200);
-    const six = (await get('/products/pwo-plus')).body.variants.find((v: any) => v.id === 'pwo-plus-blueberry-6');
-    expect(six).toMatchObject({ priceOre: 14900, campaign: null });
+    expect(await variant('pwo-plus-blueberry-6')).toMatchObject({ priceOre: 14900, campaign: null });
     expect((await get('/campaigns')).body).toEqual([]);
   });
 });

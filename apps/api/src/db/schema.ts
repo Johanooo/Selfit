@@ -454,9 +454,12 @@ export const discounts = sqliteTable('discounts', {
 
 export type CampaignAppliesTo = { type: 'all' | 'categories' | 'brands' | 'products'; categories: string[]; brands: string[]; products: string[] };
 export type CampaignBanner = { text: string; placement: 'none' | 'home' | 'topbar' | 'both' };
+/** En rad: prissänkning för ett urval. value: procent (1–99) eller öre. */
+export type CampaignLineRow = { id: string; valueType: 'percent' | 'amount' | 'price'; value: number; appliesTo: CampaignAppliesTo };
 
 /**
- * Kampanjpris som syns direkt i butiken. value: procent (1–99) eller öre.
+ * Kampanjpris som syns direkt i butiken. En kampanj har en eller flera rader (lines),
+ * som delar datum, banner och kampanjsida. Matchar flera rader gäller den mest specifika.
  * starts_on/ends_on är datum (svensk tid); ends_on gäller hela dagen, null = tills vidare.
  */
 export const campaigns = sqliteTable('campaigns', {
@@ -464,9 +467,7 @@ export const campaigns = sqliteTable('campaigns', {
   slug: text('slug').notNull().unique(),
   title: text('title').notNull(),
   intro: text('intro').notNull().default(''),
-  valueType: text('value_type', { enum: ['percent', 'amount', 'price'] }).notNull().default('percent'),
-  value: integer('value').notNull().default(0),
-  appliesTo: json<CampaignAppliesTo>('applies_to').notNull(),
+  lines: json<CampaignLineRow[]>('lines').notNull(),
   startsOn: text('starts_on').notNull(),
   endsOn: text('ends_on'),
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
